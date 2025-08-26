@@ -3,256 +3,168 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Main Page</title>
+  <title>Rebar Vista - Camera</title>
   
-  <!-- Correct CSS paths based on your structure -->
+  <!-- CSS Files -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/mainpage.css') }}">
-  
-  <style>
-    /* PORTRAIT 480x640 camera container */
-    .camera-container {
-      width: 480px !important;  /* Portrait width */
-      height: 640px !important; /* Portrait height */
-      min-width: 480px !important;
-      max-width: 480px !important;
-      min-height: 640px !important;
-      max-height: 640px !important;
-      box-sizing: border-box !important;
-      overflow: hidden !important;
-      border: none !important;
-      background: transparent !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      border-radius: 0 !important;
-    }
-    
-    #camera-feed, #server-feed {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain !important;
-      display: block !important;
-      background: #000 !important;
-      border: none !important;
-      
-      /* Minimal cropping for portrait display */
-      clip-path: inset(2% 2% 2% 2%) !important;
-      transform: scale(1.02) !important;
-      transform-origin: center center !important;
-    }
-    
-    /* Remove any parent container borders */
-    div, .container, .misc-container {
-      border: none !important;
-    }
-  </style>
 </head>
 
 <body>
-<div class="container">
-  <div class="image-size">
-    <img id="logo" src="{{ url_for('static', filename='logo/logo_no_bg.png') }}" alt="logo"/>
-    <div class="line"></div>
-  </div>
-  <div class="horizontal-line"></div>
-</div>
-
-<div class="misc-container">
-    <div class="result-text">
-      <p>Ready to capture full rebar images (uncropped view)...</p>
+  <!-- Header Navigation (consistent with welcome page) -->
+  <header class="header">
+    <div class="nav-container">
+      <div class="logo-section">
+        <img src="{{ url_for('static', filename='logo/logo_no_bg.png') }}" alt="Rebar Vista Logo" class="nav-logo">
+        <div class="brand-name">
+          <div class="brand-name-top">Rebar</div>
+          <div class="brand-name-bottom">Vista</div>
+        </div>
+      </div>
+      
+      <div class="header-title">
+        <h1>AI Camera Analysis</h1>
+      </div>
     </div>
+  </header>
 
-  <button id="capture-btn" class="misc-button">CAPTURE AND ANALYZE</button>
-  <button id="view-images-btn" class="misc-button" onclick="location.href='/result.html'">VIEW PREVIOUS IMAGES</button>
-</div>
-
-<!-- Camera feed container with full image display -->
-<div class="camera-container" id="camera-container">
-  <!-- Server feed image (shows full uncropped image) -->
-  <img id="server-feed" alt="A4Tech Camera Feed (Full Image)">
-  
-  <!-- WebRTC video (hidden by default) -->
-  <video id="camera-feed" autoplay playsinline muted style="display: none;"></video>
-  
-  <!-- Camera status display -->
-  <div class="camera-label" id="camera-status">Starting A4Tech Camera (Full Image)...</div>
-  
-
-</div>
-
-<script>
-// Enhanced Camera Manager - Full Image Display (Simplified)
-class FullImageCameraManager {
-  constructor() {
-    this.isUsingServerFeed = true;
-    this.isUsingWebRTC = false;
-    this.serverFeedElement = document.getElementById('server-feed');
-    this.videoElement = document.getElementById('camera-feed');
-    this.statusElement = document.getElementById('camera-status');
-    this.rotationIndicator = document.getElementById('rotation-indicator');
-    this.cameraContainer = document.getElementById('camera-container');
-    this.serverFeedInterval = null;
-    
-    this.init();
-  }
-  
-  init() {
-    console.log('🎥 Starting A4Tech Camera (Full Image Mode)...');
-    this.setupEventListeners();
-    this.startFullImageServerFeed();
-  }
-  
-  setupEventListeners() {
-    // Capture button
-    const captureBtn = document.getElementById('capture-btn');
-    if (captureBtn) {
-      captureBtn.addEventListener('click', () => this.captureFullImage());
-    }
-  }
-  
-  startFullImageServerFeed() {
-    console.log('🔄 Starting A4Tech full image feed (uncropped)...');
-    
-    // Ensure server feed is visible
-    this.serverFeedElement.style.display = 'block';
-    this.videoElement.style.display = 'none';
-    
-    // Set full image display mode (always contain for full image)
-    this.serverFeedElement.style.objectFit = 'contain';
-    
-    // Stop any WebRTC stream
-    if (this.videoElement.srcObject) {
-      this.videoElement.srcObject.getTracks().forEach(track => track.stop());
-      this.videoElement.srcObject = null;
-    }
-    
-    this.isUsingServerFeed = true;
-    this.isUsingWebRTC = false;
-    
-    // Start server feed
-    this.refreshFullImageFeed();
-    
-    // Refresh every 100ms for smooth feed
-    this.serverFeedInterval = setInterval(() => {
-      if (this.isUsingServerFeed) {
-        this.refreshFullImageFeed();
-      }
-    }, 100);
-    
-    this.updateStatus('A4Tech Full Image Active');
-    console.log('✅ A4Tech full image server feed started');
-  }
-  
-  refreshFullImageFeed() {
-    if (this.serverFeedElement) {
-      const timestamp = new Date().getTime();
-      this.serverFeedElement.src = `/video_feed?t=${timestamp}`;
+  <!-- Camera Interface -->
+  <main class="camera-interface">
+    <div class="camera-container" id="camera-container">
+      <!-- Camera Feeds -->
+      <img id="server-feed" alt="A4Tech Camera Feed">
+      <video id="camera-feed" autoplay playsinline muted style="display: none;"></video>
+      <img id="captured-preview" alt="Captured Image">
       
-      this.serverFeedElement.onload = () => {
-        // Get actual image dimensions
-        const imageWidth = this.serverFeedElement.naturalWidth;
-        const imageHeight = this.serverFeedElement.naturalHeight;
+      <!-- Camera Status -->
+      <div class="camera-status" id="camera-status">Starting A4Tech Camera...</div>
+      
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Analyzing rebar structure...</div>
+      </div>
+      
+      <!-- Camera Controls Overlay -->
+      <div class="camera-controls">
+        <!-- Tutorial Button -->
+        <button class="tutorial-btn" id="tutorial-btn" title="How to use">❓</button>
         
-        // Get displayed dimensions
-        const displayWidth = this.serverFeedElement.offsetWidth;
-        const displayHeight = this.serverFeedElement.offsetHeight;
+        <!-- Close Preview Button -->
+        <button class="close-preview-btn" id="close-preview-btn" title="Back to live feed">✕</button>
         
-        // Log dimensions every 10 refreshes to avoid spam
-        if (!this.dimensionLogCount) this.dimensionLogCount = 0;
-        this.dimensionLogCount++;
-        
-        if (this.dimensionLogCount % 10 === 1) {
-          console.log('📐 A4Tech Camera Dimensions:');
-          console.log(`   🖼️  Original Image: ${imageWidth} x ${imageHeight}`);
-          console.log(`   📺 Display Size: ${displayWidth} x ${displayHeight}`);
-          console.log(`   🔍 Scale Ratio: ${(displayWidth/imageWidth).toFixed(2)}x`);
-        }
-        
-        // Update status with dimensions
-        this.updateStatus(`A4Tech Active (${imageWidth}x${imageHeight} → ${displayWidth}x${displayHeight})`);
-      };
-      
-      this.serverFeedElement.onerror = () => {
-        this.updateStatus('A4Tech Full Image Error');
-        console.error('❌ A4Tech full image feed error');
-      };
-    }
-  }
-  
-  async captureFullImage() {
-    const resultText = document.querySelector('.result-text p');
-    
-    try {
-      if (resultText) {
-        resultText.textContent = 'Capturing full image from A4Tech camera...';
-        resultText.style.color = 'orange';
-      }
-      
-      // Log current image dimensions before capture
-      if (this.serverFeedElement) {
-        const imgWidth = this.serverFeedElement.naturalWidth;
-        const imgHeight = this.serverFeedElement.naturalHeight;
-        console.log(`📸 Capturing image at: ${imgWidth} x ${imgHeight} pixels`);
-      }
-      
-      // Always use server capture to ensure we get the full uncropped image
-      await this.captureServerFullFrame();
-      
-    } catch (error) {
-      console.error('Full image capture error:', error);
-      
-      if (resultText) {
-        resultText.textContent = `Capture failed: ${error.message}`;
-        resultText.style.color = 'red';
-      }
-    }
-  }
-  
-  async captureServerFullFrame() {
-    console.log('📸 Capturing full image from A4Tech server...');
-    
-    const response = await fetch('/capture-current-frame', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`A4Tech server error: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      const resultText = document.querySelector('.result-text p');
-      if (resultText) {
-        resultText.textContent = `✅ Full A4Tech image captured! ${result.filename}`;
-        resultText.style.color = 'green';
-      }
-      console.log('✅ A4Tech full image capture successful:', result.filename);
-    } else {
-      throw new Error(result.error);
-    }
-  }
-  
-  updateStatus(status) {
-    if (this.statusElement) {
-      this.statusElement.textContent = status;
-      this.statusElement.style.color = status.includes('Error') ? '#ff0000' : '#00ff00';
-    }
-    console.log('📊 Full image camera status:', status);
-  }
-}
+        <!-- Bottom Controls -->
+        <div class="bottom-controls">
+          <!-- Gallery Button -->
+          <button class="gallery-btn" id="gallery-btn" title="View Gallery">📁</button>
+          
+          <!-- Capture Button (Live Mode) -->
+          <button class="capture-btn" id="capture-btn" title="Capture Image">📷</button>
+          
+          <!-- Preview Mode Controls -->
+          <div class="preview-controls" id="preview-controls">
+            <button class="analyze-btn" id="analyze-btn" title="Analyze Rebar">🔍</button>
+            <button class="delete-btn" id="delete-btn" title="Delete Image">🗑️</button>
+          </div>
+          
+          <!-- Fullscreen Button -->
+          <button class="fullscreen-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
+        </div>
+      </div>
+    </div>
+  </main>
 
-// Initialize full image camera manager
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Starting Rebar Vista with Full Image Display...');
-  window.fullImageCameraManager = new FullImageCameraManager();
-});
+  <!-- Tutorial Modal -->
+  <div class="modal-overlay tutorial-modal" id="tutorial-modal">
+    <div class="modal-content">
+      <h2>How to Use Rebar Vista</h2>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">1</div>
+        <div>
+          <strong>Position the camera</strong><br>
+          Point the camera at the rebar column structure with good lighting
+        </div>
+      </div>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">2</div>
+        <div>
+          <strong>Capture the image</strong><br>
+          Press the camera button (📷) in the center to take a photo
+        </div>
+      </div>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">3</div>
+        <div>
+          <strong>Review the capture</strong><br>
+          The live feed will be replaced with your captured image
+        </div>
+      </div>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">4</div>
+        <div>
+          <strong>Analyze or Delete</strong><br>
+          Press Analyze (🔍) to process the image, or Delete (🗑️) to discard it
+        </div>
+      </div>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">5</div>
+        <div>
+          <strong>View results</strong><br>
+          Analysis results will show rebar dimensions and cement mixture ratios
+        </div>
+      </div>
+      
+      <div class="modal-buttons">
+        <button class="modal-btn primary" onclick="closeTutorialModal()">Got it!</button>
+      </div>
+    </div>
+  </div>
 
-window.addEventListener('load', () => {
-  console.log('📹 Full image camera system loaded');
-});
-</script>
+  <!-- Results Modal -->
+  <div class="modal-overlay results-modal" id="results-modal">
+    <div class="modal-content">
+      <div class="results-header">
+        <h2>Rebar Analysis Results</h2>
+      </div>
+      <div class="results-body">
+        <img id="results-image" src="" alt="Analysis Result" class="results-image">
+        <div class="results-data">
+          <div class="result-card">
+            <h3>Rebar Dimensions</h3>
+            <div class="result-value" id="dimensions-result">25.4cm × 25.4cm × 200cm</div>
+          </div>
+          <div class="result-card">
+            <h3>Cement Mixture Ratio</h3>
+            <div class="result-value" id="mixture-result">1 Cement : 2 Sand : 3 Aggregate</div>
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" onclick="closeResultsModal()">Close</button>
+          <button class="modal-btn primary" onclick="saveResults()">Save to Gallery</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Modal -->
+  <div class="modal-overlay error-modal" id="error-modal">
+    <div class="modal-content">
+      <div class="error-icon">⚠️</div>
+      <h2>No Rebar Detected</h2>
+      <p>The AI could not detect any rebar structures in the captured image. Please ensure the rebar is clearly visible and try again.</p>
+      <div class="modal-buttons">
+        <button class="modal-btn secondary" onclick="closeErrorModal()">Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Files -->
+  <script src="{{ url_for('static', filename='javascript/camera.js') }}"></script>
 </body>
 </html>

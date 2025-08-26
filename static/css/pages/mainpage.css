@@ -1,277 +1,657 @@
-/* ==================== GLOBAL STYLES ==================== */
+/* ==================== CAMERA APP INTERFACE STYLES ==================== */
 
-/* Background */
+/* Global Styles */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: url('../../assets/background/bg_4.png') no-repeat center center fixed;
-  background-size: cover;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  height: 100vh;
   overflow: hidden;
-}
-
-/* ==================== HEADER SECTION ==================== */
-
-/* Header container */
-.container {
-  display: flex;
-  align-items: center;
-  gap: 15px; /* Reduced gap */
-  padding: 15px; /* Reduced padding */
-  border-radius: 10px;
-  max-width: none; /* Remove max-width */
-  position: absolute;
-  top: -4vh; /* Adjusted */
-  left: -3vh; /* Adjusted */
-}
-
-/* Logo container */
-.image-size {
-  display: flex;
-  align-items: center;
-  padding: 10px; /* Reduced padding */
-  width: 15vh; /* Smaller */
-  height: 12vh; /* Smaller */
-}
-
-/* Logo image styling */
-#logo {
-  width: 18vh; /* Reduced from 26vh */
-  height: 18vh; /* Reduced from 26vh */
-  object-fit: contain;
-}
-
-/* Horizontal line under header */
-.horizontal-line {
-  display: flex;
-  width: 86vw; /* Full width */
-  height: 3px; /* Thinner */
-  background-color: #000000;
-  flex-shrink: 0;
-}
-
-/* ==================== CAMERA SECTION - FIXED 480x640 ==================== */
-
-/* Camera feed container - PORTRAIT 480x640 format */
-.camera-container {
-  position: absolute !important;
-  left: 2vh !important;
-  top: 50vh !important;
-  transform: translateY(-50%) !important;
-  width: 480px !important;  /* Portrait width */
-  height: 640px !important; /* Portrait height */
-  min-width: 480px !important;
-  max-width: 480px !important;
-  min-height: 640px !important;
-  max-height: 640px !important;
-  border: none !important;
-  border-radius: 0 !important;
-  overflow: hidden !important;
-  background-color: transparent !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-  box-sizing: border-box !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Camera video feed - Square format display */
-#camera-feed, #server-feed {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important; /* Show full square image */
-  display: block !important;
-  background: #000 !important;
-  border: none !important;
-  
-  /* Minimal cropping for clean square display */
-  clip-path: inset(2% 2% 2% 2%) !important; /* Small uniform crop */
-  transform: scale(1.02) !important; /* Minimal scaling */
-  transform-origin: center center !important;
-}
-
-/* Camera label */
-.camera-label {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
   color: white;
-  background-color: rgba(230, 5, 5, 0.7);
-  padding: 4px 8px;
-  border-radius: 5px;
-  font-size: 12px;
+}
+
+/* ==================== HEADER NAVIGATION (Welcome Page Consistency) ==================== */
+
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 80px;
+}
+
+.nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 30px;
+  height: 100%;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  cursor: pointer;
+}
+
+.nav-logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.nav-logo:hover {
+  transform: scale(1.05);
+}
+
+.brand-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  color: #2c3e50;
+}
+
+.brand-name-top {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: -2px;
+}
+
+.brand-name-bottom {
+  font-size: 20px;
+  font-weight: 300;
+}
+
+.header-title {
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.header-title h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+/* ==================== CAMERA INTERFACE LAYOUT ==================== */
+
+.camera-interface {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 80px);
+  padding: 20px;
+  position: relative;
+}
+
+/* Camera Display Container - 480x640 Portrait Format */
+.camera-container {
+  position: relative;
+  width: 480px;
+  height: 640px;
+  background: #000;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.camera-container.fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+}
+
+/* ==================== CAMERA FEEDS ==================== */
+
+#camera-feed, 
+#server-feed, 
+#captured-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.3s ease;
+}
+
+#captured-preview {
+  display: none;
+}
+
+/* ==================== CAMERA CONTROLS OVERLAY ==================== */
+
+.camera-controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
   z-index: 10;
 }
 
-/* ==================== CONTROLS SECTION - ADJUSTED ==================== */
+.camera-controls > * {
+  pointer-events: all;
+}
 
-/* Controls container - Adjusted for 480x640 camera */
-.misc-container {
+/* Camera Status */
+.camera-status {
   position: absolute;
-  left: calc(480px + 4vh); /* Position next to portrait camera + margin */
-  top: 50vh;
-  transform: translateY(-50%);
-  width: calc(100vw - 480px - 8vh); /* Remaining width minus portrait camera and margins */
-  height: 640px; /* Match portrait camera height */
-  border: 2px solid #000000;
-  border-radius: 10px;
-  overflow: hidden;
-  background-color: #c09898;
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-/* Result text area - Adjusted for new layout */
-.result-text {
-  flex-grow: 1;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 5px;
-  padding: 15px;
-  font-size: 18px;
-  color: #333;
-  overflow-y: auto;
-  border: 2px solid #333;
-  margin-bottom: 15px;
-  min-height: 200px;
-}
-
-.result-text p {
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* ==================== BUTTONS SECTION ==================== */
-
-/* Button styling - Optimized for touch */
-.misc-button {
-  width: 100%;
-  height: 60px; /* Fixed height for consistency */
-  background-color: #007bff;
+  top: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.7);
   color: white;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+/* Tutorial Button - Top Right */
+.tutorial-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.tutorial-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+/* Close Preview Button */
+.close-preview-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-preview-btn.active {
+  display: flex;
+}
+
+.close-preview-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+/* ==================== BOTTOM CONTROLS ==================== */
+
+.bottom-controls {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  right: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Gallery Button - Bottom Left */
+.gallery-btn {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 15px;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gallery-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+/* Capture Button - Center */
+.capture-btn {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 4px solid white;
+  border-radius: 50%;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.capture-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.capture-btn:active {
+  transform: scale(0.95);
+}
+
+/* Preview Mode Controls */
+.preview-controls {
+  display: none;
+  align-items: center;
+  gap: 20px;
+}
+
+.preview-controls.active {
+  display: flex;
+}
+
+.analyze-btn, 
+.delete-btn {
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 15px;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.analyze-btn {
+  background: rgba(46, 204, 113, 0.8);
+}
+
+.analyze-btn:hover {
+  background: rgba(46, 204, 113, 1);
+  transform: scale(1.05);
+}
+
+.delete-btn {
+  background: rgba(231, 76, 60, 0.8);
+}
+
+.delete-btn:hover {
+  background: rgba(231, 76, 60, 1);
+  transform: scale(1.05);
+}
+
+/* Fullscreen Button - Bottom Right */
+.fullscreen-btn {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 15px;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreen-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+/* ==================== LOADING OVERLAY ==================== */
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+}
+
+.loading-overlay.active {
+  display: flex;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.loading-text {
+  color: white;
+  font-size: 16px;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ==================== MODAL STYLES ==================== */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+  display: flex;
+  opacity: 1;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  max-width: 90%;
+  max-height: 90%;
+  overflow: auto;
+  color: #333;
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.modal-overlay.active .modal-content {
+  transform: scale(1);
+}
+
+/* ==================== TUTORIAL MODAL ==================== */
+
+.tutorial-modal .modal-content {
+  width: 600px;
+  padding: 30px;
+}
+
+.tutorial-modal h2 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.tutorial-step {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.tutorial-step-number {
+  width: 30px;
+  height: 30px;
+  background: #3498db;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+/* ==================== RESULTS MODAL ==================== */
+
+.results-modal .modal-content {
+  width: 800px;
+  padding: 0;
+}
+
+.results-header {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  padding: 20px 30px;
+  border-radius: 20px 20px 0 0;
+}
+
+.results-header h2 {
+  margin: 0;
+  text-align: center;
+}
+
+.results-body {
+  padding: 30px;
+}
+
+.results-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.results-data {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.result-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+  border-left: 4px solid #3498db;
+}
+
+.result-card h3 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+}
+
+.result-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #3498db;
+}
+
+/* ==================== ERROR MODAL ==================== */
+
+.error-modal .modal-content {
+  width: 400px;
+  padding: 30px;
+  text-align: center;
+}
+
+.error-modal .error-icon {
+  font-size: 60px;
+  color: #e74c3c;
+  margin-bottom: 20px;
+}
+
+.error-modal h2 {
+  color: #e74c3c;
+  margin-bottom: 15px;
+}
+
+.error-modal p {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+/* ==================== MODAL BUTTONS ==================== */
+
+.modal-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  padding: 20px 30px;
+  border-top: 1px solid #eee;
+  margin: 20px -30px -30px -30px;
+}
+
+.modal-btn {
+  padding: 12px 24px;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  margin-bottom: 10px;
-  touch-action: manipulation;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
-/* Button hover and active states */
-.misc-button:hover, 
-.misc-button:active {
-  background-color: #0056b3;
+.modal-btn.primary {
+  background: #3498db;
+  color: white;
 }
 
-/* ==================== RESPONSIVE DESIGN - BREAKPOINTS ==================== */
-
-/* Large screens - maintain fixed camera size */
-@media (min-width: 1200px) {
-  .misc-container {
-    width: 400px; /* Fixed width for large screens */
-    left: calc(480px + 6vh);
-  }
+.modal-btn.primary:hover {
+  background: #2980b9;
 }
 
-/* Medium screens - adjust controls */
+.modal-btn.secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.modal-btn.secondary:hover {
+  background: #7f8c8d;
+}
+
+/* ==================== ANIMATIONS ==================== */
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ==================== RESPONSIVE DESIGN - VistaTab 10 Optimized ==================== */
+
 @media (max-width: 1024px) {
-  .misc-container {
-    width: calc(100vw - 480px - 6vh);
-    left: calc(480px + 3vh);
+  .nav-container {
+    padding: 0 20px;
   }
   
-  .misc-button {
-    font-size: 14px;
-    height: 50px;
+  .camera-interface {
+    padding: 10px;
   }
-}
-
-/* Small screens - stack layout */
-@media (max-width: 768px) {
+  
   .camera-container {
-    position: relative;
-    left: 50%;
-    top: 10vh;
-    transform: translateX(-50%);
-    width: 480px;  /* Keep exact A4Tech dimensions */
-    height: 640px;
-    margin-bottom: 20px;
+    width: 400px;
+    height: 533px; /* Maintain 480:640 ratio */
   }
   
-  .misc-container {
-    position: relative;
-    left: 50%;
-    top: auto;
-    transform: translateX(-50%);
-    width: 480px; /* Match camera width */
-    height: auto;
-    min-height: 300px;
+  .tutorial-modal .modal-content {
+    width: 90%;
+    max-width: 500px;
   }
   
-  .container {
-    position: relative;
-    top: 0;
-    left: 0;
-    justify-content: center;
-    width: 100%;
+  .results-modal .modal-content {
+    width: 90%;
+    max-width: 700px;
   }
   
-  .horizontal-line {
-    width: 100%;
-  }
-  
-  body {
-    overflow-y: auto; /* Allow scrolling on mobile */
-    overflow-x: hidden;
+  .results-data {
+    grid-template-columns: 1fr;
   }
 }
 
-/* Extra small screens */
 @media (max-width: 480px) {
   .camera-container {
-    width: 90vw;
-    height: calc(90vw * 1.33); /* Maintain 480:640 aspect ratio */
+    width: 320px;
+    height: 427px; /* Maintain 480:640 ratio */
   }
   
-  .misc-container {
-    width: 90vw;
+  .bottom-controls {
+    left: 15px;
+    right: 15px;
+    bottom: 15px;
   }
   
-  #camera-feed, #server-feed {
-    width: 100% !important;
-    height: 100% !important;
-  }
-}
-
-/* Portrait orientation adjustments for mobile */
-@media (orientation: portrait) and (max-width: 768px) {
-  .camera-container {
-    width: 90vw;
-    height: calc(90vw * 1.33); /* Maintain aspect ratio */
+  .gallery-btn,
+  .fullscreen-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
   }
   
-  .misc-container {
-    width: 90vw;
-    height: auto;
-    min-height: 250px;
-  }
-}
-
-/* Landscape orientation for tablets */
-@media (orientation: landscape) and (max-width: 1024px) {
-  .camera-container {
-    width: 480px;
-    height: 640px;
-    left: 2vh;
+  .capture-btn {
+    width: 70px;
+    height: 70px;
+    font-size: 25px;
   }
   
-  .misc-container {
-    left: calc(480px + 4vh);
-    width: calc(100vw - 480px - 8vh);
-    height: 640px;
+  .analyze-btn,
+  .delete-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 18px;
   }
 }

@@ -39,21 +39,32 @@ def create_app():
         from app.routes.page_routes import page_bp
         from app.routes.camera_routes import camera_bp
         from app.routes.image_routes import image_bp
+        from app.routes.ai_routes import ai_bp  # Import AI routes
         
         app.register_blueprint(page_bp)
         app.register_blueprint(camera_bp)
         app.register_blueprint(image_bp)
+        app.register_blueprint(ai_bp)  # Register AI routes
         
-        print("All blueprints registered successfully")
+        print("All blueprints registered successfully (including AI routes)")
         
         # List available templates for debugging
         if os.path.exists(template_dir):
             templates = os.listdir(template_dir)
             print(f"Available templates: {templates}")
             
-            # Check if splash.html specifically exists
-            splash_path = os.path.join(template_dir, 'splash.html')
-            print(f"splash.html exists: {os.path.exists(splash_path)}")
+            # Check if mainpage.html specifically exists
+            mainpage_path = os.path.join(template_dir, 'mainpage.html')
+            print(f"mainpage.html exists: {os.path.exists(mainpage_path)}")
+        
+        # Check if JavaScript files exist
+        js_dir = os.path.join(static_dir, 'javascript')
+        if os.path.exists(js_dir):
+            js_files = os.listdir(js_dir)
+            print(f"Available JavaScript files: {js_files}")
+            
+            camera_js_path = os.path.join(js_dir, 'camera.js')
+            print(f"camera.js exists: {os.path.exists(camera_js_path)}")
         
     except Exception as e:
         print(f"Error registering blueprints: {e}")

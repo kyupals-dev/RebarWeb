@@ -1,4 +1,25 @@
+# Core Flask Dependencies
 Flask==2.3.3
 opencv-python==4.8.1.78
 Pillow==10.0.1
 numpy==1.24.3
+
+# AI/ML Dependencies (for Detectron2 and PyTorch)
+torch==2.0.1
+torchvision==0.15.2
+torchaudio==2.0.2
+
+# Detectron2 Dependencies
+# Note: Detectron2 needs to be installed separately with:
+# python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
+# Or for pre-built wheels:
+# python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cpu/torch2.0/index.html
+
+# Additional ML/Vision Dependencies
+scipy==1.11.1
+scikit-image==0.21.0
+matplotlib==3.7.2
+pycocotools==2.0.7
+
+# System utilities
+psutil==5.9.5

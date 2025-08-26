@@ -1,9 +1,11 @@
-# main.py - Complete 480x640 format implementation (Fixed)
+# main.py - Complete implementation with AI service integration
 from app import create_app
 from app.services.camera_service import CameraManager, camera_thread_worker
 from app.services.image_service import ImageService
+from app.services.ai_service import AIService
 from app.routes.camera_routes import init_camera_routes
 from app.routes.image_routes import init_image_routes
+from app.routes.ai_routes import init_ai_routes
 from app.utils.config import config
 import threading
 import tkinter as tk
@@ -14,11 +16,11 @@ import os
 from datetime import datetime
 
 class TkinterCameraFrame:
-    """Tkinter camera display window for 480x640 portrait format"""
+    """Tkinter camera display window for 480 x 640 portrait format"""
     def __init__(self, camera_manager):
         self.camera_manager = camera_manager
         self.root = tk.Tk()
-        self.root.title("A4Tech Camera Feed - 480x640")
+        self.root.title("Rebar Vista Camera Feed - 480x640")
         self.root.geometry("520x720")  # Slightly larger for UI elements
         self.root.configure(bg='#2c3e50')
         
@@ -27,7 +29,7 @@ class TkinterCameraFrame:
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Title label
-        title_label = tk.Label(main_frame, text="Live A4Tech Camera Feed (480x640)", 
+        title_label = tk.Label(main_frame, text="Live Rebar Vista Camera Feed (480x640)", 
                               font=('Arial', 16, 'bold'), 
                               bg='#2c3e50', fg='white')
         title_label.pack(pady=(0, 10))
@@ -38,7 +40,7 @@ class TkinterCameraFrame:
         self.camera_label.pack(pady=5)
         
         # Status label
-        self.status_label = tk.Label(main_frame, text="Initializing A4Tech camera (480x640)...", 
+        self.status_label = tk.Label(main_frame, text="Initializing Rebar Vista camera (480x640)...", 
                                    font=('Arial', 10), 
                                    bg='#2c3e50', fg='#ecf0f1')
         self.status_label.pack(pady=5)
@@ -104,14 +106,14 @@ class TkinterCameraFrame:
                     self.camera_label.image = photo
                     
                     # Update status
-                    self.status_label.configure(text="A4Tech Active - 480x640 Portrait Feed")
+                    self.status_label.configure(text="Rebar Vista Active - 480x640 Portrait Feed")
                     self.info_label.configure(text=f"Format: 480x640 Portrait | Frames: {self.frame_count}")
                     
                 except Exception as e:
                     print(f"Tkinter display error: {e}")
                     self.status_label.configure(text="Display error - check camera")
             else:
-                self.status_label.configure(text="No A4Tech camera feed available")
+                self.status_label.configure(text="No Rebar Vista camera feed available")
                 self.info_label.configure(text="Format: 480x640 Portrait | Status: No Feed")
         
         if self.is_running:
@@ -167,15 +169,15 @@ class TkinterCameraFrame:
         if self.camera_manager.is_running:
             self.camera_manager.stop_camera()
             self.toggle_btn.configure(text="Start Camera", bg='#27ae60')
-            self.status_label.configure(text="A4Tech camera stopped")
+            self.status_label.configure(text="Rebar Vista camera stopped")
             self.info_label.configure(text="Format: 480x640 Portrait | Status: Stopped")
         else:
             if self.camera_manager.start_camera():
                 self.toggle_btn.configure(text="Stop Camera", bg='#e74c3c')
-                self.status_label.configure(text="A4Tech camera started (480x640)")
+                self.status_label.configure(text="Rebar Vista camera started (480x640)")
                 self.info_label.configure(text="Format: 480x640 Portrait | Status: Starting...")
             else:
-                self.status_label.configure(text="Failed to start A4Tech camera")
+                self.status_label.configure(text="Failed to start Rebar Vista camera")
                 self.info_label.configure(text="Format: 480x640 Portrait | Status: Failed")
     
     def on_closing(self):
@@ -202,13 +204,14 @@ def start_tkinter_window(camera_manager):
 
 def main():
     try:
-        print("Starting Rebar Vista with 480x640 format...")
+        print("Starting Rebar Vista with AI Integration...")
         print("=" * 60)
         
-        # Initialize services first
-        print("Initializing camera and image services...")
+        # Initialize services
+        print("Initializing camera, image, and AI services...")
         camera_manager = CameraManager()
         image_service = ImageService()
+        ai_service = AIService()  # Initialize AI service
         
         # Create Flask app with services
         print("Creating Flask web application...")
@@ -218,11 +221,20 @@ def main():
         with app.app_context():
             init_camera_routes(camera_manager, image_service)
             init_image_routes(image_service)
-            print("Flask routes initialized")
+            init_ai_routes(ai_service)  # Initialize AI routes
+            print("Flask routes initialized (including AI routes)")
         
         # Ensure upload folder exists
         config.ensure_upload_folder()
         print(f"Upload folder ready: {config.UPLOAD_FOLDER}")
+        
+        # Ensure model folder exists
+        model_folder = "/home/team10/RebarWeb/app/model"
+        if not os.path.exists(model_folder):
+            os.makedirs(model_folder)
+            print(f"Created model folder: {model_folder}")
+        else:
+            print(f"Model folder ready: {model_folder}")
         
         print("Starting camera thread for 480x640 capture...")
         # Start camera thread
@@ -249,11 +261,25 @@ def main():
             print(f"  {rule.endpoint}: {rule.rule} [{methods}]")
         
         print("=" * 60)
-        print("REBAR VISTA READY - 480x640 FORMAT")
-        print("Web interface: Camera display at 480x640")
+        print("REBAR VISTA READY - AI-POWERED ANALYSIS")
+        print("Web interface: Camera display at 480x640 with AI analysis")
         print("Tkinter window: Live 480x640 camera feed")
-        print("Image capture: All images saved as 480x640")
+        print("AI Analysis: Detectron2 rebar detection and measurement")
+        print("Image format: All images saved as 480x640")
         print("=" * 60)
+        
+        # Print AI service status
+        ai_status = ai_service.get_model_status()
+        print("\n=== AI Service Status ===")
+        print(f"Detectron2 Available: {'✅' if ai_status['detectron2_available'] else '❌'}")
+        print(f"Model Loaded: {'✅' if ai_status['model_loaded'] else '❌'}")
+        print(f"Model Path: {ai_status['model_path']}")
+        print(f"Model Exists: {'✅' if ai_status['model_exists'] else '❌'}")
+        print(f"Classes: {ai_status['class_names']}")
+        print(f"Detection Threshold: {ai_status['threshold']}")
+        if not ai_status['model_loaded']:
+            print("⚠️  AI will use placeholder results until model is available")
+        print("========================\n")
         
         # Check SSL certificates and start server
         if not os.path.exists(config.SSL_CERT_PATH):
@@ -287,8 +313,8 @@ def main():
         traceback.print_exc()
 
 if __name__ == '__main__':
-    print("REBAR VISTA - 480x640 FORMAT")
-    print("AI-powered rebar detection system")
-    print("Portrait 480x640 image processing")
+    print("REBAR VISTA - AI-POWERED REBAR DETECTION")
+    print("AI-powered rebar detection and analysis system")
+    print("Portrait 480x640 image processing with Detectron2")
     print("")
     main()
