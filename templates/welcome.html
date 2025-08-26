@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rebar Vista - Welcome</title>
+  
+  <!-- Keep existing CSS structure but override with modern styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/welcome.css') }}">
+</head>
+
+<body>
+  <!-- Header Navigation -->
+  <header class="header">
+    <div class="nav-container">
+      <div class="logo-section">
+        <img src="{{ url_for('static', filename='logo/logo_no_bg.png') }}" alt="Rebar Vista Logo" class="nav-logo" onclick="scrollToTop()">
+        <div class="brand-name" onclick="scrollToTop()">
+          <div class="brand-name-top">Rebar</div>
+          <div class="brand-name-bottom">Vista</div>
+        </div>
+      </div>
+      
+      <nav class="nav-tabs">
+        <a href="#general" class="nav-tab" data-target="general">General</a>
+        <a href="#tutorial" class="nav-tab" data-target="tutorial">Tutorial</a>
+      </nav>
+      
+      <button class="start-btn" onclick="startApp()">START APP</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-container">
+        <h1 class="hero-title">Your AI Construction Assistant</h1>
+        <p class="hero-subtitle">AI-powered system for concrete column volume measurement in Philippine residential buildings</p>
+        <a href="#general" class="hero-cta">Learn More</a>
+      </div>
+    </section>
+
+    <!-- General Section -->
+    <section id="general" class="content-section">
+      <div class="content-container">
+        <div class="content-area">
+          <div class="section-content">
+            <h2 class="section-title">General Information</h2>
+            
+            <div class="accordion">
+              <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                  <h3 class="accordion-title">What is Rebar Vista?</h3>
+                  <div class="accordion-icon">+</div>
+                </button>
+                <div class="accordion-content">
+                  <div class="accordion-body">
+                    <p>Rebar Vista is an AI-powered system that measures concrete column volumes and estimates cement mixtures for Philippine residential construction. It uses Mask R-CNN computer vision to analyze rebar structures and calculate precise measurements.</p>
+                    
+                    <h4>Key Benefits:</h4>
+                    <ul>
+                      <li><strong>Eliminates Manual Errors:</strong> AI reduces human mistakes in volume calculations</li>
+                      <li><strong>Reduces Material Waste:</strong> Accurate measurements prevent overordering</li>
+                      <li><strong>Cost-Effective:</strong> Affordable for small to large contractors</li>
+                      <li><strong>Instant Results:</strong> Real-time calculations and cement mixture recommendations</li>
+                      <li><strong>Standalone Operation:</strong> Works without internet on construction sites</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                  <h3 class="accordion-title">Features and Capabilities</h3>
+                  <div class="accordion-icon">+</div>
+                </button>
+                <div class="accordion-content">
+                  <div class="accordion-body">
+                    <h4>What Rebar Vista Can Do:</h4>
+                    <ul>
+                      <li><strong>AI Volume Measurement:</strong> Mask R-CNN technology detects and measures rebar structures</li>
+                      <li><strong>Cement Mixture Calculation:</strong> Provides cement:sand:aggregates ratios based on measured volumes</li>
+                      <li><strong>Single-Shot Analysis:</strong> One image per column</li>
+                      <li><strong>Philippine Standards:</strong> Optimized for local construction practices and materials</li>
+                    </ul>
+
+                    <h4>Compatible With:</h4>
+                    <ul>
+                      <li>Residential buildings: 1-2 stories only</li>
+                      <li>Square columns up to 3.5 meters high</li>
+                      <li>Philippine residential construction standards</li>
+                    </ul>
+
+                    <h4>Problems It Solves:</h4>
+                    <ul>
+                      <li>Manual calculation errors leading to material waste</li>
+                      <li>Inaccurate cement mixtures causing structural issues</li>
+                      <li>Time-consuming manual measurement processes</li>
+                      <li>High cost of advanced measurement equipment</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                  <h3 class="accordion-title">Technology and Limitations</h3>
+                  <div class="accordion-icon">+</div>
+                </button>
+                <div class="accordion-content">
+                  <div class="accordion-body">
+                    <h4>Technology Used:</h4>
+                    <ul>
+                      <li><strong>Mask R-CNN AI:</strong> Advanced neural network for precise rebar detection</li>
+                      <li><strong>Raspberry Pi Hardware:</strong> Portable unit with integrated high-resolution camera</li>
+                      <li><strong>Local Processing:</strong> On-site processing eliminates internet dependency</li>
+                      <li><strong>Computer Vision:</strong> Analyzes single images to segment rebar structures</li>
+                    </ul>
+
+                    <h4>System Limitations:</h4>
+                    <ul>
+                      <li><strong>Building Types:</strong> Only 1-2 story residential homes</li>
+                      <li><strong>Column Shapes:</strong> Only square columns (no spiral, circular, L-shape, rectangular, or T-shape)</li>
+                      <li><strong>Height Limit:</strong> Columns up to 3.5 meters only</li>
+                      <li><strong>Structure Types:</strong> Only columns (no beams, walls, slabs, foundations)</li>
+                      <li><strong>Integration:</strong> Does not connect to other construction management systems</li>
+                      <li><strong>Environment:</strong> Not suitable for extreme weather conditions</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tutorial Section -->
+    <section id="tutorial" class="content-section">
+      <div class="content-container">
+        <div class="content-area">
+          <div class="section-content">
+            <h2 class="section-title">How to Use Rebar Vista</h2>
+            
+            <div class="accordion">
+              <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                  <h3 class="accordion-title">Step-by-Step Usage Guide</h3>
+                  <div class="accordion-icon">+</div>
+                </button>
+                <div class="accordion-content">
+                  <div class="accordion-body">
+                    <h4>Simple 5-Step Process:</h4>
+                    <ol>
+                      <li><strong>Setup:</strong> Power on Rebar Vista and position near your column (square, up to 3.5m)</li>
+                      <li><strong>Capture:</strong> Point camera at complete rebar cage with good lighting and take one photo</li>
+                      <li><strong>AI Analysis:</strong> Wait 10-15 seconds for Mask R-CNN to detect and segment rebar sections</li>
+                      <li><strong>Results:</strong> Review volume calculations and cement mixture recommendations</li>
+                      <li><strong>Apply:</strong> Use measurements for material ordering and follow provided ratios</li>
+                    </ol>
+                    
+                    <h4>Why It Works:</h4>
+                    <ul>
+                      <li>Local processing ensures reliability on construction sites</li>
+                      <li>Philippine-optimized for local construction practices</li>
+                      <li>Single-shot efficiency saves time per column</li>
+                      <li>Proven Mask R-CNN accuracy in testing</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                  <h3 class="accordion-title">Best Practices for Accurate Results</h3>
+                  <div class="accordion-icon">+</div>
+                </button>
+                <div class="accordion-content">
+                  <div class="accordion-body">
+                    <h4>For Optimal Performance:</h4>
+                    <ul>
+                      <li><strong>Good Lighting:</strong> Use natural daylight when possible</li>
+                      <li><strong>Clear View:</strong> Ensure entire rebar cage is visible without obstructions</li>
+                      <li><strong>Proper Distance:</strong> Position 2-4 feet from column</li>
+                      <li><strong>Clean Environment:</strong> Remove concrete debris blocking rebar visibility</li>
+                      <li><strong>Stable Positioning:</strong> Keep system steady when capturing images</li>
+                    </ul>
+
+                    <h4>Quality Control:</h4>
+                    <ul>
+                      <li>Take measurements only from the front phase angle</li>
+                      <li>Compare results with manual estimates for validation</li>
+                      <li>Document measurement conditions for project records</li>
+                      <li>Keep camera lens clean for accurate detection</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div class="accordion-item">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                  <h3 class="accordion-title">Troubleshooting Common Issues</h3>
+                  <div class="accordion-icon">+</div>
+                </button>
+                <div class="accordion-content">
+                  <div class="accordion-body">
+                    <h4>If System Isn't Working:</h4>
+                    <ul>
+                      <li><strong>Wrong Column Type:</strong> Verify column is square and under 3.5m</li>
+                      <li><strong>Poor Detection:</strong> Improve lighting or remove obstructions</li>
+                      <li><strong>Slow Processing:</strong> Normal wait time is 10-15 seconds</li>
+                      <li><strong>Power Issues:</strong> Check power supply and restart system</li>
+                      <li><strong>Camera Problems:</strong> Clean lens and check connections</li>
+                    </ul>
+
+                    <h4>If Results Look Incorrect:</h4>
+                    <ul>
+                      <li><strong>Inconsistent Numbers:</strong> Retake photo only the front phase angle</li>
+                      <li><strong>Unrealistic Values:</strong> Ensure entire column is in frame</li>
+                      <li><strong>Detection Errors:</strong> Verify good lighting and clear rebar visibility</li>
+                    </ul>
+
+                    <h4>Environmental Challenges:</h4>
+                    <ul>
+                      <li><strong>Dust/Debris:</strong> Clean camera lens regularly</li>
+                      <li><strong>Vibrations:</strong> Use stable platform away from machinery</li>
+                      <li><strong>Weather:</strong> Operate in shaded areas during extreme heat</li>
+                      <li><strong>Storage:</strong> Ensure adequate space for image processing</li>
+                    </ul>
+
+                    <h4>Remember System Limits:</h4>
+                    <ul>
+                      <li>Only for Philippine residential buildings (1-2 stories)</li>
+                      <li>Works independently without internet</li>
+                      <li>Cannot connect to other construction software</li>
+                      <li>Designed specifically for local construction standards</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Load the updated JavaScript -->
+  <script src="{{ url_for('static', filename='javascript/welcome.js') }}"></script>
+</body>
+</html>

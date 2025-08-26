@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Main Page</title>
+  
+  <!-- Correct CSS paths based on your structure -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/mainpage.css') }}">
+  
+  <style>
+    /* PORTRAIT 480x640 camera container */
+    .camera-container {
+      width: 480px !important;  /* Portrait width */
+      height: 640px !important; /* Portrait height */
+      min-width: 480px !important;
+      max-width: 480px !important;
+      min-height: 640px !important;
+      max-height: 640px !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      border: none !important;
+      background: transparent !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+    }
+    
+    #camera-feed, #server-feed {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      display: block !important;
+      background: #000 !important;
+      border: none !important;
+      
+      /* Minimal cropping for portrait display */
+      clip-path: inset(2% 2% 2% 2%) !important;
+      transform: scale(1.02) !important;
+      transform-origin: center center !important;
+    }
+    
+    /* Remove any parent container borders */
+    div, .container, .misc-container {
+      border: none !important;
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+  <div class="image-size">
+    <img id="logo" src="{{ url_for('static', filename='logo/logo_no_bg.png') }}" alt="logo"/>
+    <div class="line"></div>
+  </div>
+  <div class="horizontal-line"></div>
+</div>
+
+<div class="misc-container">
+    <div class="result-text">
+      <p>Ready to capture full rebar images (uncropped view)...</p>
+    </div>
+
+  <button id="capture-btn" class="misc-button">CAPTURE AND ANALYZE</button>
+  <button id="view-images-btn" class="misc-button" onclick="location.href='/result.html'">VIEW PREVIOUS IMAGES</button>
+</div>
+
+<!-- Camera feed container with full image display -->
+<div class="camera-container" id="camera-container">
+  <!-- Server feed image (shows full uncropped image) -->
+  <img id="server-feed" alt="A4Tech Camera Feed (Full Image)">
+  
+  <!-- WebRTC video (hidden by default) -->
+  <video id="camera-feed" autoplay playsinline muted style="display: none;"></video>
+  
+  <!-- Camera status display -->
+  <div class="camera-label" id="camera-status">Starting A4Tech Camera (Full Image)...</div>
+  
+
+</div>
+
+<script>
+// Enhanced Camera Manager - Full Image Display (Simplified)
+class FullImageCameraManager {
+  constructor() {
+    this.isUsingServerFeed = true;
+    this.isUsingWebRTC = false;
+    this.serverFeedElement = document.getElementById('server-feed');
+    this.videoElement = document.getElementById('camera-feed');
+    this.statusElement = document.getElementById('camera-status');
+    this.rotationIndicator = document.getElementById('rotation-indicator');
+    this.cameraContainer = document.getElementById('camera-container');
+    this.serverFeedInterval = null;
+    
+    this.init();
+  }
+  
+  init() {
+    console.log('🎥 Starting A4Tech Camera (Full Image Mode)...');
+    this.setupEventListeners();
+    this.startFullImageServerFeed();
+  }
+  
+  setupEventListeners() {
+    // Capture button
+    const captureBtn = document.getElementById('capture-btn');
+    if (captureBtn) {
+      captureBtn.addEventListener('click', () => this.captureFullImage());
+    }
+  }
+  
+  startFullImageServerFeed() {
+    console.log('🔄 Starting A4Tech full image feed (uncropped)...');
+    
+    // Ensure server feed is visible
+    this.serverFeedElement.style.display = 'block';
+    this.videoElement.style.display = 'none';
+    
+    // Set full image display mode (always contain for full image)
+    this.serverFeedElement.style.objectFit = 'contain';
+    
+    // Stop any WebRTC stream
+    if (this.videoElement.srcObject) {
+      this.videoElement.srcObject.getTracks().forEach(track => track.stop());
+      this.videoElement.srcObject = null;
+    }
+    
+    this.isUsingServerFeed = true;
+    this.isUsingWebRTC = false;
+    
+    // Start server feed
+    this.refreshFullImageFeed();
+    
+    // Refresh every 100ms for smooth feed
+    this.serverFeedInterval = setInterval(() => {
+      if (this.isUsingServerFeed) {
+        this.refreshFullImageFeed();
+      }
+    }, 100);
+    
+    this.updateStatus('A4Tech Full Image Active');
+    console.log('✅ A4Tech full image server feed started');
+  }
+  
+  refreshFullImageFeed() {
+    if (this.serverFeedElement) {
+      const timestamp = new Date().getTime();
+      this.serverFeedElement.src = `/video_feed?t=${timestamp}`;
+      
+      this.serverFeedElement.onload = () => {
+        // Get actual image dimensions
+        const imageWidth = this.serverFeedElement.naturalWidth;
+        const imageHeight = this.serverFeedElement.naturalHeight;
+        
+        // Get displayed dimensions
+        const displayWidth = this.serverFeedElement.offsetWidth;
+        const displayHeight = this.serverFeedElement.offsetHeight;
+        
+        // Log dimensions every 10 refreshes to avoid spam
+        if (!this.dimensionLogCount) this.dimensionLogCount = 0;
+        this.dimensionLogCount++;
+        
+        if (this.dimensionLogCount % 10 === 1) {
+          console.log('📐 A4Tech Camera Dimensions:');
+          console.log(`   🖼️  Original Image: ${imageWidth} x ${imageHeight}`);
+          console.log(`   📺 Display Size: ${displayWidth} x ${displayHeight}`);
+          console.log(`   🔍 Scale Ratio: ${(displayWidth/imageWidth).toFixed(2)}x`);
+        }
+        
+        // Update status with dimensions
+        this.updateStatus(`A4Tech Active (${imageWidth}x${imageHeight} → ${displayWidth}x${displayHeight})`);
+      };
+      
+      this.serverFeedElement.onerror = () => {
+        this.updateStatus('A4Tech Full Image Error');
+        console.error('❌ A4Tech full image feed error');
+      };
+    }
+  }
+  
+  async captureFullImage() {
+    const resultText = document.querySelector('.result-text p');
+    
+    try {
+      if (resultText) {
+        resultText.textContent = 'Capturing full image from A4Tech camera...';
+        resultText.style.color = 'orange';
+      }
+      
+      // Log current image dimensions before capture
+      if (this.serverFeedElement) {
+        const imgWidth = this.serverFeedElement.naturalWidth;
+        const imgHeight = this.serverFeedElement.naturalHeight;
+        console.log(`📸 Capturing image at: ${imgWidth} x ${imgHeight} pixels`);
+      }
+      
+      // Always use server capture to ensure we get the full uncropped image
+      await this.captureServerFullFrame();
+      
+    } catch (error) {
+      console.error('Full image capture error:', error);
+      
+      if (resultText) {
+        resultText.textContent = `Capture failed: ${error.message}`;
+        resultText.style.color = 'red';
+      }
+    }
+  }
+  
+  async captureServerFullFrame() {
+    console.log('📸 Capturing full image from A4Tech server...');
+    
+    const response = await fetch('/capture-current-frame', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`A4Tech server error: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      const resultText = document.querySelector('.result-text p');
+      if (resultText) {
+        resultText.textContent = `✅ Full A4Tech image captured! ${result.filename}`;
+        resultText.style.color = 'green';
+      }
+      console.log('✅ A4Tech full image capture successful:', result.filename);
+    } else {
+      throw new Error(result.error);
+    }
+  }
+  
+  updateStatus(status) {
+    if (this.statusElement) {
+      this.statusElement.textContent = status;
+      this.statusElement.style.color = status.includes('Error') ? '#ff0000' : '#00ff00';
+    }
+    console.log('📊 Full image camera status:', status);
+  }
+}
+
+// Initialize full image camera manager
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 Starting Rebar Vista with Full Image Display...');
+  window.fullImageCameraManager = new FullImageCameraManager();
+});
+
+window.addEventListener('load', () => {
+  console.log('📹 Full image camera system loaded');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rebar Vista - Image Gallery</title>
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/result.css') }}">
+</head>
+
+<body>
+  <!-- Header Navigation -->
+  <header class="header">
+    <div class="nav-container">
+      <div class="logo-section">
+        <img src="{{ url_for('static', filename='logo/logo_no_bg.png') }}" alt="Rebar Vista Logo" class="nav-logo">
+        <div class="brand-name">
+          <div class="brand-name-top">Rebar</div>
+          <div class="brand-name-bottom">Vista</div>
+        </div>
+      </div>
+      
+      <div class="header-title">
+        <h1>Analyzed Images</h1>
+      </div>
+      
+      <button class="back-btn" onclick="goToMainPage()">BACK</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Filter Section -->
+    <section class="filter-section">
+      <div class="filter-container">
+        <div class="filter-group">
+          <label for="timeframe-filter">Timeframe</label>
+          <select id="timeframe-filter" class="filter-select">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="year">This Year</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="sort-filter">Sort By</label>
+          <select id="sort-filter" class="filter-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
+        
+        <div class="filter-actions">
+          <button class="clear-filters-btn" onclick="clearFilters()">Clear Filters</button>
+          <button class="clear-all-btn" onclick="clearAllImages()">Delete All Images</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section class="gallery-section">
+      <div class="gallery-container">
+        <div id="gallery-grid" class="gallery-grid">
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading images...</p>
+          </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination-container">
+          <div class="pagination" id="pagination">
+            <!-- Pagination buttons will be generated here -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Image Modal -->
+  <div id="image-modal" class="modal-overlay" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Image Details</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="modal-image-container">
+          <img id="modal-image" src="" alt="Selected Image">
+        </div>
+        
+        <div class="modal-details">
+          <div class="detail-row">
+            <span class="detail-label">Filename:</span>
+            <span id="modal-filename" class="detail-value">-</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Captured:</span>
+            <span id="modal-captured" class="detail-value">-</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="modal-btn download-btn" onclick="downloadCurrentImage()">
+          <span class="btn-icon">⬇</span>
+          Download
+        </button>
+        <button class="modal-btn delete-btn" onclick="deleteCurrentImage()">
+          <span class="btn-icon">🗑</span>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='javascript/result.js') }}"></script>
+</body>
+</html>
