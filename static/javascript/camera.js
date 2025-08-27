@@ -1,47 +1,44 @@
-// ==================== CAMERA APP MANAGER ==================== 
+// ==================== SIMPLIFIED CAMERA APP MANAGER ==================== 
 
 class CameraAppManager {
   constructor() {
     this.isLiveMode = true;
-    this.isPreviewMode = false;
-    this.isFullscreen = false;
     this.isAnalyzing = false;
-    this.capturedImageData = null;
+    this.isFullscreen = false;
     this.analysisResults = null;
     
     // DOM Elements
     this.cameraContainer = document.getElementById('camera-container');
     this.serverFeed = document.getElementById('server-feed');
     this.videoElement = document.getElementById('camera-feed');
-    this.capturedPreview = document.getElementById('captured-preview');
     this.cameraStatus = document.getElementById('camera-status');
     this.loadingOverlay = document.getElementById('loading-overlay');
     
     // Controls
     this.tutorialBtn = document.getElementById('tutorial-btn');
-    this.closePreviewBtn = document.getElementById('close-preview-btn');
     this.galleryBtn = document.getElementById('gallery-btn');
     this.captureBtn = document.getElementById('capture-btn');
-    this.previewControls = document.getElementById('preview-controls');
-    this.analyzeBtn = document.getElementById('analyze-btn');
-    this.deleteBtn = document.getElementById('delete-btn');
     this.fullscreenBtn = document.getElementById('fullscreen-btn');
+    this.gridBtn = document.getElementById('grid-btn');
     
     // Modals
     this.tutorialModal = document.getElementById('tutorial-modal');
     this.resultsModal = document.getElementById('results-modal');
     this.errorModal = document.getElementById('error-modal');
     
+    // Grid overlay
+    this.gridOverlay = document.getElementById('grid-overlay');
+    this.isGridActive = false;
+    
     // Camera feed management
     this.serverFeedInterval = null;
     this.isUsingServerFeed = true;
-    this.isUsingWebRTC = false;
     
     this.init();
   }
   
   init() {
-    console.log('🎥 Initializing Camera App Manager...');
+    console.log('🎥 Initializing Simplified Camera App Manager...');
     this.setupEventListeners();
     this.startCameraFeed();
     this.updateStatus('Initializing camera system...');
@@ -54,23 +51,17 @@ class CameraAppManager {
     if (this.tutorialBtn) {
       this.tutorialBtn.addEventListener('click', () => this.openTutorialModal());
     }
-    if (this.closePreviewBtn) {
-      this.closePreviewBtn.addEventListener('click', () => this.exitPreviewMode());
-    }
     if (this.galleryBtn) {
       this.galleryBtn.addEventListener('click', () => this.openGallery());
     }
     if (this.captureBtn) {
-      this.captureBtn.addEventListener('click', () => this.captureImage());
-    }
-    if (this.analyzeBtn) {
-      this.analyzeBtn.addEventListener('click', () => this.analyzeImage());
-    }
-    if (this.deleteBtn) {
-      this.deleteBtn.addEventListener('click', () => this.deletePreview());
+      this.captureBtn.addEventListener('click', () => this.captureAndAnalyze());
     }
     if (this.fullscreenBtn) {
       this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+    }
+    if (this.gridBtn) {
+      this.gridBtn.addEventListener('click', () => this.toggleGrid());
     }
     
     // Modal click outside to close
@@ -120,14 +111,13 @@ class CameraAppManager {
     }
     
     this.isUsingServerFeed = true;
-    this.isUsingWebRTC = false;
     
     // Start server feed refresh
     this.refreshServerFeed();
     
-    // Set up interval for continuous feed
+    // Set up interval for continuous feed (only when not analyzing)
     this.serverFeedInterval = setInterval(() => {
-      if (this.isUsingServerFeed && this.isLiveMode) {
+      if (this.isUsingServerFeed && this.isLiveMode && !this.isAnalyzing) {
         this.refreshServerFeed();
       }
     }, 100); // 10 FPS for smooth experience
@@ -137,7 +127,7 @@ class CameraAppManager {
   }
   
   refreshServerFeed() {
-    if (this.serverFeed && this.isLiveMode) {
+    if (this.serverFeed && this.isLiveMode && !this.isAnalyzing) {
       const timestamp = new Date().getTime();
       this.serverFeed.src = `/video_feed?t=${timestamp}`;
       
@@ -152,14 +142,19 @@ class CameraAppManager {
     }
   }
   
-  // ==================== CAPTURE FUNCTIONALITY ====================
+  // ==================== SIMPLIFIED CAPTURE & ANALYZE FLOW ====================
   
-  async captureImage() {
-    console.log('📸 Capturing image...');
-    this.updateStatus('Capturing image...');
+  async captureAndAnalyze() {
+    if (this.isAnalyzing) {
+      console.log('⚠️ Analysis already in progress, ignoring capture request');
+      return;
+    }
+    
+    console.log('📸 Starting capture and analyze flow...');
+    this.isAnalyzing = true;
     
     try {
-      // Add capture animation
+      // Step 1: Capture Animation
       if (this.captureBtn) {
         this.captureBtn.style.transform = 'scale(0.9)';
         setTimeout(() => {
@@ -167,169 +162,98 @@ class CameraAppManager {
         }, 150);
       }
       
-      // Capture from server feed
-      const response = await fetch('/capture-current-frame', {
+      // Step 2: Show loading overlay immediately
+      this.showLoadingOverlay();
+      this.updateStatus('Capturing image...');
+      
+      // Step 3: Capture image from server
+      console.log('📷 Capturing image from camera...');
+      const captureResponse = await fetch('/capture-current-frame', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
       
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+      if (!captureResponse.ok) {
+        throw new Error(`Capture failed: ${captureResponse.status}`);
       }
       
-      const result = await response.json();
+      const captureResult = await captureResponse.json();
       
-      if (result.success) {
-        // Store captured image data
-        this.capturedImageData = {
-          filename: result.filename,
-          url: `/static/captured_images/${result.filename}`
-        };
-        
-        // Switch to preview mode
-        this.enterPreviewMode();
-        
-        console.log('✅ Image captured successfully:', result.filename);
-        this.updateStatus('Image captured - Review or analyze');
-      } else {
-        throw new Error(result.error);
+      if (!captureResult.success) {
+        throw new Error(captureResult.error || 'Failed to capture image');
       }
       
-    } catch (error) {
-      console.error('❌ Capture error:', error);
-      this.updateStatus('Capture failed');
-      this.showErrorMessage('Failed to capture image: ' + error.message);
-    }
-  }
-  
-  // ==================== PREVIEW MODE MANAGEMENT ====================
-  
-  enterPreviewMode() {
-    console.log('🖼️ Entering preview mode...');
-    
-    if (!this.capturedImageData) {
-      console.error('No captured image data available');
-      return;
-    }
-    
-    // Update state
-    this.isLiveMode = false;
-    this.isPreviewMode = true;
-    
-    // Hide live feed, show captured image
-    if (this.serverFeed) this.serverFeed.style.display = 'none';
-    if (this.videoElement) this.videoElement.style.display = 'none';
-    if (this.capturedPreview) {
-      this.capturedPreview.style.display = 'block';
-      this.capturedPreview.src = this.capturedImageData.url;
-    }
-    
-    // Update UI controls
-    if (this.captureBtn) this.captureBtn.style.display = 'none';
-    if (this.previewControls) this.previewControls.classList.add('active');
-    if (this.closePreviewBtn) this.closePreviewBtn.classList.add('active');
-    
-    // Stop server feed interval
-    if (this.serverFeedInterval) {
-      clearInterval(this.serverFeedInterval);
-      this.serverFeedInterval = null;
-    }
-    
-    // Add fade-in animation
-    if (this.capturedPreview) {
-      this.capturedPreview.classList.add('fade-in');
-      setTimeout(() => {
-        this.capturedPreview.classList.remove('fade-in');
-      }, 300);
-    }
-  }
-  
-  exitPreviewMode() {
-    console.log('🔄 Exiting preview mode...');
-    
-    // Update state
-    this.isLiveMode = true;
-    this.isPreviewMode = false;
-    
-    // Show live feed, hide captured image
-    if (this.capturedPreview) this.capturedPreview.style.display = 'none';
-    if (this.serverFeed) this.serverFeed.style.display = 'block';
-    
-    // Update UI controls
-    if (this.captureBtn) this.captureBtn.style.display = 'flex';
-    if (this.previewControls) this.previewControls.classList.remove('active');
-    if (this.closePreviewBtn) this.closePreviewBtn.classList.remove('active');
-    
-    // Clear captured image data
-    this.capturedImageData = null;
-    
-    // Restart camera feed
-    this.startCameraFeed();
-  }
-  
-  // ==================== AI ANALYSIS ====================
-  
-  async analyzeImage() {
-    if (!this.capturedImageData) {
-      console.error('No image to analyze');
-      return;
-    }
-    
-    console.log('🔍 Starting AI analysis...');
-    this.isAnalyzing = true;
-    
-    // Show loading overlay
-    if (this.loadingOverlay) {
-      this.loadingOverlay.classList.add('active');
-    }
-    this.updateStatus('Analyzing rebar structure...');
-    
-    try {
-      // Call AI analysis endpoint
-      const response = await fetch('/analyze-rebar', {
+      console.log('✅ Image captured successfully:', captureResult.filename);
+      
+      // Step 4: Immediately start AI analysis
+      this.updateStatus('Analyzing rebar structure...');
+      console.log('🔍 Starting AI analysis...');
+      
+      const analysisResponse = await fetch('/analyze-rebar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          filename: this.capturedImageData.filename 
+          filename: captureResult.filename 
         })
       });
       
-      if (!response.ok) {
-        if (response.status === 422) {
+      if (!analysisResponse.ok) {
+        if (analysisResponse.status === 422) {
           // No rebar detected
-          const result = await response.json();
+          const result = await analysisResponse.json();
           if (result.error === 'no_rebar_detected') {
+            this.hideLoadingOverlay();
             this.showErrorModal();
             return;
           }
         }
-        throw new Error(`Analysis failed: ${response.status}`);
+        throw new Error(`Analysis failed: ${analysisResponse.status}`);
       }
       
-      const result = await response.json();
+      const analysisResult = await analysisResponse.json();
       
-      if (result.success) {
-        // Show analysis results
-        this.showAnalysisResults(result);
-        console.log('✅ Analysis completed successfully');
-      } else {
-        throw new Error(result.message || 'Analysis failed');
+      if (!analysisResult.success) {
+        throw new Error(analysisResult.message || 'Analysis failed');
       }
+      
+      console.log('✅ AI analysis completed successfully');
+      
+      // Step 5: Hide loading and show results
+      this.hideLoadingOverlay();
+      this.showAnalysisResults(analysisResult);
+      
+      // Step 6: Auto-save happens automatically (no user action needed)
+      console.log('💾 Results automatically saved to gallery');
       
     } catch (error) {
-      console.error('❌ Analysis error:', error);
-      this.showErrorModal();
+      console.error('❌ Capture and analyze error:', error);
+      this.hideLoadingOverlay();
+      this.updateStatus('Analysis failed');
+      this.showErrorMessage('Failed to analyze image: ' + error.message);
     } finally {
       this.isAnalyzing = false;
-      if (this.loadingOverlay) {
-        this.loadingOverlay.classList.remove('active');
-      }
+    }
+  }
+  
+  // ==================== LOADING OVERLAY MANAGEMENT ====================
+  
+  showLoadingOverlay() {
+    if (this.loadingOverlay) {
+      this.loadingOverlay.classList.add('active');
+    }
+  }
+  
+  hideLoadingOverlay() {
+    if (this.loadingOverlay) {
+      this.loadingOverlay.classList.remove('active');
     }
   }
   
   // ==================== RESULTS MANAGEMENT ====================
   
   showAnalysisResults(results) {
+    console.log('📊 Showing analysis results...');
+    
     // Update results modal with actual data from AI
     const resultsImage = document.getElementById('results-image');
     const dimensionsResult = document.getElementById('dimensions-result');
@@ -338,8 +262,10 @@ class CameraAppManager {
     // Set analyzed image (with AI overlays)
     if (results.images && results.images.analyzed && resultsImage) {
       resultsImage.src = results.images.analyzed;
-    } else if (resultsImage) {
-      resultsImage.src = this.capturedImageData.url;
+      console.log('🖼️ Using analyzed image with AI overlays');
+    } else if (results.images && results.images.original && resultsImage) {
+      resultsImage.src = results.images.original;
+      console.log('🖼️ Using original captured image');
     }
     
     // Set dimensions
@@ -356,7 +282,7 @@ class CameraAppManager {
       mixtureResult.textContent = '1 Cement : 2 Sand : 3 Aggregate'; // Fallback
     }
     
-    // Store results for saving
+    // Store results for reference
     this.analysisResults = results;
     
     // Show results modal
@@ -364,77 +290,55 @@ class CameraAppManager {
       this.resultsModal.classList.add('active');
     }
     
+    // Update status
+    this.updateStatus('Analysis complete - Results ready');
+    
     // Log analysis details
-    console.log('📊 Analysis Results:', {
+    console.log('📊 Analysis Results Summary:', {
       detections: results.detections?.count || 0,
       dimensions: results.dimensions?.display || 'N/A',
       mixture: results.cement_mixture?.ratio || 'N/A',
-      placeholder: results.metadata?.placeholder_mode || false
+      placeholder: results.metadata?.placeholder_mode || false,
+      auto_saved: true
     });
-  }
-  
-  async saveResults() {
-    if (!this.analysisResults) {
-      console.error('No results to save');
-      return;
-    }
     
-    try {
-      // The analyzed image is already saved by the AI service
-      // Just close modal and return to live mode
-      this.closeResultsModal();
-      this.exitPreviewMode();
-      
-      this.updateStatus('Results saved to gallery');
-      console.log('💾 Results saved successfully');
-      
-      // Show success message with analysis details
-      const detectionCount = this.analysisResults.detections?.count || 0;
-      const message = `Analysis complete! ${detectionCount} rebar structures detected. Results saved to gallery.`;
+    // Show success message
+    const detectionCount = results.detections?.count || 0;
+    const message = `Analysis complete! ${detectionCount} rebar structures detected. Results saved to gallery.`;
+    setTimeout(() => {
       this.showSuccessMessage(message);
-      
-    } catch (error) {
-      console.error('❌ Save error:', error);
-      this.showErrorMessage('Failed to save results: ' + error.message);
-    }
+    }, 1000); // Delay to let modal appear first
   }
   
-  // ==================== IMAGE DELETION ====================
+  // ==================== GRID TOGGLE FUNCTIONALITY ====================
   
-  async deletePreview() {
-    if (!this.capturedImageData) {
-      console.error('No image to delete');
-      return;
-    }
+  toggleGrid() {
+    this.isGridActive = !this.isGridActive;
     
-    const confirmed = confirm('Delete this captured image?');
-    if (!confirmed) return;
-    
-    try {
-      console.log('🗑️ Deleting preview image...');
-      
-      const response = await fetch(`/delete-image/${encodeURIComponent(this.capturedImageData.filename)}`, {
-        method: 'DELETE'
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('✅ Image deleted successfully');
-        this.updateStatus('Image deleted');
-        
-        // Return to live mode
-        this.exitPreviewMode();
-        
-        // Show brief message
-        this.showSuccessMessage('Image deleted successfully');
-      } else {
-        throw new Error(result.error);
+    if (this.isGridActive) {
+      // Show grid overlay
+      if (this.gridOverlay) {
+        this.gridOverlay.classList.add('active');
       }
-      
-    } catch (error) {
-      console.error('❌ Delete error:', error);
-      this.showErrorMessage('Failed to delete image: ' + error.message);
+      // Change to nogrid icon
+      if (this.gridBtn) {
+        this.gridBtn.classList.add('grid-active');
+        this.gridBtn.title = 'Hide Grid';
+      }
+      console.log('✅ Rule of thirds grid enabled');
+      this.updateStatus('Grid overlay enabled');
+    } else {
+      // Hide grid overlay
+      if (this.gridOverlay) {
+        this.gridOverlay.classList.remove('active');
+      }
+      // Change back to withgrid icon
+      if (this.gridBtn) {
+        this.gridBtn.classList.remove('grid-active');
+        this.gridBtn.title = 'Show Grid';
+      }
+      console.log('❌ Rule of thirds grid disabled');
+      this.updateStatus('Grid overlay disabled');
     }
   }
   
@@ -490,11 +394,19 @@ class CameraAppManager {
     
     if (this.isFullscreen) {
       if (this.cameraContainer) this.cameraContainer.classList.add('fullscreen');
-      if (this.fullscreenBtn) this.fullscreenBtn.innerHTML = '↙️';
+      // Change to minimize icon when in fullscreen
+      if (this.fullscreenBtn) {
+        this.fullscreenBtn.classList.add('minimize-mode');
+        this.fullscreenBtn.title = 'Exit Fullscreen';
+      }
       this.updateStatus('Fullscreen mode active');
     } else {
       if (this.cameraContainer) this.cameraContainer.classList.remove('fullscreen');
-      if (this.fullscreenBtn) this.fullscreenBtn.innerHTML = '⛶';
+      // Change back to fullscreen icon when not in fullscreen
+      if (this.fullscreenBtn) {
+        this.fullscreenBtn.classList.remove('minimize-mode');
+        this.fullscreenBtn.title = 'Enter Fullscreen';
+      }
       this.updateStatus('Fullscreen mode exited');
     }
   }
@@ -521,6 +433,7 @@ class CameraAppManager {
       this.resultsModal.classList.remove('active');
     }
     this.analysisResults = null; // Clear stored results
+    this.updateStatus('Ready for next capture');
   }
   
   showErrorModal() {
@@ -535,6 +448,7 @@ class CameraAppManager {
     if (this.errorModal) {
       this.errorModal.classList.remove('active');
     }
+    this.updateStatus('Ready for next capture');
   }
   
   // ==================== UI STATUS MANAGEMENT ====================
@@ -555,23 +469,24 @@ class CameraAppManager {
       position: fixed;
       top: 100px;
       right: 20px;
-      background: #2ecc71;
+      background: #2d7d47;
       color: white;
       padding: 15px 20px;
       border-radius: 8px;
       z-index: 400;
-      font-weight: 500;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      font-weight: 600;
+      box-shadow: 0 6px 25px rgba(45, 125, 71, 0.3);
       animation: slideInRight 0.3s ease;
-      max-width: 300px;
+      max-width: 350px;
       word-wrap: break-word;
+      border: 2px solid white;
     `;
     
     document.body.appendChild(notification);
     
     setTimeout(() => {
       notification.remove();
-    }, 4000);
+    }, 5000);
   }
   
   showErrorMessage(message) {
@@ -588,35 +503,39 @@ class CameraAppManager {
       padding: 15px 20px;
       border-radius: 8px;
       z-index: 400;
-      font-weight: 500;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      font-weight: 600;
+      box-shadow: 0 6px 25px rgba(231, 76, 60, 0.3);
       animation: slideInRight 0.3s ease;
-      max-width: 300px;
+      max-width: 350px;
       word-wrap: break-word;
+      border: 2px solid white;
     `;
     
     document.body.appendChild(notification);
     
     setTimeout(() => {
       notification.remove();
-    }, 5000);
+    }, 6000);
   }
   
   // ==================== KEYBOARD SHORTCUTS ====================
   
   handleKeyboard(e) {
     // Prevent shortcuts during analysis
-    if (this.isAnalyzing) return;
+    if (this.isAnalyzing) {
+      console.log('⏳ Ignoring keyboard shortcut during analysis');
+      return;
+    }
     
     switch (e.key) {
-      case ' ': // Spacebar - Capture
+      case ' ': // Spacebar - Capture & Analyze
         e.preventDefault();
         if (this.isLiveMode) {
-          this.captureImage();
+          this.captureAndAnalyze();
         }
         break;
         
-      case 'Escape': // Escape - Close modals or exit preview
+      case 'Escape': // Escape - Close modals
         e.preventDefault();
         if (this.tutorialModal && this.tutorialModal.classList.contains('active')) {
           this.closeTutorialModal();
@@ -624,23 +543,13 @@ class CameraAppManager {
           this.closeResultsModal();
         } else if (this.errorModal && this.errorModal.classList.contains('active')) {
           this.closeErrorModal();
-        } else if (this.isPreviewMode) {
-          this.exitPreviewMode();
         }
         break;
         
-      case 'Enter': // Enter - Analyze in preview mode
+      case 'Enter': // Enter - Capture & Analyze
         e.preventDefault();
-        if (this.isPreviewMode && !this.isAnalyzing) {
-          this.analyzeImage();
-        }
-        break;
-        
-      case 'Delete': // Delete - Delete preview
-      case 'Backspace':
-        e.preventDefault();
-        if (this.isPreviewMode && !this.isAnalyzing) {
-          this.deletePreview();
+        if (this.isLiveMode) {
+          this.captureAndAnalyze();
         }
         break;
         
@@ -659,6 +568,12 @@ class CameraAppManager {
       case '?': // ? - Tutorial
         e.preventDefault();
         this.openTutorialModal();
+        break;
+        
+      case 'r': // R - Toggle grid
+      case 'R':
+        e.preventDefault();
+        this.toggleGrid();
         break;
     }
   }
@@ -685,27 +600,27 @@ window.closeErrorModal = function() {
   }
 };
 
-window.saveResults = function() {
-  if (window.cameraApp) {
-    window.cameraApp.saveResults();
-  }
-};
+// Removed saveResults function since it's no longer needed (auto-save)
 
 // ==================== INITIALIZATION ====================
 
 // Initialize camera app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Starting Rebar Vista Camera App...');
+  console.log('🚀 Starting Simplified Rebar Vista Camera App...');
   
   // Create global instance
   window.cameraApp = new CameraAppManager();
   
-  console.log('✅ Camera App initialized successfully');
+  console.log('✅ Simplified Camera App initialized successfully');
+  console.log('📋 Simplified User Flow:');
+  console.log('   1. Press capture button (📷)');
+  console.log('   2. Wait for AI analysis');
+  console.log('   3. View results (auto-saved to gallery)');
+  console.log('   4. Close results and capture again');
+  console.log('');
   console.log('📋 Available keyboard shortcuts:');
-  console.log('   Space - Capture image');
-  console.log('   Enter - Analyze image (in preview mode)');
-  console.log('   Escape - Close modals or exit preview');
-  console.log('   Delete - Delete preview image');
+  console.log('   Space/Enter - Capture & analyze');
+  console.log('   Escape - Close modals');
   console.log('   F - Toggle fullscreen');
   console.log('   G - Open gallery');
   console.log('   ? - Open tutorial');

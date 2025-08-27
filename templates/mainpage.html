@@ -12,7 +12,7 @@
 </head>
 
 <body>
-  <!-- Header Navigation (consistent with welcome page) -->
+  <!-- Header Navigation (exactly matching welcome page) -->
   <header class="header">
     <div class="nav-container">
       <div class="logo-section">
@@ -35,7 +35,14 @@
       <!-- Camera Feeds -->
       <img id="server-feed" alt="A4Tech Camera Feed">
       <video id="camera-feed" autoplay playsinline muted style="display: none;"></video>
-      <img id="captured-preview" alt="Captured Image">
+      
+      <!-- Rule of Thirds Grid Overlay -->
+      <div class="grid-overlay" id="grid-overlay">
+        <div class="grid-line grid-vertical" style="left: 33.33%;"></div>
+        <div class="grid-line grid-vertical" style="left: 66.67%;"></div>
+        <div class="grid-line grid-horizontal" style="top: 33.33%;"></div>
+        <div class="grid-line grid-horizontal" style="top: 66.67%;"></div>
+      </div>
       
       <!-- Camera Status -->
       <div class="camera-status" id="camera-status">Starting A4Tech Camera...</div>
@@ -48,29 +55,23 @@
       
       <!-- Camera Controls Overlay -->
       <div class="camera-controls">
-        <!-- Tutorial Button -->
-        <button class="tutorial-btn" id="tutorial-btn" title="How to use">❓</button>
-        
-        <!-- Close Preview Button -->
-        <button class="close-preview-btn" id="close-preview-btn" title="Back to live feed">✕</button>
+        <!-- Tutorial Button with white ? symbol -->
+        <button class="tutorial-btn" id="tutorial-btn" title="How to use">?</button>
         
         <!-- Bottom Controls -->
         <div class="bottom-controls">
-          <!-- Gallery Button -->
-          <button class="gallery-btn" id="gallery-btn" title="View Gallery">📁</button>
+          <!-- Gallery Button - Pure custom icon, no emoji -->
+          <button class="gallery-btn" id="gallery-btn" title="View Gallery"></button>
           
-          <!-- Capture Button (Live Mode) -->
-          <button class="capture-btn" id="capture-btn" title="Capture Image">📷</button>
+          <!-- Capture Button - Pure custom icon, no emoji -->
+          <button class="capture-btn" id="capture-btn" title="Capture & Analyze"></button>
           
-          <!-- Preview Mode Controls -->
-          <div class="preview-controls" id="preview-controls">
-            <button class="analyze-btn" id="analyze-btn" title="Analyze Rebar">🔍</button>
-            <button class="delete-btn" id="delete-btn" title="Delete Image">🗑️</button>
-          </div>
-          
-          <!-- Fullscreen Button -->
-          <button class="fullscreen-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
+          <!-- Grid Toggle Button - beside capture button -->
+          <button class="grid-btn" id="grid-btn" title="Toggle Grid"></button>
         </div>
+        
+        <!-- Fullscreen Button - repositioned to bottom right corner -->
+        <button class="fullscreen-btn" id="fullscreen-btn" title="Enter Fullscreen"></button>
       </div>
     </div>
   </main>
@@ -91,32 +92,24 @@
       <div class="tutorial-step">
         <div class="tutorial-step-number">2</div>
         <div>
-          <strong>Capture the image</strong><br>
-          Press the camera button (📷) in the center to take a photo
+          <strong>Capture & analyze</strong><br>
+          Press the camera button (📷) to capture and automatically start AI analysis
         </div>
       </div>
       
       <div class="tutorial-step">
         <div class="tutorial-step-number">3</div>
         <div>
-          <strong>Review the capture</strong><br>
-          The live feed will be replaced with your captured image
+          <strong>View results</strong><br>
+          Wait for analysis to complete and view rebar dimensions and cement mixture
         </div>
       </div>
       
       <div class="tutorial-step">
         <div class="tutorial-step-number">4</div>
         <div>
-          <strong>Analyze or Delete</strong><br>
-          Press Analyze (🔍) to process the image, or Delete (🗑️) to discard it
-        </div>
-      </div>
-      
-      <div class="tutorial-step">
-        <div class="tutorial-step-number">5</div>
-        <div>
-          <strong>View results</strong><br>
-          Analysis results will show rebar dimensions and cement mixture ratios
+          <strong>Automatic saving</strong><br>
+          Results are automatically saved to the gallery for future reference
         </div>
       </div>
       
@@ -146,7 +139,6 @@
         </div>
         <div class="modal-buttons">
           <button class="modal-btn secondary" onclick="closeResultsModal()">Close</button>
-          <button class="modal-btn primary" onclick="saveResults()">Save to Gallery</button>
         </div>
       </div>
     </div>

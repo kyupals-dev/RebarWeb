@@ -1,11 +1,11 @@
-/* ==================== CAMERA APP INTERFACE STYLES ==================== */
+/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES ==================== */
 
-/* Global Styles */
+/* Global Styles with #2d7d47 Theme */
 body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background: #2d7d47; /* Solid green background */
   height: 100vh;
   overflow: hidden;
   color: white;
@@ -40,6 +40,7 @@ body {
   cursor: pointer;
 }
 
+/* Logo size exactly matching welcome page */
 .nav-logo {
   width: 50px;
   height: 50px;
@@ -51,6 +52,7 @@ body {
   transform: scale(1.05);
 }
 
+/* Brand name exactly matching welcome page */
 .brand-name {
   display: flex;
   flex-direction: column;
@@ -80,7 +82,7 @@ body {
   font-size: 24px;
 }
 
-/* ==================== CAMERA INTERFACE LAYOUT ==================== */
+/* ==================== PORTRAIT-OPTIMIZED CAMERA INTERFACE ==================== */
 
 .camera-interface {
   display: flex;
@@ -91,11 +93,16 @@ body {
   position: relative;
 }
 
-/* Camera Display Container - 480x640 Portrait Format */
+/* Dynamic Camera Container - 90% of screen height for maximum space usage */
 .camera-container {
   position: relative;
-  width: 480px;
-  height: 640px;
+  /* Maximized sizing: 90% of available height, maintaining 480:640 aspect ratio */
+  height: 90vh;
+  width: calc(90vh * 0.75); /* 480/640 = 0.75 aspect ratio */
+  max-height: 800px;
+  max-width: 600px;
+  min-height: 500px;
+  min-width: 375px;
   background: #000;
   border-radius: 20px;
   overflow: hidden;
@@ -116,8 +123,7 @@ body {
 /* ==================== CAMERA FEEDS ==================== */
 
 #camera-feed, 
-#server-feed, 
-#captured-preview {
+#server-feed {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -125,8 +131,40 @@ body {
   transition: opacity 0.3s ease;
 }
 
-#captured-preview {
-  display: none;
+/* ==================== RULE OF THIRDS GRID OVERLAY ==================== */
+
+.grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 5;
+  display: none; /* Hidden by default */
+}
+
+.grid-overlay.active {
+  display: block;
+}
+
+.grid-line {
+  position: absolute;
+  background-color: white;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.grid-vertical {
+  width: 1px;
+  height: 100%;
+  top: 0;
+}
+
+.grid-horizontal {
+  height: 1px;
+  width: 100%;
+  left: 0;
 }
 
 /* ==================== CAMERA CONTROLS OVERLAY ==================== */
@@ -150,64 +188,45 @@ body {
   position: absolute;
   top: 20px;
   left: 20px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(45, 125, 71, 0.9); /* #2d7d47 with transparency */
   color: white;
   padding: 8px 12px;
   border-radius: 20px;
   font-size: 12px;
-  backdrop-filter: blur(10px);
   transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Tutorial Button - Top Right */
+/* Tutorial Button - White ? symbol with #49A166 background */
 .tutorial-btn {
   position: absolute;
   top: 20px;
   right: 20px;
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.6);
+  width: 50px;
+  height: 50px;
+  background: rgba(73, 161, 102, 0.8); /* #49A166 with transparency */
   border: none;
-  border-radius: 50%;
-  color: white;
-  font-size: 20px;
+  border-radius: 15px;
+  color: white; /* White font color for ? */
+  font-size: 24px;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(73, 161, 102, 0.3);
 }
 
 .tutorial-btn:hover {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(73, 161, 102, 1);
   transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(73, 161, 102, 0.4);
 }
 
-/* Close Preview Button */
-.close-preview-btn {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.6);
-  border: none;
-  border-radius: 50%;
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-
-.close-preview-btn.active {
-  display: flex;
-}
-
-.close-preview-btn:hover {
-  background: rgba(0, 0, 0, 0.8);
-  transform: scale(1.1);
+.tutorial-btn:active {
+  transform: scale(1.05);
 }
 
 /* ==================== BOTTOM CONTROLS ==================== */
@@ -215,127 +234,118 @@ body {
 .bottom-controls {
   position: absolute;
   bottom: 30px;
-  left: 30px;
-  right: 30px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 40px;
 }
 
-/* Gallery Button - Bottom Left */
-.gallery-btn {
-  width: 60px;
-  height: 60px;
+/* Custom icon buttons with rounded corners and blur effects */
+.gallery-btn, 
+.capture-btn,
+.grid-btn {
   background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-radius: 15px;
-  color: white;
-  font-size: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 20px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.gallery-btn:hover {
+.gallery-btn:hover, 
+.capture-btn:hover,
+.grid-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: scale(1.05);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
 }
 
-/* Capture Button - Center */
+.gallery-btn:active, 
+.capture-btn:active,
+.grid-btn:active {
+  transform: scale(0.98);
+}
+
+/* Gallery Button - Custom gallery.png icon (NO emoji) */
+.gallery-btn {
+  width: 65px;
+  height: 65px;
+  background-image: url('/static/assets/button/gallery.png');
+  background-size: 40px 40px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Capture Button - Custom capture.png icon (NO emoji) */
 .capture-btn {
   width: 80px;
   height: 80px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 4px solid white;
-  border-radius: 50%;
-  color: white;
-  font-size: 30px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+  background-image: url('/static/assets/button/capture.png');
+  background-size: 50px 50px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
-.capture-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
+/* Grid Toggle Button - Custom withgrid.png and nogrid.png icons */
+.grid-btn {
+  width: 65px;
+  height: 65px;
+  background-image: url('/static/assets/button/withgrid.png');
+  background-size: 40px 40px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
-.capture-btn:active {
-  transform: scale(0.95);
+/* Grid button state change - nogrid icon when grid is active */
+.grid-btn.grid-active {
+  background-image: url('/static/assets/button/nogrid.png');
 }
 
-/* Preview Mode Controls */
-.preview-controls {
-  display: none;
-  align-items: center;
-  gap: 20px;
-}
-
-.preview-controls.active {
-  display: flex;
-}
-
-.analyze-btn, 
-.delete-btn {
-  width: 60px;
-  height: 60px;
-  border: none;
-  border-radius: 15px;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.analyze-btn {
-  background: rgba(46, 204, 113, 0.8);
-}
-
-.analyze-btn:hover {
-  background: rgba(46, 204, 113, 1);
-  transform: scale(1.05);
-}
-
-.delete-btn {
-  background: rgba(231, 76, 60, 0.8);
-}
-
-.delete-btn:hover {
-  background: rgba(231, 76, 60, 1);
-  transform: scale(1.05);
-}
-
-/* Fullscreen Button - Bottom Right */
+/* Fullscreen Button - Repositioned to bottom right corner, smaller, no rounded corners */
 .fullscreen-btn {
-  width: 60px;
-  height: 60px;
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  width: 40px;
+  height: 40px;
   background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-radius: 15px;
-  color: white;
-  font-size: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 0; /* No rounded corners */
+  backdrop-filter: blur(15px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background-image: url('/static/assets/button/fullscreen.png');
+  background-size: 25px 25px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
 .fullscreen-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.35);
   transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.fullscreen-btn:active {
+  transform: scale(0.95);
+}
+
+/* Fullscreen button state change - minimize icon when in fullscreen */
+.fullscreen-btn.minimize-mode {
+  background-image: url('/static/assets/button/minimize.png');
 }
 
 /* ==================== LOADING OVERLAY ==================== */
@@ -346,13 +356,13 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(45, 125, 71, 0.9); /* Green overlay */
   display: none;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   z-index: 20;
-  backdrop-filter: blur(10px);
+  border-radius: 20px;
 }
 
 .loading-overlay.active {
@@ -360,19 +370,21 @@ body {
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top: 3px solid white;
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 .loading-text {
   color: white;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 600;
   text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes spin {
@@ -421,56 +433,64 @@ body {
 /* ==================== TUTORIAL MODAL ==================== */
 
 .tutorial-modal .modal-content {
-  width: 600px;
+  width: 500px;
   padding: 30px;
 }
 
 .tutorial-modal h2 {
-  margin: 0 0 20px 0;
-  color: #2c3e50;
+  margin: 0 0 25px 0;
+  color: #2d7d47;
   text-align: center;
+  font-size: 24px;
 }
 
 .tutorial-step {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 20px;
-  padding: 15px;
+  padding: 20px;
   background: #f8f9fa;
-  border-radius: 10px;
+  border-radius: 12px;
+  border-left: 4px solid #2d7d47;
 }
 
 .tutorial-step-number {
-  width: 30px;
-  height: 30px;
-  background: #3498db;
+  width: 35px;
+  height: 35px;
+  background: #2d7d47;
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  font-size: 16px;
   margin-right: 15px;
   flex-shrink: 0;
+}
+
+.tutorial-step strong {
+  color: #2d7d47;
 }
 
 /* ==================== RESULTS MODAL ==================== */
 
 .results-modal .modal-content {
-  width: 800px;
+  width: 700px;
   padding: 0;
 }
 
 .results-header {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, #2d7d47, #245a37);
   color: white;
-  padding: 20px 30px;
+  padding: 25px 30px;
   border-radius: 20px 20px 0 0;
 }
 
 .results-header h2 {
   margin: 0;
   text-align: center;
+  font-size: 24px;
 }
 
 .results-body {
@@ -481,55 +501,64 @@ body {
   width: 100%;
   max-height: 400px;
   object-fit: contain;
-  border-radius: 10px;
-  margin-bottom: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  border: 2px solid #f0f0f0;
 }
 
 .results-data {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 25px;
+  margin-bottom: 20px;
 }
 
 .result-card {
   background: #f8f9fa;
-  padding: 20px;
-  border-radius: 10px;
-  border-left: 4px solid #3498db;
+  padding: 25px;
+  border-radius: 12px;
+  border-left: 5px solid #2d7d47;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .result-card h3 {
-  margin: 0 0 10px 0;
-  color: #2c3e50;
+  margin: 0 0 15px 0;
+  color: #2d7d47;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .result-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
-  color: #3498db;
+  color: #2d7d47;
+  line-height: 1.3;
 }
 
 /* ==================== ERROR MODAL ==================== */
 
 .error-modal .modal-content {
-  width: 400px;
-  padding: 30px;
+  width: 450px;
+  padding: 40px;
   text-align: center;
 }
 
 .error-modal .error-icon {
-  font-size: 60px;
+  font-size: 80px;
   color: #e74c3c;
   margin-bottom: 20px;
 }
 
 .error-modal h2 {
   color: #e74c3c;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  font-size: 24px;
 }
 
 .error-modal p {
   color: #666;
+  font-size: 16px;
+  line-height: 1.6;
   margin-bottom: 30px;
 }
 
@@ -539,47 +568,50 @@ body {
   display: flex;
   gap: 15px;
   justify-content: center;
-  padding: 20px 30px;
+  padding: 25px 30px;
   border-top: 1px solid #eee;
-  margin: 20px -30px -30px -30px;
+  margin: 25px -30px -30px -30px;
 }
 
 .modal-btn {
-  padding: 12px 24px;
+  padding: 12px 28px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   transition: all 0.3s ease;
+  min-width: 100px;
 }
 
 .modal-btn.primary {
-  background: #3498db;
+  background: #2d7d47;
   color: white;
 }
 
 .modal-btn.primary:hover {
-  background: #2980b9;
+  background: #245a37;
+  transform: translateY(-1px);
 }
 
 .modal-btn.secondary {
-  background: #95a5a6;
+  background: #6c757d;
   color: white;
 }
 
 .modal-btn.secondary:hover {
-  background: #7f8c8d;
+  background: #5a6268;
+  transform: translateY(-1px);
 }
 
 /* ==================== ANIMATIONS ==================== */
 
 .fade-in {
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.4s ease;
 }
 
 .slide-up {
-  animation: slideUp 0.3s ease;
+  animation: slideUp 0.4s ease;
 }
 
 @keyframes fadeIn {
@@ -588,70 +620,185 @@ body {
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
+  from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* ==================== RESPONSIVE DESIGN - VistaTab 10 Optimized ==================== */
+/* ==================== PORTRAIT-OPTIMIZED RESPONSIVE DESIGN ==================== */
 
-@media (max-width: 1024px) {
-  .nav-container {
-    padding: 0 20px;
-  }
-  
-  .camera-interface {
-    padding: 10px;
-  }
-  
+/* Large portrait screens - maximize space even more */
+@media (orientation: portrait) and (min-height: 800px) {
   .camera-container {
-    width: 400px;
-    height: 533px; /* Maintain 480:640 ratio */
-  }
-  
-  .tutorial-modal .modal-content {
-    width: 90%;
-    max-width: 500px;
-  }
-  
-  .results-modal .modal-content {
-    width: 90%;
-    max-width: 700px;
-  }
-  
-  .results-data {
-    grid-template-columns: 1fr;
+    height: 85vh; /* Use even more space on tall screens */
+    width: calc(85vh * 0.75);
   }
 }
 
-@media (max-width: 480px) {
+/* Medium portrait screens */
+@media (orientation: portrait) and (max-height: 800px) and (min-height: 600px) {
   .camera-container {
-    width: 320px;
-    height: 427px; /* Maintain 480:640 ratio */
+    height: 80vh;
+    width: calc(80vh * 0.75);
   }
   
   .bottom-controls {
-    left: 15px;
-    right: 15px;
-    bottom: 15px;
+    gap: 35px;
+    bottom: 25px;
+  }
+  
+  .capture-btn {
+    width: 75px;
+    height: 75px;
+    background-size: 45px 45px;
   }
   
   .gallery-btn,
+  .grid-btn {
+    width: 60px;
+    height: 60px;
+    background-size: 35px 35px;
+  }
+  
   .fullscreen-btn {
-    width: 50px;
-    height: 50px;
-    font-size: 20px;
+    width: 35px;
+    height: 35px;
+    background-size: 22px 22px;
+    bottom: 12px;
+    right: 12px;
+  }
+  
+  .tutorial-btn {
+    width: 45px;
+    height: 45px;
+    font-size: 22px;
+  }
+}
+
+/* Small portrait screens */
+@media (orientation: portrait) and (max-height: 600px) {
+  .header {
+    height: 60px;
+  }
+  
+  .nav-logo {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .brand-name-top,
+  .brand-name-bottom {
+    font-size: 16px;
+  }
+  
+  .header-title h1 {
+    font-size: 18px;
+  }
+  
+  .camera-container {
+    height: 75vh;
+    width: calc(75vh * 0.75);
+    border-radius: 15px;
+  }
+  
+  .bottom-controls {
+    gap: 30px;
+    bottom: 20px;
   }
   
   .capture-btn {
     width: 70px;
     height: 70px;
-    font-size: 25px;
+    background-size: 40px 40px;
   }
   
-  .analyze-btn,
-  .delete-btn {
-    width: 50px;
-    height: 50px;
-    font-size: 18px;
+  .gallery-btn,
+  .grid-btn {
+    width: 55px;
+    height: 55px;
+    background-size: 30px 30px;
+  }
+  
+  .fullscreen-btn {
+    width: 32px;
+    height: 32px;
+    background-size: 20px 20px;
+    bottom: 10px;
+    right: 10px;
+  }
+  
+  .tutorial-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+}
+
+/* Landscape fallback (discourage landscape use) */
+@media (orientation: landscape) {
+  .camera-container {
+    height: 85vh;
+    width: calc(85vh * 0.75);
+    max-height: 600px;
+    max-width: 450px;
+  }
+  
+  .camera-interface::before {
+    content: "📱 For best experience, please rotate your device to portrait mode";
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(45, 125, 71, 0.9);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 50;
+  }
+}
+
+/* Tablet-specific optimizations - maximize space */
+@media (min-width: 768px) and (orientation: portrait) {
+  .camera-interface {
+    padding: 20px;
+  }
+  
+  .camera-container {
+    height: 88vh; /* Use almost full height on tablets */
+    width: calc(88vh * 0.75);
+    max-height: 900px;
+    max-width: 675px;
+  }
+  
+  .capture-btn {
+    width: 85px;
+    height: 85px;
+    background-size: 55px 55px;
+  }
+  
+  .gallery-btn {
+    width: 70px;
+    height: 70px;
+    background-size: 45px 45px;
+  }
+  
+  .fullscreen-btn {
+    width: 65px;
+    height: 65px;
+    background-size: 40px 40px;
+  }
+  
+  .tutorial-btn {
+    width: 55px;
+    height: 55px;
+    font-size: 26px;
+  }
+  
+  .results-modal .modal-content {
+    width: 600px;
+  }
+  
+  .tutorial-modal .modal-content {
+    width: 550px;
   }
 }
