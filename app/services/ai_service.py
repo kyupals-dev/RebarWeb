@@ -1,13 +1,13 @@
 """
-AI Service for Rebar Detection and Analysis
+AI Service for Rebar Detection and Analysis - UPDATED for single image + JSON storage
 Integrates Detectron2 Mask R-CNN model for rebar segmentation with REAL MODEL
 """
 
 import os
 import cv2
 import numpy as np
-from datetime import datetime
 import json
+from datetime import datetime
 import traceback
 
 # Detectron2 imports (will be installed later)
@@ -121,6 +121,7 @@ class AIService:
     def analyze_image(self, image_path):
         """
         Analyze image for rebar detection using REAL TRAINED MODEL
+        UPDATED: Only saves analyzed image + JSON metadata
         
         Args:
             image_path (str): Path to the image file
@@ -169,7 +170,7 @@ class AIService:
                 'error': f'Analysis failed: {str(e)}'
             }
     
-    def _analyze_with_real_model(self, image, image_path):
+    def _analyze_with_real_model(self, image, original_image_path):
         """Run actual AI model analysis with REAL TRAINED MODEL"""
         try:
             print("🤖 Running REAL Detectron2 inference...")
@@ -211,14 +212,32 @@ class AIService:
                 
                 print(f"   Detection {i+1}: {detection['class_name']} ({detection['confidence']:.3f}) - Area: {detection['mask_area']:.0f}px")
             
-            # Create visualization with REAL MODEL results
-            analyzed_image_path = self._create_real_model_visualization(image, outputs, image_path)
-            
             # Calculate dimensions from REAL MODEL detections
             dimensions = self._calculate_real_dimensions(detections, masks, image.shape)
             
             # Calculate cement mixture
             mixture = self._calculate_cement_mixture(dimensions)
+            
+            # Create visualization with REAL MODEL results and save ONLY the analyzed image
+            analyzed_image_path = self._create_real_model_visualization(image, outputs, original_image_path)
+            
+            # UPDATED: Save analysis metadata as JSON
+            metadata_path = self._save_analysis_metadata(analyzed_image_path, {
+                'detections': detections,
+                'num_detections': num_detections,
+                'dimensions': dimensions,
+                'cement_mixture': mixture,
+                'model_type': 'real_trained_model',
+                'analysis_timestamp': datetime.now().isoformat()
+            })
+            
+            # UPDATED: Delete original image (we only keep the analyzed result)
+            try:
+                if os.path.exists(original_image_path):
+                    os.remove(original_image_path)
+                    print(f"🗑️  Deleted original image: {os.path.basename(original_image_path)}")
+            except Exception as e:
+                print(f"⚠️  Could not delete original image: {e}")
             
             return {
                 'success': True,
@@ -227,7 +246,7 @@ class AIService:
                 'dimensions': dimensions,
                 'cement_mixture': mixture,
                 'analyzed_image_path': analyzed_image_path,
-                'original_image_path': image_path,
+                'metadata_path': metadata_path,
                 'model_type': 'real_trained_model'
             }
             
@@ -277,25 +296,25 @@ class AIService:
                 # Add dimension annotations
                 self._add_dimension_annotations(result_image, instances)
             
-            # Generate output filename
+            # UPDATED: Generate analyzed image filename (no original kept)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'real_analysis_{timestamp}.jpg'
+            filename = f'analysis_{timestamp}.jpg'
             output_path = os.path.join(config.UPLOAD_FOLDER, filename)
             
             # Save analyzed image
             success = cv2.imwrite(output_path, result_image)
             
             if success:
-                print(f"✅ REAL MODEL visualization saved: {filename}")
+                print(f"✅ REAL MODEL analyzed image saved: {filename}")
                 return output_path
             else:
                 print("❌ Failed to save REAL MODEL visualization")
-                return original_path
+                return None
                 
         except Exception as e:
             print(f"❌ REAL MODEL visualization error: {str(e)}")
             traceback.print_exc()
-            return original_path
+            return None
     
     def _add_dimension_annotations(self, image, instances):
         """Add dimension text annotations to the visualization"""
@@ -336,7 +355,7 @@ class AIService:
                     'height': 0,
                     'unit': 'cm',
                     'volume': 0,
-                    'display': '0cm x 0cm x 0cm = 0cm³',
+                    'display': '0cm × 0cm × 0cm',
                     'method': 'real_model_analysis'
                 }
             
@@ -387,11 +406,8 @@ class AIService:
             width_cm = max(width_cm, 10)
             height_cm = max(height_cm, 10)
             
-            # Calculate volume
-            volume_cm3 = length_cm * width_cm * height_cm
-            
             # Create display string in requested format
-            display_string = f"{length_cm:.0f}cm x {width_cm:.0f}cm x {height_cm:.0f}cm = {volume_cm3:.0f}cm³"
+            display_string = f"{length_cm:.0f}cm × {width_cm:.0f}cm × {height_cm:.0f}cm"
             
             print(f"   Calculated dimensions: {display_string}")
             
@@ -400,7 +416,6 @@ class AIService:
                 'width': round(width_cm, 1), 
                 'height': round(height_cm, 1),
                 'unit': 'cm',
-                'volume': round(volume_cm3, 1),
                 'display': display_string,
                 'method': 'real_model_mask_analysis',
                 'detection_details': {
@@ -419,12 +434,11 @@ class AIService:
                 'width': 25,
                 'height': 200,
                 'unit': 'cm',
-                'volume': 125000,
-                'display': '25cm x 25cm x 200cm = 125000cm³',
+                'display': '25cm × 25cm × 200cm',
                 'method': 'fallback_calculation'
             }
     
-    def _analyze_placeholder(self, image, image_path):
+    def _analyze_placeholder(self, image, original_image_path):
         """Generate placeholder analysis results (fallback only)"""
         print("📝 Using placeholder AI analysis (REAL MODEL not available)...")
         
@@ -432,8 +446,8 @@ class AIService:
         import time
         time.sleep(2)
         
-        # Create simple placeholder visualization
-        analyzed_image_path = self._create_placeholder_visualization(image, image_path)
+        # Create simple placeholder visualization and save ONLY the analyzed image
+        analyzed_image_path = self._create_placeholder_visualization(image, original_image_path)
         
         # Placeholder dimensions in requested format
         dimensions = {
@@ -441,8 +455,7 @@ class AIService:
             'width': 25.4,
             'height': 200.0,
             'unit': 'cm',
-            'volume': 101600,
-            'display': '25cm x 25cm x 200cm = 101600cm³',
+            'display': '25cm × 25cm × 200cm',
             'method': 'placeholder_fallback'
         }
         
@@ -450,8 +463,37 @@ class AIService:
             'cement': 1,
             'sand': 2,
             'aggregate': 3,
-            'ratio_string': '1 Cement : 2 Sand : 3 Aggregate'
+            'ratio': '1 Cement : 2 Sand : 3 Aggregate'
         }
+        
+        # UPDATED: Save analysis metadata as JSON
+        metadata_path = self._save_analysis_metadata(analyzed_image_path, {
+            'detections': [
+                {
+                    'class_name': 'front_vertical',
+                    'confidence': 0.85,
+                    'bbox': [100, 50, 200, 300]
+                },
+                {
+                    'class_name': 'front_horizontal', 
+                    'confidence': 0.78,
+                    'bbox': [80, 280, 220, 320]
+                }
+            ],
+            'num_detections': 2,
+            'dimensions': dimensions,
+            'cement_mixture': mixture,
+            'model_type': 'placeholder',
+            'analysis_timestamp': datetime.now().isoformat()
+        })
+        
+        # UPDATED: Delete original image (we only keep the analyzed result)
+        try:
+            if os.path.exists(original_image_path):
+                os.remove(original_image_path)
+                print(f"🗑️  Deleted original image: {os.path.basename(original_image_path)}")
+        except Exception as e:
+            print(f"⚠️  Could not delete original image: {e}")
         
         return {
             'success': True,
@@ -472,7 +514,7 @@ class AIService:
             'dimensions': dimensions,
             'cement_mixture': mixture,
             'analyzed_image_path': analyzed_image_path,
-            'original_image_path': image_path,
+            'metadata_path': metadata_path,
             'model_type': 'placeholder'
         }
     
@@ -506,30 +548,55 @@ class AIService:
             cv2.putText(result_image, 'Front Horizontal (78%)', (80, 275), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
             
-            # Generate output filename
+            # UPDATED: Generate analyzed image filename (no original kept)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'placeholder_analysis_{timestamp}.jpg'
+            filename = f'analysis_{timestamp}.jpg'
             output_path = os.path.join(config.UPLOAD_FOLDER, filename)
             
             # Save analyzed image
             success = cv2.imwrite(output_path, result_image)
             
             if success:
-                print(f"✅ Placeholder visualization saved: {filename}")
+                print(f"✅ Placeholder analyzed image saved: {filename}")
                 return output_path
             else:
                 print("❌ Failed to save placeholder visualization")
-                return original_path
+                return None
                 
         except Exception as e:
             print(f"❌ Placeholder visualization error: {str(e)}")
-            return original_path
+            return None
+    
+    def _save_analysis_metadata(self, analyzed_image_path, analysis_data):
+        """UPDATED: Save analysis metadata as JSON file alongside analyzed image"""
+        try:
+            if not analyzed_image_path:
+                return None
+            
+            # Generate JSON filename matching the analyzed image
+            base_name = os.path.splitext(analyzed_image_path)[0]
+            metadata_path = f"{base_name}.json"
+            
+            # Save metadata
+            with open(metadata_path, 'w') as f:
+                json.dump(analysis_data, f, indent=2)
+            
+            print(f"💾 Analysis metadata saved: {os.path.basename(metadata_path)}")
+            return metadata_path
+            
+        except Exception as e:
+            print(f"❌ Error saving analysis metadata: {str(e)}")
+            return None
     
     def _calculate_cement_mixture(self, dimensions):
         """Calculate cement mixture ratios based on volume"""
         print("🧮 Calculating cement mixture...")
         
-        volume_cm3 = dimensions.get('volume', 0)
+        length = dimensions.get('length', 0)
+        width = dimensions.get('width', 0)
+        height = dimensions.get('height', 0)
+        
+        volume_cm3 = length * width * height
         volume_m3 = volume_cm3 / 1000000  # Convert cm³ to m³
         
         # Standard concrete mixture ratios for Philippine construction
@@ -558,7 +625,7 @@ class AIService:
             'cement_ratio': cement_ratio,
             'sand_ratio': sand_ratio,
             'aggregate_ratio': aggregate_ratio,
-            'ratio_string': f'{cement_ratio} Cement : {sand_ratio} Sand : {aggregate_ratio} Aggregate',
+            'ratio': f'{cement_ratio} Cement : {sand_ratio} Sand : {aggregate_ratio} Aggregate',
             'total_concrete_volume_m3': round(total_concrete_volume, 4),
             'cement_bags': round(cement_bags, 2),
             'sand_volume_m3': round(sand_volume, 4),
@@ -577,7 +644,8 @@ class AIService:
             'class_names': self.class_names,
             'threshold': self.detection_threshold,
             'training_input_size': self.training_input_size,
-            'model_type': 'real_trained_model' if self.model_loaded else 'placeholder'
+            'model_type': 'real_trained_model' if self.model_loaded else 'placeholder',
+            'storage_mode': 'single_image_plus_json'
         }
     
     def test_model(self, test_image_path=None):

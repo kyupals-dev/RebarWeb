@@ -23,3 +23,22 @@ pycocotools==2.0.7
 
 # System utilities
 psutil==5.9.5
+
+# GPIO Library for Distance Sensor (like test.py)
+lgpio
+
+# Raspberry Pi optimized versions
+torch==2.4.0
+torchvision==0.19.0
+torchaudio==2.4.0
+opencv-python==4.12.0.88
+numpy==1.24.3
+Pillow==10.0.1
+
+# Core dependencies
+PyYAML==6.0.2
+Cython==3.0.12
+tqdm==4.67.1
+pycocotools==2.0.10
+scipy==1.11.1
+matplotlib==3.7.2
