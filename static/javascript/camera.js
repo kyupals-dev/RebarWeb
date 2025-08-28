@@ -1,4 +1,4 @@
-// ==================== SIMPLIFIED CAMERA APP MANAGER ==================== 
+// ==================== SIMPLIFIED CAMERA APP MANAGER WITH DISTANCE SENSOR ==================== 
 
 class CameraAppManager {
   constructor() {
@@ -7,12 +7,20 @@ class CameraAppManager {
     this.isFullscreen = false;
     this.analysisResults = null;
     
+    // Distance sensor management
+    this.distanceInterval = null;
+    this.lastDistanceReading = null;
+    this.distanceUpdateRate = 500; // 500ms as requested
+    
     // DOM Elements
     this.cameraContainer = document.getElementById('camera-container');
     this.serverFeed = document.getElementById('server-feed');
     this.videoElement = document.getElementById('camera-feed');
     this.cameraStatus = document.getElementById('camera-status');
     this.loadingOverlay = document.getElementById('loading-overlay');
+    
+    // Distance display elements
+    this.distanceDisplay = null; // Will be created dynamically
     
     // Controls
     this.tutorialBtn = document.getElementById('tutorial-btn');
@@ -38,10 +46,164 @@ class CameraAppManager {
   }
   
   init() {
-    console.log('🎥 Initializing Simplified Camera App Manager...');
+    console.log('🎥 Initializing Simplified Camera App Manager with Distance Sensor...');
     this.setupEventListeners();
+    this.createDistanceDisplay();
     this.startCameraFeed();
-    this.updateStatus('Initializing camera system...');
+    this.startDistanceMonitoring();
+    this.updateStatus('Initializing camera and distance sensor...');
+  }
+  
+  // ==================== DISTANCE SENSOR INTEGRATION ====================
+  
+  createDistanceDisplay() {
+    console.log('📏 Creating distance display overlay...');
+    
+    // Create distance display element
+    this.distanceDisplay = document.createElement('div');
+    this.distanceDisplay.className = 'distance-display';
+    this.distanceDisplay.innerHTML = `
+      <div class="distance-value">--cm</div>
+      <div class="distance-status">CHECKING</div>
+    `;
+    
+    // Add to camera controls (positioned right of camera status)
+    if (this.cameraContainer) {
+      const cameraControls = this.cameraContainer.querySelector('.camera-controls');
+      if (cameraControls) {
+        cameraControls.appendChild(this.distanceDisplay);
+      }
+    }
+    
+    console.log('✅ Distance display created');
+  }
+  
+  async startDistanceMonitoring() {
+    console.log('🚀 Starting distance sensor monitoring...');
+    
+    try {
+      // Start the distance monitoring service
+      const startResponse = await fetch('/start-distance-monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (startResponse.ok) {
+        console.log('✅ Distance monitoring service started');
+        
+        // Start polling for distance readings every 500ms
+        this.distanceInterval = setInterval(() => {
+          this.updateDistanceReading();
+        }, this.distanceUpdateRate);
+        
+        console.log(`📏 Distance polling started at ${this.distanceUpdateRate}ms intervals`);
+      } else {
+        console.warn('⚠️  Failed to start distance monitoring service');
+        this.showDistanceError('Service unavailable');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error starting distance monitoring:', error);
+      this.showDistanceError('Connection error');
+    }
+  }
+  
+  async updateDistanceReading() {
+    // Only update if not currently analyzing (avoid interference)
+    if (this.isAnalyzing) {
+      return;
+    }
+    
+    try {
+      const response = await fetch('/distance-reading');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const reading = await response.json();
+      
+      if (reading.success) {
+        this.lastDistanceReading = reading;
+        this.updateDistanceDisplay(reading);
+      } else {
+        this.showDistanceError(reading.error || 'Reading failed');
+      }
+      
+    } catch (error) {
+      // Don't spam console with connection errors
+      if (Math.random() < 0.1) { // Log only 10% of errors
+        console.warn('⚠️  Distance reading error:', error.message);
+      }
+      this.showDistanceError('Connection error');
+    }
+  }
+  
+  updateDistanceDisplay(reading) {
+    if (!this.distanceDisplay) return;
+    
+    const valueElement = this.distanceDisplay.querySelector('.distance-value');
+    const statusElement = this.distanceDisplay.querySelector('.distance-status');
+    
+    if (valueElement) {
+      valueElement.textContent = reading.distance_text || '--cm';
+    }
+    
+    if (statusElement) {
+      statusElement.textContent = reading.status_text || 'UNKNOWN';
+    }
+    
+    // Update background color based on status
+    this.distanceDisplay.className = `distance-display ${reading.status_color || 'gray'}`;
+    
+    // Add distance icon based on status
+    const icon = this.getDistanceIcon(reading.status);
+    if (valueElement && !valueElement.textContent.includes('📏')) {
+      valueElement.textContent = `📏 ${reading.distance_text || '--cm'}`;
+    }
+  }
+  
+  getDistanceIcon(status) {
+    switch (status) {
+      case 'optimal': return '✅';
+      case 'too_close': return '⚠️';
+      case 'too_far': return '📏';
+      default: return '❓';
+    }
+  }
+  
+  showDistanceError(error) {
+    if (!this.distanceDisplay) return;
+    
+    const valueElement = this.distanceDisplay.querySelector('.distance-value');
+    const statusElement = this.distanceDisplay.querySelector('.distance-status');
+    
+    if (valueElement) {
+      valueElement.textContent = '❌ --cm';
+    }
+    
+    if (statusElement) {
+      statusElement.textContent = 'ERROR';
+    }
+    
+    this.distanceDisplay.className = 'distance-display red';
+  }
+  
+  stopDistanceMonitoring() {
+    console.log('🛑 Stopping distance monitoring...');
+    
+    if (this.distanceInterval) {
+      clearInterval(this.distanceInterval);
+      this.distanceInterval = null;
+    }
+    
+    // Stop the monitoring service
+    fetch('/stop-distance-monitoring', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    }).catch(error => {
+      console.warn('⚠️  Error stopping distance monitoring:', error);
+    });
   }
   
   setupEventListeners() {
@@ -87,6 +249,11 @@ class CameraAppManager {
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+    
+    // Window beforeunload to clean up distance monitoring
+    window.addEventListener('beforeunload', () => {
+      this.stopDistanceMonitoring();
+    });
     
     console.log('✅ Event listeners setup complete');
   }
@@ -148,6 +315,23 @@ class CameraAppManager {
     if (this.isAnalyzing) {
       console.log('⚠️ Analysis already in progress, ignoring capture request');
       return;
+    }
+    
+    // Check distance for optimal positioning warning
+    if (this.lastDistanceReading && this.lastDistanceReading.success) {
+      const status = this.lastDistanceReading.status;
+      if (status === 'too_close') {
+        const proceed = confirm('Distance is too close (< 160cm). Capture anyway?\n\nFor best results, move back to 160-200cm range.');
+        if (!proceed) {
+          return;
+        }
+      } else if (status === 'too_far') {
+        const proceed = confirm('Distance is too far (> 200cm). Capture anyway?\n\nFor best results, move closer to 160-200cm range.');
+        if (!proceed) {
+          return;
+        }
+      }
+      // If optimal, continue without warning
     }
     
     console.log('📸 Starting capture and analyze flow...');
@@ -575,6 +759,15 @@ class CameraAppManager {
         e.preventDefault();
         this.toggleGrid();
         break;
+        
+      case 'd': // D - Show distance info (debug)
+      case 'D':
+        e.preventDefault();
+        if (this.lastDistanceReading) {
+          console.log('📏 Current distance reading:', this.lastDistanceReading);
+          this.showSuccessMessage(`Distance: ${this.lastDistanceReading.distance_text} - ${this.lastDistanceReading.status_text}`);
+        }
+        break;
     }
   }
 }
@@ -600,29 +793,29 @@ window.closeErrorModal = function() {
   }
 };
 
-// Removed saveResults function since it's no longer needed (auto-save)
-
 // ==================== INITIALIZATION ====================
 
 // Initialize camera app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Starting Simplified Rebar Vista Camera App...');
+  console.log('🚀 Starting Simplified Rebar Vista Camera App with Distance Sensor...');
   
   // Create global instance
   window.cameraApp = new CameraAppManager();
   
   console.log('✅ Simplified Camera App initialized successfully');
   console.log('📋 Simplified User Flow:');
-  console.log('   1. Press capture button (📷)');
-  console.log('   2. Wait for AI analysis');
-  console.log('   3. View results (auto-saved to gallery)');
-  console.log('   4. Close results and capture again');
+  console.log('   1. Position device at optimal distance (160-200cm)');
+  console.log('   2. Press capture button (📷)');
+  console.log('   3. Wait for AI analysis');
+  console.log('   4. View results (auto-saved to gallery)');
+  console.log('   5. Close results and capture again');
   console.log('');
   console.log('📋 Available keyboard shortcuts:');
   console.log('   Space/Enter - Capture & analyze');
   console.log('   Escape - Close modals');
   console.log('   F - Toggle fullscreen');
   console.log('   G - Open gallery');
+  console.log('   D - Show distance info (debug)');
   console.log('   ? - Open tutorial');
 });
 

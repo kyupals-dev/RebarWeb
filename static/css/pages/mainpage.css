@@ -1,4 +1,4 @@
-/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES ==================== */
+/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES WITH DISTANCE SENSOR ==================== */
 
 /* Global Styles with #2d7d47 Theme */
 body {
@@ -183,7 +183,7 @@ body {
   pointer-events: all;
 }
 
-/* Camera Status */
+/* Camera Status - positioned on left side */
 .camera-status {
   position: absolute;
   top: 20px;
@@ -195,6 +195,66 @@ body {
   font-size: 12px;
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ==================== DISTANCE SENSOR DISPLAY ==================== */
+
+/* Distance Display - positioned on right side of camera status */
+.distance-display {
+  position: absolute;
+  top: 20px;
+  right: 80px; /* Leave space for tutorial button */
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 15px;
+  font-size: 11px;
+  transition: all 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  text-align: center;
+  min-width: 80px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.distance-display .distance-value {
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.distance-display .distance-status {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Distance Status Color Coding */
+.distance-display.green {
+  background: rgba(46, 204, 113, 0.9); /* Optimal range */
+  border-color: rgba(46, 204, 113, 0.6);
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+}
+
+.distance-display.red {
+  background: rgba(231, 76, 60, 0.9); /* Too close or error */
+  border-color: rgba(231, 76, 60, 0.6);
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.distance-display.yellow {
+  background: rgba(241, 196, 15, 0.9); /* Too far */
+  border-color: rgba(241, 196, 15, 0.6);
+  box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
+  color: #2c3e50; /* Darker text for better contrast on yellow */
+}
+
+.distance-display.gray {
+  background: rgba(127, 140, 141, 0.9); /* Checking/Unknown */
+  border-color: rgba(127, 140, 141, 0.6);
+  box-shadow: 0 4px 15px rgba(127, 140, 141, 0.3);
 }
 
 /* Tutorial Button - White ? symbol with #49A166 background */
@@ -672,6 +732,22 @@ body {
     height: 45px;
     font-size: 22px;
   }
+  
+  /* Adjust distance display for medium screens */
+  .distance-display {
+    right: 75px; /* Adjust for smaller tutorial button */
+    font-size: 10px;
+    padding: 6px 10px;
+    min-width: 70px;
+  }
+  
+  .distance-display .distance-value {
+    font-size: 11px;
+  }
+  
+  .distance-display .distance-status {
+    font-size: 8px;
+  }
 }
 
 /* Small portrait screens */
@@ -731,6 +807,29 @@ body {
     height: 40px;
     font-size: 20px;
   }
+  
+  /* Compact distance display for small screens */
+  .distance-display {
+    right: 70px; /* Adjust for smaller tutorial button */
+    font-size: 9px;
+    padding: 5px 8px;
+    min-width: 60px;
+    border-radius: 12px;
+  }
+  
+  .distance-display .distance-value {
+    font-size: 10px;
+    margin-bottom: 1px;
+  }
+  
+  .distance-display .distance-status {
+    font-size: 7px;
+  }
+  
+  .camera-status {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
 }
 
 /* Landscape fallback (discourage landscape use) */
@@ -754,6 +853,13 @@ body {
     border-radius: 20px;
     font-size: 12px;
     z-index: 50;
+  }
+  
+  /* Adjust distance display for landscape */
+  .distance-display {
+    right: 80px;
+    top: 15px;
+    font-size: 10px;
   }
 }
 
@@ -794,6 +900,24 @@ body {
     font-size: 26px;
   }
   
+  /* Enhanced distance display for tablets */
+  .distance-display {
+    right: 85px; /* More space for larger tutorial button */
+    font-size: 12px;
+    padding: 10px 15px;
+    min-width: 90px;
+    border-radius: 18px;
+  }
+  
+  .distance-display .distance-value {
+    font-size: 14px;
+    margin-bottom: 3px;
+  }
+  
+  .distance-display .distance-status {
+    font-size: 10px;
+  }
+  
   .results-modal .modal-content {
     width: 600px;
   }
@@ -801,4 +925,27 @@ body {
   .tutorial-modal .modal-content {
     width: 550px;
   }
+}
+
+/* ==================== DISTANCE DISPLAY ANIMATIONS ==================== */
+
+/* Pulse animation for status changes */
+@keyframes distancePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.distance-display.pulse {
+  animation: distancePulse 0.3s ease;
+}
+
+/* Fade in animation for initial display */
+@keyframes distanceFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.distance-display {
+  animation: distanceFadeIn 0.5s ease;
 }

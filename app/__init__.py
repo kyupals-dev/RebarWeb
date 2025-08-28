@@ -39,14 +39,16 @@ def create_app():
         from app.routes.page_routes import page_bp
         from app.routes.camera_routes import camera_bp
         from app.routes.image_routes import image_bp
-        from app.routes.ai_routes import ai_bp  # Import AI routes
+        from app.routes.ai_routes import ai_bp
+        from app.routes.sensor_routes import sensor_bp  # Import sensor routes
         
         app.register_blueprint(page_bp)
         app.register_blueprint(camera_bp)
         app.register_blueprint(image_bp)
-        app.register_blueprint(ai_bp)  # Register AI routes
+        app.register_blueprint(ai_bp)
+        app.register_blueprint(sensor_bp)  # Register sensor routes
         
-        print("All blueprints registered successfully (including AI routes)")
+        print("All blueprints registered successfully (including AI and sensor routes)")
         
         # List available templates for debugging
         if os.path.exists(template_dir):
