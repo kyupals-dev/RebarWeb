@@ -1,0 +1,3 @@
+# Large model files
+app/model/*.pth
+app/model/*.pkl
