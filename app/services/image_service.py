@@ -1,11 +1,12 @@
 import os
 import base64
 import cv2
+import json
 from datetime import datetime
 from app.utils.config import config
 
 class ImageService:
-    """Handles image saving, loading, and management operations with dimension logging"""
+    """Handles image saving, loading, and management operations with JSON metadata support"""
     
     def __init__(self):
         self.upload_folder = config.UPLOAD_FOLDER
@@ -55,6 +56,26 @@ class ImageService:
             print(f"💥 Error analyzing image {filepath}: {e}")
             return None
     
+    def _load_analysis_metadata(self, image_path):
+        """UPDATED: Load analysis metadata from JSON file"""
+        try:
+            # Generate JSON filename matching the image
+            base_name = os.path.splitext(image_path)[0]
+            metadata_path = f"{base_name}.json"
+            
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                print(f"✅ Loaded analysis metadata for: {os.path.basename(image_path)}")
+                return metadata
+            else:
+                print(f"⚠️  No metadata found for: {os.path.basename(image_path)}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error loading metadata for {image_path}: {str(e)}")
+            return None
+    
     def save_frame(self, frame, prefix='frame_capture'):
         """Save a cv2 frame as an image file with dimension logging"""
         try:
@@ -80,6 +101,7 @@ class ImageService:
                 return {
                     'success': True,
                     'filename': filename,
+                    'filepath': filepath,
                     'message': 'Frame captured successfully!',
                     'dimensions': image_info
                 }
@@ -117,6 +139,7 @@ class ImageService:
             return {
                 'success': True,
                 'filename': filename,
+                'filepath': filepath,
                 'message': 'Image saved successfully!',
                 'dimensions': image_info
             }
@@ -129,24 +152,30 @@ class ImageService:
             }
     
     def get_all_images(self):
-        """Get list of all captured images with metadata and dimensions"""
+        """UPDATED: Get list of all analyzed images with metadata"""
         try:
             images = []
             
             if os.path.exists(self.upload_folder):
                 for filename in os.listdir(self.upload_folder):
-                    if self._is_allowed_file(filename):
+                    # Only process analyzed images (skip original captures and JSON files)
+                    if filename.startswith('analysis_') and self._is_allowed_file(filename):
                         filepath = os.path.join(self.upload_folder, filename)
                         file_stats = os.stat(filepath)
                         
                         # Get image dimensions
                         image_info = self._log_image_dimensions(filepath, "Gallery")
                         
+                        # UPDATED: Load analysis metadata from JSON
+                        analysis_metadata = self._load_analysis_metadata(filepath)
+                        
                         image_data = {
                             'filename': filename,
                             'url': f'/static/captured_images/{filename}',
                             'timestamp': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
-                            'size': file_stats.st_size
+                            'size': file_stats.st_size,
+                            'is_analyzed': True,
+                            'has_metadata': analysis_metadata is not None
                         }
                         
                         # Add dimension info if available
@@ -157,12 +186,25 @@ class ImageService:
                                 'dimensions_text': f"{image_info['width']}x{image_info['height']}"
                             })
                         
+                        # UPDATED: Add analysis metadata if available
+                        if analysis_metadata:
+                            image_data.update({
+                                'analysis': {
+                                    'dimensions': analysis_metadata.get('dimensions', {}),
+                                    'cement_mixture': analysis_metadata.get('cement_mixture', {}),
+                                    'detections': analysis_metadata.get('detections', []),
+                                    'num_detections': analysis_metadata.get('num_detections', 0),
+                                    'model_type': analysis_metadata.get('model_type', 'unknown'),
+                                    'analysis_timestamp': analysis_metadata.get('analysis_timestamp')
+                                }
+                            })
+                        
                         images.append(image_data)
             
             # Sort by timestamp (newest first)
             images.sort(key=lambda x: x['timestamp'], reverse=True)
             
-            print(f"📚 Found {len(images)} images in gallery")
+            print(f"📚 Found {len(images)} analyzed images in gallery")
             
             return {
                 'success': True,
@@ -176,8 +218,63 @@ class ImageService:
                 'error': str(e)
             }
     
+    def get_image_metadata(self, filename):
+        """UPDATED: Get specific image metadata (for gallery modal)"""
+        try:
+            filepath = os.path.join(self.upload_folder, filename)
+            
+            if not os.path.exists(filepath):
+                return {
+                    'success': False,
+                    'error': 'Image not found'
+                }
+            
+            # Load analysis metadata
+            analysis_metadata = self._load_analysis_metadata(filepath)
+            
+            # Get basic image info
+            file_stats = os.stat(filepath)
+            image_info = self._log_image_dimensions(filepath, "Metadata Request")
+            
+            result = {
+                'success': True,
+                'filename': filename,
+                'url': f'/static/captured_images/{filename}',
+                'timestamp': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                'size': file_stats.st_size,
+                'has_metadata': analysis_metadata is not None
+            }
+            
+            # Add image dimensions
+            if image_info:
+                result.update({
+                    'width': image_info['width'],
+                    'height': image_info['height'],
+                    'dimensions_text': f"{image_info['width']}x{image_info['height']}"
+                })
+            
+            # Add analysis metadata if available
+            if analysis_metadata:
+                result['analysis'] = {
+                    'dimensions': analysis_metadata.get('dimensions', {}),
+                    'cement_mixture': analysis_metadata.get('cement_mixture', {}),
+                    'detections': analysis_metadata.get('detections', []),
+                    'num_detections': analysis_metadata.get('num_detections', 0),
+                    'model_type': analysis_metadata.get('model_type', 'unknown'),
+                    'analysis_timestamp': analysis_metadata.get('analysis_timestamp')
+                }
+            
+            return result
+            
+        except Exception as e:
+            print(f"💥 Error getting image metadata: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
     def delete_image(self, filename):
-        """Delete a specific image file"""
+        """UPDATED: Delete image and its metadata"""
         try:
             # Security check - only allow files in upload folder
             if not self._is_allowed_file(filename):
@@ -192,11 +289,21 @@ class ImageService:
                 # Log image info before deletion
                 self._log_image_dimensions(filepath, "Deleting")
                 
+                # Delete the image file
                 os.remove(filepath)
                 print(f"🗑️  Image deleted: {filename}")
+                
+                # UPDATED: Also delete the associated JSON metadata file
+                base_name = os.path.splitext(filepath)[0]
+                metadata_path = f"{base_name}.json"
+                
+                if os.path.exists(metadata_path):
+                    os.remove(metadata_path)
+                    print(f"🗑️  Metadata deleted: {os.path.basename(metadata_path)}")
+                
                 return {
                     'success': True,
-                    'message': 'Image deleted successfully!'
+                    'message': 'Image and metadata deleted successfully!'
                 }
             else:
                 return {
@@ -212,26 +319,34 @@ class ImageService:
             }
     
     def clear_all_images(self):
-        """Delete all images in the upload folder"""
+        """UPDATED: Delete all images and metadata in the upload folder"""
         try:
             deleted_count = 0
             total_size = 0
             
             if os.path.exists(self.upload_folder):
                 for filename in os.listdir(self.upload_folder):
+                    filepath = os.path.join(self.upload_folder, filename)
+                    
+                    # Delete image files
                     if self._is_allowed_file(filename):
-                        filepath = os.path.join(self.upload_folder, filename)
                         file_size = os.path.getsize(filepath)
                         total_size += file_size
-                        
                         os.remove(filepath)
                         deleted_count += 1
+                    
+                    # UPDATED: Also delete JSON metadata files
+                    elif filename.endswith('.json'):
+                        file_size = os.path.getsize(filepath)
+                        total_size += file_size
+                        os.remove(filepath)
+                        print(f"🗑️  Metadata deleted: {filename}")
             
-            print(f"🗑️  Cleared {deleted_count} images ({total_size / 1024:.1f} KB total)")
+            print(f"🗑️  Cleared {deleted_count} images and metadata ({total_size / 1024:.1f} KB total)")
             
             return {
                 'success': True,
-                'message': f'Cleared {deleted_count} images successfully!'
+                'message': f'Cleared {deleted_count} images and metadata successfully!'
             }
             
         except Exception as e:

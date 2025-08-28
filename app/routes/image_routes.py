@@ -1,4 +1,4 @@
-# Improvements for app/routes/image_routes.py
+# Updated app/routes/image_routes.py with metadata support
 
 from flask import Blueprint, jsonify, request
 
@@ -78,7 +78,7 @@ def upload_image():
 
 @image_bp.route('/get-images', methods=['GET'])
 def get_images():
-    """Get list of all captured images with validation"""
+    """UPDATED: Get list of all analyzed images with metadata"""
     try:
         # Validate service
         validation_error = _validate_image_service()
@@ -88,7 +88,8 @@ def get_images():
         result = image_service.get_all_images()
         
         if result['success']:
-            print(f"Retrieved {len(result.get('images', []))} images")
+            analyzed_count = len([img for img in result.get('images', []) if img.get('is_analyzed', False)])
+            print(f"Retrieved {len(result.get('images', []))} total images ({analyzed_count} analyzed)")
         
         return jsonify(result)
         
@@ -99,9 +100,41 @@ def get_images():
             'error': f'Failed to retrieve images: {str(e)}'
         }), 500
 
+@image_bp.route('/get-image-metadata/<filename>', methods=['GET'])
+def get_image_metadata(filename):
+    """UPDATED: Get specific image metadata (for gallery modal)"""
+    try:
+        # Validate service
+        validation_error = _validate_image_service()
+        if validation_error:
+            return validation_error
+        
+        # Basic filename validation
+        if not filename or '..' in filename or '/' in filename:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid filename'
+            }), 400
+            
+        result = image_service.get_image_metadata(filename)
+        
+        if result['success']:
+            print(f"Retrieved metadata for: {filename}")
+        else:
+            print(f"Failed to get metadata for {filename}: {result.get('error', 'unknown error')}")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in get_image_metadata: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Metadata retrieval failed: {str(e)}'
+        }), 500
+
 @image_bp.route('/delete-image/<filename>', methods=['DELETE'])
 def delete_image(filename):
-    """Delete a specific image with validation"""
+    """UPDATED: Delete image and its metadata"""
     try:
         # Validate service
         validation_error = _validate_image_service()
@@ -118,7 +151,7 @@ def delete_image(filename):
         result = image_service.delete_image(filename)
         
         if result['success']:
-            print(f"Image deleted successfully: {filename}")
+            print(f"Image and metadata deleted successfully: {filename}")
         else:
             print(f"Failed to delete image {filename}: {result.get('error', 'unknown error')}")
         
@@ -133,7 +166,7 @@ def delete_image(filename):
 
 @image_bp.route('/clear-all-images', methods=['DELETE'])
 def clear_all_images():
-    """Delete all captured images with validation"""
+    """UPDATED: Delete all images and metadata"""
     try:
         # Validate service
         validation_error = _validate_image_service()
@@ -143,7 +176,7 @@ def clear_all_images():
         result = image_service.clear_all_images()
         
         if result['success']:
-            print("All images cleared successfully")
+            print("All images and metadata cleared successfully")
         else:
             print(f"Failed to clear images: {result.get('error', 'unknown error')}")
         
@@ -172,7 +205,8 @@ def image_service_status():
             'status': {
                 'service_available': True,
                 'upload_folder': image_service.upload_folder,
-                'allowed_extensions': list(image_service.allowed_extensions)
+                'allowed_extensions': list(image_service.allowed_extensions),
+                'storage_mode': 'single_image_plus_json_metadata'
             }
         })
         
