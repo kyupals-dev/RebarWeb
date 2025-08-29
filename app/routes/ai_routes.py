@@ -1,6 +1,5 @@
 """
-AI Analysis Routes for Rebar Detection - FIXED with better error handling
-Handles requests for AI model inference and analysis
+AI Analysis Routes for Rebar Detection - Minimal Working Version
 """
 
 from flask import Blueprint, jsonify, request
@@ -8,93 +7,54 @@ import os
 from datetime import datetime
 from app.utils.config import config
 
-# Create a Blueprint for AI analysis routes
 ai_bp = Blueprint('ai', __name__)
-
-# This will be injected when the blueprint is registered
 ai_service = None
 
 def init_ai_routes(ai_svc):
-    """Initialize the AI routes with service dependencies"""
     global ai_service
     ai_service = ai_svc
     print("AI routes initialized with service")
 
 def _validate_ai_service():
-    """Helper function to validate AI service availability"""
     if not ai_service:
-        return jsonify({
-            'success': False,
-            'error': 'AI service not available'
-        }), 503
+        return jsonify({'success': False, 'error': 'AI service not available'}), 503
     return None
 
 @ai_bp.route('/analyze-rebar', methods=['POST'])
 def analyze_rebar():
-    """
-    UPDATED: Analyze captured image for rebar detection with better error handling
-    Expects JSON with image_path or filename
-    """
+    """Analyze captured image with retry mechanism"""
     try:
-        print("🔍 AI analysis request received")
+        print("🔍 AI analysis request received with retry mechanism")
         
-        # Validate AI service
         validation_error = _validate_ai_service()
         if validation_error:
             return validation_error
         
-        # Get request data
         data = request.get_json()
         if not data:
-            return jsonify({
-                'success': False,
-                'error': 'No data provided'
-            }), 400
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
         
-        # Get image path
         if 'image_path' in data:
             image_path = data['image_path']
         elif 'filename' in data:
             filename = data['filename']
             image_path = os.path.join(config.UPLOAD_FOLDER, filename)
         else:
-            return jsonify({
-                'success': False,
-                'error': 'No image path or filename provided'
-            }), 400
+            return jsonify({'success': False, 'error': 'No image path provided'}), 400
         
-        # Validate image exists
         if not os.path.exists(image_path):
-            return jsonify({
-                'success': False,
-                'error': f'Image file not found: {image_path}'
-            }), 404
+            return jsonify({'success': False, 'error': 'Image file not found'}), 404
         
-        print(f"📸 Analyzing image: {os.path.basename(image_path)}")
+        print(f"📸 Analyzing with retry: {os.path.basename(image_path)}")
         
-        # FIXED: Better error handling for AI analysis
-        try:
-            result = ai_service.analyze_image(image_path)
-        except Exception as ai_error:
-            print(f"❌ AI service error: {str(ai_error)}")
-            import traceback
-            traceback.print_exc()
-            
-            # Return a more specific error
-            return jsonify({
-                'success': False,
-                'error': 'ai_processing_error',
-                'message': f'AI processing failed: {str(ai_error)}',
-                'details': 'Check AI service logs for more information'
-            }), 500
+        # Use retry mechanism
+        result = ai_service.analyze_image_with_retries(image_path, max_retries=3)
         
         if result['success']:
-            print("✅ Analysis completed successfully")
+            print("✅ Analysis completed with auto-save")
             
-            # UPDATED: Format response for frontend (matching main page expectations)
             response = {
                 'success': True,
-                'analysis_id': f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 'dimensions': {
                     'length': result['dimensions']['length'],
                     'width': result['dimensions']['width'],
@@ -103,60 +63,29 @@ def analyze_rebar():
                     'display': result['dimensions']['display']
                 },
                 'cement_mixture': {
-                    'ratio': result['cement_mixture']['ratio'],
-                    'details': {
-                        'cement_bags': result['cement_mixture'].get('cement_bags', 0),
-                        'sand_m3': result['cement_mixture'].get('sand_volume_m3', 0),
-                        'aggregate_m3': result['cement_mixture'].get('aggregate_volume_m3', 0),
-                        'total_concrete_m3': result['cement_mixture'].get('total_concrete_volume_m3', 0)
-                    }
+                    'ratio': result['cement_mixture']['ratio_string']
                 },
                 'detections': {
-                    'count': result.get('num_detections', 0),
-                    'items': result.get('detections', [])
+                    'count': result.get('num_detections', 0)
                 },
                 'images': {
+                    'original': f"/static/captured_images/{os.path.basename(image_path)}",
                     'analyzed': f"/static/captured_images/{os.path.basename(result['analyzed_image_path'])}"
                 },
                 'metadata': {
-                    'processing_time': 'completed',
-                    'model_confidence': 'processed',
-                    'placeholder_mode': result.get('placeholder', False),
-                    'model_type': result.get('model_type', 'unknown')
+                    'auto_saved': True,
+                    'gallery_ready': True
                 }
             }
-            
             return jsonify(response)
-        
         else:
-            # Check if it's a "no detection" error
             if result.get('no_detection', False):
-                print("⚠️  No rebar detected in image")
-                
-                # FIXED: Still try to delete the original image even if no detection
-                try:
-                    if os.path.exists(image_path):
-                        os.remove(image_path)
-                        print(f"🗑️  Deleted original image after no detection: {os.path.basename(image_path)}")
-                except Exception as cleanup_error:
-                    print(f"⚠️  Could not clean up original image: {cleanup_error}")
-                
                 return jsonify({
                     'success': False,
                     'error': 'no_rebar_detected',
-                    'message': 'No rebar structures detected in the image'
-                }), 422  # Unprocessable Entity
+                    'message': 'No rebar detected after multiple attempts'
+                }), 422
             else:
-                print(f"❌ Analysis failed: {result.get('error', 'Unknown error')}")
-                
-                # FIXED: Try to clean up original image on other failures too
-                try:
-                    if os.path.exists(image_path):
-                        os.remove(image_path)
-                        print(f"🗑️  Cleaned up original image after analysis failure: {os.path.basename(image_path)}")
-                except Exception as cleanup_error:
-                    print(f"⚠️  Could not clean up original image: {cleanup_error}")
-                
                 return jsonify({
                     'success': False,
                     'error': 'analysis_failed',
@@ -164,97 +93,34 @@ def analyze_rebar():
                 }), 500
         
     except Exception as e:
-        print(f"❌ Analysis route error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        
-        return jsonify({
-            'success': False,
-            'error': 'internal_error',
-            'message': f'Internal server error: {str(e)}',
-            'details': 'Check server logs for full error details'
-        }), 500
+        print(f"❌ Analysis error: {str(e)}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 @ai_bp.route('/ai-model-status', methods=['GET'])
 def ai_model_status():
-    """Get AI model status and configuration"""
+    """Get AI model status"""
     try:
-        # Validate AI service
         validation_error = _validate_ai_service()
         if validation_error:
             return validation_error
         
         status = ai_service.get_model_status()
-        
-        return jsonify({
-            'success': True,
-            'status': status
-        })
+        return jsonify({'success': True, 'status': status})
         
     except Exception as e:
-        print(f"❌ Model status error: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f'Status check failed: {str(e)}'
-        }), 500
-
-@ai_bp.route('/test-ai-model', methods=['POST'])
-def test_ai_model():
-    """Test AI model with a sample image"""
-    try:
-        # Validate AI service
-        validation_error = _validate_ai_service()
-        if validation_error:
-            return validation_error
-        
-        # Get optional test image from request
-        data = request.get_json() or {}
-        test_image_path = data.get('test_image_path')
-        
-        print("🧪 Running AI model test...")
-        
-        # Run test
-        result = ai_service.test_model(test_image_path)
-        
-        if result['success']:
-            print("✅ Model test passed")
-        else:
-            print(f"❌ Model test failed: {result.get('error')}")
-        
-        return jsonify(result)
-        
-    except Exception as e:
-        print(f"❌ Model test error: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f'Test failed: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @ai_bp.route('/ai-health-check', methods=['GET'])
 def ai_health_check():
-    """Simple health check for AI service"""
+    """Health check for AI service"""
     try:
         if not ai_service:
-            return jsonify({
-                'success': False,
-                'status': 'AI service not initialized'
-            }), 503
-        
-        # FIXED: Better health check
-        model_status = ai_service.get_model_status()
+            return jsonify({'success': False, 'status': 'AI service not initialized'}), 503
         
         return jsonify({
             'success': True,
             'status': 'AI service healthy',
-            'model_loaded': model_status.get('model_loaded', False),
-            'detectron2_available': model_status.get('detectron2_available', False),
-            'storage_mode': model_status.get('storage_mode', 'single_image_plus_json'),
-            'timestamp': str(datetime.now())
+            'model_loaded': ai_service.model_loaded
         })
-        
     except Exception as e:
-        print(f"❌ AI health check error: {str(e)}")
-        return jsonify({
-            'success': False,
-            'status': f'Health check failed: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'status': f'Health check failed: {str(e)}'}), 500
