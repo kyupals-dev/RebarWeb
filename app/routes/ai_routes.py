@@ -1,5 +1,5 @@
 """
-AI Analysis Routes for Rebar Detection
+AI Analysis Routes for Rebar Detection - FIXED with better error handling
 Handles requests for AI model inference and analysis
 """
 
@@ -32,7 +32,7 @@ def _validate_ai_service():
 @ai_bp.route('/analyze-rebar', methods=['POST'])
 def analyze_rebar():
     """
-    Analyze captured image for rebar detection
+    UPDATED: Analyze captured image for rebar detection with better error handling
     Expects JSON with image_path or filename
     """
     try:
@@ -72,25 +72,38 @@ def analyze_rebar():
         
         print(f"📸 Analyzing image: {os.path.basename(image_path)}")
         
-        # Run AI analysis
-        result = ai_service.analyze_image(image_path)
+        # FIXED: Better error handling for AI analysis
+        try:
+            result = ai_service.analyze_image(image_path)
+        except Exception as ai_error:
+            print(f"❌ AI service error: {str(ai_error)}")
+            import traceback
+            traceback.print_exc()
+            
+            # Return a more specific error
+            return jsonify({
+                'success': False,
+                'error': 'ai_processing_error',
+                'message': f'AI processing failed: {str(ai_error)}',
+                'details': 'Check AI service logs for more information'
+            }), 500
         
         if result['success']:
             print("✅ Analysis completed successfully")
             
-            # Format response for frontend
+            # UPDATED: Format response for frontend (matching main page expectations)
             response = {
                 'success': True,
-                'analysis_id': f"analysis_{len(os.listdir(config.UPLOAD_FOLDER))}",
+                'analysis_id': f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 'dimensions': {
                     'length': result['dimensions']['length'],
                     'width': result['dimensions']['width'],
                     'height': result['dimensions']['height'],
                     'unit': result['dimensions']['unit'],
-                    'display': f"{result['dimensions']['length']}{result['dimensions']['unit']} × {result['dimensions']['width']}{result['dimensions']['unit']} × {result['dimensions']['height']}{result['dimensions']['unit']}"
+                    'display': result['dimensions']['display']
                 },
                 'cement_mixture': {
-                    'ratio': result['cement_mixture']['ratio_string'],
+                    'ratio': result['cement_mixture']['ratio'],
                     'details': {
                         'cement_bags': result['cement_mixture'].get('cement_bags', 0),
                         'sand_m3': result['cement_mixture'].get('sand_volume_m3', 0),
@@ -103,13 +116,13 @@ def analyze_rebar():
                     'items': result.get('detections', [])
                 },
                 'images': {
-                    'original': f"/static/captured_images/{os.path.basename(image_path)}",
                     'analyzed': f"/static/captured_images/{os.path.basename(result['analyzed_image_path'])}"
                 },
                 'metadata': {
-                    'processing_time': '2.3s',  # Could be actual timing
-                    'model_confidence': 'High',
-                    'placeholder_mode': result.get('placeholder', False)
+                    'processing_time': 'completed',
+                    'model_confidence': 'processed',
+                    'placeholder_mode': result.get('placeholder', False),
+                    'model_type': result.get('model_type', 'unknown')
                 }
             }
             
@@ -119,6 +132,15 @@ def analyze_rebar():
             # Check if it's a "no detection" error
             if result.get('no_detection', False):
                 print("⚠️  No rebar detected in image")
+                
+                # FIXED: Still try to delete the original image even if no detection
+                try:
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                        print(f"🗑️  Deleted original image after no detection: {os.path.basename(image_path)}")
+                except Exception as cleanup_error:
+                    print(f"⚠️  Could not clean up original image: {cleanup_error}")
+                
                 return jsonify({
                     'success': False,
                     'error': 'no_rebar_detected',
@@ -126,6 +148,15 @@ def analyze_rebar():
                 }), 422  # Unprocessable Entity
             else:
                 print(f"❌ Analysis failed: {result.get('error', 'Unknown error')}")
+                
+                # FIXED: Try to clean up original image on other failures too
+                try:
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                        print(f"🗑️  Cleaned up original image after analysis failure: {os.path.basename(image_path)}")
+                except Exception as cleanup_error:
+                    print(f"⚠️  Could not clean up original image: {cleanup_error}")
+                
                 return jsonify({
                     'success': False,
                     'error': 'analysis_failed',
@@ -140,7 +171,8 @@ def analyze_rebar():
         return jsonify({
             'success': False,
             'error': 'internal_error',
-            'message': f'Internal server error: {str(e)}'
+            'message': f'Internal server error: {str(e)}',
+            'details': 'Check server logs for full error details'
         }), 500
 
 @ai_bp.route('/ai-model-status', methods=['GET'])
@@ -208,14 +240,20 @@ def ai_health_check():
                 'status': 'AI service not initialized'
             }), 503
         
+        # FIXED: Better health check
+        model_status = ai_service.get_model_status()
+        
         return jsonify({
             'success': True,
             'status': 'AI service healthy',
-            'model_loaded': ai_service.model_loaded,
+            'model_loaded': model_status.get('model_loaded', False),
+            'detectron2_available': model_status.get('detectron2_available', False),
+            'storage_mode': model_status.get('storage_mode', 'single_image_plus_json'),
             'timestamp': str(datetime.now())
         })
         
     except Exception as e:
+        print(f"❌ AI health check error: {str(e)}")
         return jsonify({
             'success': False,
             'status': f'Health check failed: {str(e)}'
