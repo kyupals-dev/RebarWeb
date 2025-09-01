@@ -1,13 +1,13 @@
-# main.py - Complete implementation with AI service and Distance Sensor integration
+# main.py - Complete implementation with AI service, Distance Sensor integration, and Enhanced SSL
 from app import create_app
 from app.services.camera_service import CameraManager, camera_thread_worker
 from app.services.image_service import ImageService
 from app.services.ai_service import AIService
-from app.services.distance_service import DistanceService  # Import Distance Service
+from app.services.distance_service import DistanceService
 from app.routes.camera_routes import init_camera_routes
 from app.routes.image_routes import init_image_routes
 from app.routes.ai_routes import init_ai_routes
-from app.routes.sensor_routes import init_sensor_routes  # Import Sensor Routes
+from app.routes.sensor_routes import init_sensor_routes
 from app.utils.config import config
 import threading
 import tkinter as tk
@@ -24,7 +24,7 @@ class TkinterCameraFrame:
         self.distance_service = distance_service
         self.root = tk.Tk()
         self.root.title("Rebar Vista Camera Feed - 480x640 with Distance Sensor")
-        self.root.geometry("520x780")  # Slightly taller for distance display
+        self.root.geometry("520x780")
         self.root.configure(bg='#2c3e50')
         
         # Create main frame
@@ -123,13 +123,13 @@ class TkinterCameraFrame:
                     
                     # Set background color based on status
                     if status_color == 'green':
-                        self.distance_status_label.configure(bg='#2ecc71')  # Optimal
+                        self.distance_status_label.configure(bg='#2ecc71')
                     elif status_color == 'red':
-                        self.distance_status_label.configure(bg='#e74c3c')  # Too close/Error
+                        self.distance_status_label.configure(bg='#e74c3c')
                     elif status_color == 'yellow':
-                        self.distance_status_label.configure(bg='#f1c40f', fg='#2c3e50')  # Too far
+                        self.distance_status_label.configure(bg='#f1c40f', fg='#2c3e50')
                     else:
-                        self.distance_status_label.configure(bg='#95a5a6', fg='white')  # Unknown
+                        self.distance_status_label.configure(bg='#95a5a6', fg='white')
                     
                     # Update info label
                     optimal_range = reading.get('optimal_range', '160-200cm')
@@ -151,7 +151,6 @@ class TkinterCameraFrame:
                 self.distance_status_label.configure(text="ERROR", bg='#e74c3c', fg='white')
         
         if self.is_running:
-            # Update every 500ms (matching the distance service update rate)
             self.root.after(500, self.update_distance)
     
     def test_distance(self):
@@ -189,9 +188,8 @@ class TkinterCameraFrame:
                 height, width = current_frame.shape[:2]
                 
                 if width != 480 or height != 640:
-                    # Resize to 480x640 if not already
                     current_frame = cv2.resize(current_frame, (480, 640))
-                    if self.frame_count % 100 == 1:  # Log occasionally
+                    if self.frame_count % 100 == 1:
                         print(f"Tkinter: Resized frame from {width}x{height} to 480x640")
                 
                 try:
@@ -201,7 +199,7 @@ class TkinterCameraFrame:
                     # Convert to PIL Image
                     pil_image = Image.fromarray(rgb_frame)
                     
-                    # Convert to PhotoImage (already 480x640)
+                    # Convert to PhotoImage
                     photo = ImageTk.PhotoImage(pil_image)
                     
                     # Update the label
@@ -218,7 +216,6 @@ class TkinterCameraFrame:
                 self.status_label.configure(text="No Rebar Vista camera feed available")
         
         if self.is_running:
-            # Schedule next update - 30ms for smooth display
             self.root.after(30, self.update_frame)
     
     def capture_image(self):
@@ -290,7 +287,6 @@ class TkinterCameraFrame:
         print("Closing Tkinter camera window...")
         self.is_running = False
         if self.camera_manager:
-            # Don't stop camera manager here - let main process handle it
             pass
         self.root.destroy()
     
@@ -318,7 +314,7 @@ def main():
         camera_manager = CameraManager()
         image_service = ImageService()
         ai_service = AIService()
-        distance_service = DistanceService()  # Initialize Distance Service
+        distance_service = DistanceService()
         
         # Create Flask app with services
         print("Creating Flask web application...")
@@ -329,7 +325,7 @@ def main():
             init_camera_routes(camera_manager, image_service)
             init_image_routes(image_service)
             init_ai_routes(ai_service)
-            init_sensor_routes(distance_service)  # Initialize Sensor Routes
+            init_sensor_routes(distance_service)
             print("Flask routes initialized (including AI and sensor routes)")
         
         # Ensure upload folder exists
@@ -409,24 +405,67 @@ def main():
             print("⚠️  Distance sensor using simulation mode")
         print("==============================\n")
         
-        # Check SSL certificates and start server
-        if not os.path.exists(config.SSL_CERT_PATH):
-            print(f"SSL certificate not found at {config.SSL_CERT_PATH}")
-            print("Running HTTP server (no SSL)...")
-            app.run(
-                host=config.HOST,
-                port=config.PORT,
-                use_reloader=False,
-                threaded=True,
-                debug=config.DEBUG
-            )
+        # Print configuration status with IP information
+        config.print_status()
+        
+        # Enhanced SSL certificate validation for IP changes
+        print("🔒 Validating SSL certificates for current IP...")
+        ssl_status = config.get_ssl_status_for_ip()
+        
+        print(f"📊 SSL Status for IP {ssl_status['current_ip']}:")
+        print(f"   Certificate file: {'✅' if ssl_status['cert_exists'] else '❌'} ({ssl_status['expected_cert_name']})")
+        print(f"   Private key file: {'✅' if ssl_status['key_exists'] else '❌'} ({ssl_status['expected_key_name']})")
+        print(f"   OpenSSL available: {'✅' if ssl_status['openssl_available'] else '❌'}")
+        
+        # Validate certificates
+        ssl_valid = config.validate_ssl_certificates()
+        
+        if ssl_valid and ssl_status['cert_exists'] and ssl_status['key_exists']:
+            print("=" * 70)
+            print("🔒 STARTING REBAR VISTA WITH SSL (HTTPS)")
+            print(f"🌐 HTTPS URL: https://{config.current_ip}:{config.PORT}")
+            print(f"🏠 Local HTTPS: https://localhost:{config.PORT}")
+            print("📱 Mobile: Accept security warning on first visit")
+            print("🔧 SSL certificates validated for current IP")
+            print("=" * 70)
+            
+            try:
+                app.run(
+                    host=config.HOST,
+                    port=config.PORT,
+                    ssl_context=config.ssl_context,
+                    use_reloader=False,
+                    threaded=True,
+                    debug=config.DEBUG
+                )
+            except Exception as ssl_error:
+                print(f"❌ SSL startup failed: {ssl_error}")
+                print("🔄 Falling back to HTTP mode...")
+                
+                app.run(
+                    host=config.HOST,
+                    port=config.PORT,
+                    use_reloader=False,
+                    threaded=True,
+                    debug=config.DEBUG
+                )
         else:
-            print(f"Using SSL certificates from {config.SSL_CERT_PATH}")
-            print("Running HTTPS server...")
+            print("=" * 70)
+            print("⚠️  STARTING REBAR VISTA WITHOUT SSL (HTTP)")
+            print(f"🌐 HTTP URL: http://{config.current_ip}:{config.PORT}")
+            print(f"🏠 Local HTTP: http://localhost:{config.PORT}")
+            print("📱 Mobile: No security warnings, but no encryption")
+            print("🔧 SSL certificates could not be validated")
+            print("=" * 70)
+            
+            # Option to generate certificates manually
+            print("🛠️  To enable SSL, run:")
+            print(f"   python3 -c \"from app.utils.config import config; config.force_ssl_regeneration()\"")
+            print("")
+            
             app.run(
                 host=config.HOST,
                 port=config.PORT,
-                ssl_context=config.ssl_context,
                 use_reloader=False,
                 threaded=True,
                 debug=config.DEBUG

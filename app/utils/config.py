@@ -31,12 +31,12 @@ def get_local_ip():
     return "127.0.0.1"
 
 class Config:
-    """Application configuration settings with mobile-compatible SSL certificate generation"""
+    """Application configuration settings with enhanced SSL certificate management for IP changes"""
     
     def __init__(self):
         # Server settings
         self.HOST = os.getenv('HOST', '0.0.0.0')
-        self.PORT = int(os.getenv('PORT', 8000))
+        self.PORT = int(os.getenv('PORT', self._find_available_port([8000, 8001, 8080, 5000, 5001])))
         self.DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
         
         # Upload settings
@@ -50,6 +50,22 @@ class Config:
         
         # Setup SSL paths
         self._setup_ssl_paths()
+    
+    def _find_available_port(self, ports):
+        """Find an available port from the list"""
+        for port in ports:
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(('localhost', port))
+                    print(f"✅ Port {port} is available")
+                    return port
+            except OSError:
+                print(f"⚠️  Port {port} is busy")
+                continue
+        
+        # If all ports busy, default to 8000 and let it fail with clear message
+        print("❌ All preferred ports busy, using 8000")
+        return 8000
     
     def _setup_ssl_paths(self):
         """Setup SSL certificate paths dynamically based on current IP"""
@@ -92,6 +108,67 @@ class Config:
     def _check_openssl_available(self):
         """Check if OpenSSL is available on the system"""
         return shutil.which('openssl') is not None
+    
+    def force_ssl_regeneration(self):
+        """Force regeneration of SSL certificates for current IP"""
+        print(f"🔄 Force regenerating SSL certificates for IP: {self.current_ip}")
+        
+        # Remove existing certificates
+        try:
+            if os.path.exists(self.SSL_CERT_PATH):
+                os.remove(self.SSL_CERT_PATH)
+                print(f"   Removed old certificate: {self.SSL_CERT_PATH}")
+            if os.path.exists(self.SSL_KEY_PATH):
+                os.remove(self.SSL_KEY_PATH)
+                print(f"   Removed old key: {self.SSL_KEY_PATH}")
+        except Exception as e:
+            print(f"   Warning: Could not remove old certificates: {e}")
+        
+        # Generate new certificates
+        return self.generate_ssl_certificates()
+    
+    def get_ssl_status_for_ip(self):
+        """Get detailed SSL status for current IP"""
+        return {
+            'current_ip': self.current_ip,
+            'cert_path': self.SSL_CERT_PATH,
+            'key_path': self.SSL_KEY_PATH,
+            'cert_exists': os.path.exists(self.SSL_CERT_PATH),
+            'key_exists': os.path.exists(self.SSL_KEY_PATH),
+            'cert_dir_exists': os.path.exists(os.path.dirname(self.SSL_CERT_PATH)),
+            'openssl_available': self._check_openssl_available(),
+            'expected_cert_name': f'{self.current_ip}.pem',
+            'expected_key_name': f'{self.current_ip}-key.pem'
+        }
+    
+    def clean_old_certificates(self):
+        """Remove certificates for old IP addresses"""
+        cert_dir = os.path.dirname(self.SSL_CERT_PATH)
+        
+        if not os.path.exists(cert_dir):
+            return
+        
+        print("🧹 Cleaning old certificates...")
+        
+        try:
+            # List all certificate files
+            for filename in os.listdir(cert_dir):
+                if filename.endswith(('.pem', '.crt', '.key', '.csr')):
+                    filepath = os.path.join(cert_dir, filename)
+                    
+                    # Skip current IP certificates
+                    if self.current_ip in filename:
+                        continue
+                    
+                    # Remove old certificates
+                    try:
+                        os.remove(filepath)
+                        print(f"   🗑️ Removed old certificate: {filename}")
+                    except Exception as e:
+                        print(f"   ⚠️ Could not remove {filename}: {e}")
+                        
+        except Exception as e:
+            print(f"⚠️ Error cleaning old certificates: {e}")
     
     def generate_ssl_certificates(self):
         """Generate mobile-compatible SSL certificates for the current IP address"""
@@ -229,44 +306,69 @@ IP.3 = ::1
             return False
     
     def validate_ssl_certificates(self):
-        """Check if SSL certificates exist and generate them if they don't"""
+        """Check if SSL certificates exist and are valid for current IP - ENHANCED VERSION"""
         cert_exists = os.path.exists(self.SSL_CERT_PATH)
         key_exists = os.path.exists(self.SSL_KEY_PATH)
         
-        if cert_exists and key_exists:
-            print(f"✅ SSL certificates found:")
-            print(f"  Certificate: {self.SSL_CERT_PATH}")
-            print(f"  Private Key: {self.SSL_KEY_PATH}")
+        print(f"🔍 Validating SSL certificates for IP: {self.current_ip}")
+        print(f"   Certificate exists: {cert_exists}")
+        print(f"   Key exists: {key_exists}")
+        
+        # Check if certificates exist
+        if not (cert_exists and key_exists):
+            print(f"❌ SSL certificates missing for IP {self.current_ip}")
+            print("🔄 Generating new certificates...")
+            return self.generate_ssl_certificates()
+        
+        # Verify certificate is for current IP
+        try:
+            print("🔍 Verifying certificate matches current IP...")
+            result = subprocess.run([
+                'openssl', 'x509', '-in', self.SSL_CERT_PATH, '-text', '-noout'
+            ], capture_output=True, text=True, timeout=10)
             
-            # Verify certificate is not expired and has correct extensions
-            try:
-                result = subprocess.run([
-                    'openssl', 'x509', '-in', self.SSL_CERT_PATH, '-checkend', '86400'
-                ], capture_output=True, text=True)
+            if result.returncode == 0:
+                cert_content = result.stdout
                 
-                if result.returncode == 0:
-                    print("✅ Certificate is valid and not expiring soon")
-                else:
-                    print("⚠️  Certificate is expired or expiring soon, regenerating...")
-                    return self.generate_ssl_certificates()
+                # Check if certificate contains current IP
+                ip_in_cert = f'IP Address:{self.current_ip}' in cert_content
+                
+                if ip_in_cert:
+                    print(f"✅ SSL certificates valid for IP {self.current_ip}")
                     
-            except Exception as e:
-                print(f"⚠️  Could not verify certificate validity: {e}")
-            
-            return True
+                    # Additional check: verify certificate is not expired
+                    expiry_result = subprocess.run([
+                        'openssl', 'x509', '-in', self.SSL_CERT_PATH, '-checkend', '86400'  # Check if expires in 24h
+                    ], capture_output=True, text=True, timeout=5)
+                    
+                    if expiry_result.returncode == 0:
+                        print("✅ Certificate is not expired")
+                        return True
+                    else:
+                        print("⚠️ Certificate is expired or expiring soon, regenerating...")
+                        return self.force_ssl_regeneration()
+                else:
+                    print(f"⚠️ Certificate is for different IP, regenerating for {self.current_ip}")
+                    
+                    # Show what IPs are in the certificate
+                    ip_lines = [line.strip() for line in cert_content.split('\n') if 'IP Address:' in line]
+                    if ip_lines:
+                        print(f"   Certificate currently contains: {ip_lines}")
+                    
+                    return self.force_ssl_regeneration()
+            else:
+                print(f"⚠️ Could not read certificate: {result.stderr}")
+                return self.force_ssl_regeneration()
+                
+        except subprocess.TimeoutExpired:
+            print("⚠️ Certificate verification timed out, regenerating...")
+            return self.force_ssl_regeneration()
+        except Exception as e:
+            print(f"⚠️ Error verifying certificate: {e}")
+            return self.force_ssl_regeneration()
         
-        if not cert_exists:
-            print(f"❌ SSL certificate not found: {self.SSL_CERT_PATH}")
-        if not key_exists:
-            print(f"❌ SSL key not found: {self.SSL_KEY_PATH}")
-        
-        # If certificates don't exist, try to generate them
-        print("🔄 Attempting to generate mobile-compatible SSL certificates...")
-        if self.generate_ssl_certificates():
-            return True
-        else:
-            print("❌ Failed to generate SSL certificates. Will run without SSL.")
-            return False
+        # Fallback: regenerate certificates
+        return self.generate_ssl_certificates()
     
     def get_status(self):
         """Get current configuration status"""
