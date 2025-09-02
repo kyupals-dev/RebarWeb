@@ -1,13 +1,15 @@
-# main.py - Complete implementation with AI service, Distance Sensor integration, and Enhanced SSL
+# main.py - Complete implementation with AI service and Distance Sensor integration
+# MODIFIED: AI routes now receive camera manager for direct frame access
+
 from app import create_app
 from app.services.camera_service import CameraManager, camera_thread_worker
 from app.services.image_service import ImageService
 from app.services.ai_service import AIService
-from app.services.distance_service import DistanceService
+from app.services.distance_service import DistanceService  # Import Distance Service
 from app.routes.camera_routes import init_camera_routes
 from app.routes.image_routes import init_image_routes
 from app.routes.ai_routes import init_ai_routes
-from app.routes.sensor_routes import init_sensor_routes
+from app.routes.sensor_routes import init_sensor_routes  # Import Sensor Routes
 from app.utils.config import config
 import threading
 import tkinter as tk
@@ -23,17 +25,18 @@ class TkinterCameraFrame:
         self.camera_manager = camera_manager
         self.distance_service = distance_service
         self.root = tk.Tk()
-        self.root.title("Rebar Vista Camera Feed - 480x640 with Distance Sensor")
-        self.root.geometry("520x780")
+        self.root.title("Rebar Vista Camera Feed - 480x640 (Analyzed Images Only)")
+        self.root.geometry("520x780")  # Slightly taller for distance display
         self.root.configure(bg='#2c3e50')
         
         # Create main frame
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Title label
-        title_label = tk.Label(main_frame, text="Live Rebar Vista Camera Feed (480x640) + Distance", 
-                              font=('Arial', 16, 'bold'), 
+        # Title label with save mode indicator
+        title_label = tk.Label(main_frame, 
+                              text="Rebar Vista Camera (480x640) + Distance\nSave Mode: Analyzed Images Only", 
+                              font=('Arial', 14, 'bold'), 
                               bg='#2c3e50', fg='white')
         title_label.pack(pady=(0, 5))
         
@@ -58,8 +61,9 @@ class TkinterCameraFrame:
                                    width=480, height=640)
         self.camera_label.pack(pady=5)
         
-        # Status label
-        self.status_label = tk.Label(main_frame, text="Initializing Rebar Vista camera and distance sensor...", 
+        # Status label with save mode info
+        self.status_label = tk.Label(main_frame, 
+                                   text="Initializing camera and distance sensor (analyzed images only)...", 
                                    font=('Arial', 10), 
                                    bg='#2c3e50', fg='#ecf0f1')
         self.status_label.pack(pady=5)
@@ -68,13 +72,8 @@ class TkinterCameraFrame:
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(pady=10)
         
-        # Capture button
-        self.capture_btn = tk.Button(button_frame, text="Capture 480x640 Image", 
-                                   command=self.capture_image,
-                                   bg='#3498db', fg='white', 
-                                   font=('Arial', 12, 'bold'),
-                                   padx=20, pady=5)
-        self.capture_btn.pack(side=tk.LEFT, padx=5)
+        # Note: Capture button removed since we don't save originals via Tkinter
+        # The web interface handles capture + AI analysis
         
         # Toggle camera button
         self.toggle_btn = tk.Button(button_frame, text="Stop Camera", 
@@ -92,8 +91,17 @@ class TkinterCameraFrame:
                                     padx=20, pady=5)
         self.distance_btn.pack(side=tk.LEFT, padx=5)
         
-        # Info display
-        self.info_label = tk.Label(main_frame, text="Format: 480x640 Portrait | Distance: Checking | Status: Ready", 
+        # AI test button
+        self.ai_test_btn = tk.Button(button_frame, text="Test AI", 
+                                   command=self.test_ai,
+                                   bg='#9b59b6', fg='white', 
+                                   font=('Arial', 12, 'bold'),
+                                   padx=20, pady=5)
+        self.ai_test_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Info display with save mode
+        self.info_label = tk.Label(main_frame, 
+                                 text="Format: 480x640 Portrait | Distance: Checking | Save: Analyzed Only", 
                                  font=('Arial', 9), 
                                  bg='#2c3e50', fg='#bdc3c7')
         self.info_label.pack(pady=(5, 0))
@@ -123,18 +131,18 @@ class TkinterCameraFrame:
                     
                     # Set background color based on status
                     if status_color == 'green':
-                        self.distance_status_label.configure(bg='#2ecc71')
+                        self.distance_status_label.configure(bg='#2ecc71')  # Optimal
                     elif status_color == 'red':
-                        self.distance_status_label.configure(bg='#e74c3c')
+                        self.distance_status_label.configure(bg='#e74c3c')  # Too close/Error
                     elif status_color == 'yellow':
-                        self.distance_status_label.configure(bg='#f1c40f', fg='#2c3e50')
+                        self.distance_status_label.configure(bg='#f1c40f', fg='#2c3e50')  # Too far
                     else:
-                        self.distance_status_label.configure(bg='#95a5a6', fg='white')
+                        self.distance_status_label.configure(bg='#95a5a6', fg='white')  # Unknown
                     
                     # Update info label
                     optimal_range = reading.get('optimal_range', '160-200cm')
                     self.info_label.configure(
-                        text=f"Format: 480x640 Portrait | Distance: {reading['distance_text']} | Range: {optimal_range} | Status: {status_text}"
+                        text=f"Format: 480x640 | Distance: {reading['distance_text']} | Range: {optimal_range} | Save: Analyzed Only"
                     )
                     
                 else:
@@ -142,7 +150,7 @@ class TkinterCameraFrame:
                     self.distance_label.configure(text="Distance: ERROR")
                     self.distance_status_label.configure(text="ERROR", bg='#e74c3c', fg='white')
                     self.info_label.configure(
-                        text="Format: 480x640 Portrait | Distance: ERROR | Status: Sensor unavailable"
+                        text="Format: 480x640 | Distance: ERROR | Save: Analyzed Only"
                     )
                     
             except Exception as e:
@@ -151,6 +159,7 @@ class TkinterCameraFrame:
                 self.distance_status_label.configure(text="ERROR", bg='#e74c3c', fg='white')
         
         if self.is_running:
+            # Update every 500ms (matching the distance service update rate)
             self.root.after(500, self.update_distance)
     
     def test_distance(self):
@@ -177,6 +186,20 @@ class TkinterCameraFrame:
         else:
             self.status_label.configure(text="Distance service not available")
     
+    def test_ai(self):
+        """Test AI service with current camera frame"""
+        if self.camera_manager:
+            current_frame = self.camera_manager.get_current_frame()
+            
+            if current_frame is not None:
+                self.status_label.configure(text="Testing AI with current frame (analyzed image only)...")
+                print("🧪 Testing AI service with current camera frame")
+                print("📝 NOTE: AI test will save only analyzed image if successful")
+            else:
+                self.status_label.configure(text="No camera frame available for AI test")
+        else:
+            self.status_label.configure(text="Camera manager not available for AI test")
+    
     def update_frame(self):
         if self.is_running and self.camera_manager:
             current_frame = self.camera_manager.get_current_frame()
@@ -188,8 +211,9 @@ class TkinterCameraFrame:
                 height, width = current_frame.shape[:2]
                 
                 if width != 480 or height != 640:
+                    # Resize to 480x640 if not already
                     current_frame = cv2.resize(current_frame, (480, 640))
-                    if self.frame_count % 100 == 1:
+                    if self.frame_count % 100 == 1:  # Log occasionally
                         print(f"Tkinter: Resized frame from {width}x{height} to 480x640")
                 
                 try:
@@ -199,7 +223,7 @@ class TkinterCameraFrame:
                     # Convert to PIL Image
                     pil_image = Image.fromarray(rgb_frame)
                     
-                    # Convert to PhotoImage
+                    # Convert to PhotoImage (already 480x640)
                     photo = ImageTk.PhotoImage(pil_image)
                     
                     # Update the label
@@ -207,7 +231,7 @@ class TkinterCameraFrame:
                     self.camera_label.image = photo
                     
                     # Update status
-                    self.status_label.configure(text="Rebar Vista Active - 480x640 Portrait Feed with Distance Sensor")
+                    self.status_label.configure(text="Rebar Vista Active - 480x640 (Analyzed Images Only Mode)")
                     
                 except Exception as e:
                     print(f"Tkinter display error: {e}")
@@ -216,60 +240,8 @@ class TkinterCameraFrame:
                 self.status_label.configure(text="No Rebar Vista camera feed available")
         
         if self.is_running:
+            # Schedule next update - 30ms for smooth display
             self.root.after(30, self.update_frame)
-    
-    def capture_image(self):
-        if self.camera_manager:
-            current_frame = self.camera_manager.get_current_frame()
-            
-            if current_frame is not None:
-                try:
-                    # Ensure frame is exactly 480x640
-                    height, width = current_frame.shape[:2]
-                    if width != 480 or height != 640:
-                        current_frame = cv2.resize(current_frame, (480, 640))
-                        print(f"Capture: Resized from {width}x{height} to 480x640")
-                    
-                    # Get current distance reading for metadata
-                    distance_info = ""
-                    if self.distance_service:
-                        reading = self.distance_service.get_current_reading()
-                        if reading['success']:
-                            distance_info = f"_{reading['distance']:.0f}cm_{reading['status']}"
-                    
-                    # Generate filename with timestamp and distance info
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-                    filename = f'tkinter_480x640{distance_info}_{timestamp}.jpg'
-                    filepath = os.path.join(config.UPLOAD_FOLDER, filename)
-                    
-                    # Save the 480x640 image
-                    success = cv2.imwrite(filepath, current_frame)
-                    
-                    if success:
-                        # Verify saved dimensions
-                        saved_img = cv2.imread(filepath)
-                        if saved_img is not None:
-                            saved_height, saved_width = saved_img.shape[:2]
-                            file_size = os.path.getsize(filepath)
-                            
-                            self.status_label.configure(text=f"480x640 image saved: {filename}")
-                            
-                            print("Tkinter captured 480x640 image with distance:")
-                            print(f"   File: {filename}")
-                            print(f"   Dimensions: {saved_width}x{saved_height}")
-                            print(f"   File size: {file_size / 1024:.1f} KB")
-                            if distance_info:
-                                print(f"   Distance info: {distance_info}")
-                        else:
-                            self.status_label.configure(text="Could not verify saved image")
-                    else:
-                        self.status_label.configure(text="Failed to save 480x640 image")
-                        
-                except Exception as e:
-                    print(f"Capture error: {e}")
-                    self.status_label.configure(text=f"Capture failed: {str(e)}")
-            else:
-                self.status_label.configure(text="No frame available to capture")
     
     def toggle_camera(self):
         if self.camera_manager.is_running:
@@ -279,7 +251,7 @@ class TkinterCameraFrame:
         else:
             if self.camera_manager.start_camera():
                 self.toggle_btn.configure(text="Stop Camera", bg='#e74c3c')
-                self.status_label.configure(text="Rebar Vista camera started (480x640)")
+                self.status_label.configure(text="Rebar Vista camera started (480x640, analyzed images only)")
             else:
                 self.status_label.configure(text="Failed to start Rebar Vista camera")
     
@@ -287,18 +259,19 @@ class TkinterCameraFrame:
         print("Closing Tkinter camera window...")
         self.is_running = False
         if self.camera_manager:
+            # Don't stop camera manager here - let main process handle it
             pass
         self.root.destroy()
     
     def start(self):
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        print("Starting Tkinter 480x640 camera window with distance sensor...")
+        print("Starting Tkinter 480x640 camera window (analyzed images only mode)...")
         self.root.mainloop()
 
 def start_tkinter_window(camera_manager, distance_service):
     """Start the tkinter camera window for 480x640 display with distance sensor"""
     try:
-        print("Initializing Tkinter 480x640 camera interface with distance sensor...")
+        print("Initializing Tkinter 480x640 camera interface (analyzed images only)...")
         tk_camera = TkinterCameraFrame(camera_manager, distance_service)
         tk_camera.start()
     except Exception as e:
@@ -307,6 +280,7 @@ def start_tkinter_window(camera_manager, distance_service):
 def main():
     try:
         print("Starting Rebar Vista with AI and Distance Sensor Integration...")
+        print("📝 SAVE MODE: Only analyzed images with AI overlays will be saved")
         print("=" * 70)
         
         # Initialize services
@@ -314,7 +288,7 @@ def main():
         camera_manager = CameraManager()
         image_service = ImageService()
         ai_service = AIService()
-        distance_service = DistanceService()
+        distance_service = DistanceService()  # Initialize Distance Service
         
         # Create Flask app with services
         print("Creating Flask web application...")
@@ -324,9 +298,9 @@ def main():
         with app.app_context():
             init_camera_routes(camera_manager, image_service)
             init_image_routes(image_service)
-            init_ai_routes(ai_service)
-            init_sensor_routes(distance_service)
-            print("Flask routes initialized (including AI and sensor routes)")
+            init_ai_routes(ai_service, camera_manager)  # MODIFIED: Pass camera_manager to AI routes
+            init_sensor_routes(distance_service)  # Initialize Sensor Routes
+            print("Flask routes initialized (AI routes have camera access)")
         
         # Ensure upload folder exists
         config.ensure_upload_folder()
@@ -353,7 +327,7 @@ def main():
         # Start distance monitoring
         distance_service.start_monitoring()
         
-        print("Starting Tkinter 480x640 display window with distance sensor...")
+        print("Starting Tkinter 480x640 display window (analyzed images only)...")
         # Start tkinter window in separate thread
         tkinter_thread = threading.Thread(
             target=start_tkinter_window, 
@@ -369,12 +343,13 @@ def main():
             print(f"  {rule.endpoint}: {rule.rule} [{methods}]")
         
         print("=" * 70)
-        print("REBAR VISTA READY - AI-POWERED ANALYSIS WITH DISTANCE SENSOR")
-        print("Web interface: Camera display at 480x640 with AI analysis and distance")
+        print("REBAR VISTA READY - AI-POWERED ANALYSIS (ANALYZED IMAGES ONLY)")
+        print("Web interface: Camera display with AI analysis (saves analyzed images only)")
         print("Tkinter window: Live 480x640 camera feed with distance overlay")
         print("AI Analysis: Detectron2 rebar detection and measurement")
         print("Distance Sensor: HC-SR04 optimal positioning (160-200cm)")
-        print("Image format: All images saved as 480x640")
+        print("Save Mode: ONLY analyzed images with AI overlays are saved")
+        print("Gallery: Shows only analyzed images (no duplicates)")
         print("=" * 70)
         
         # Print AI service status
@@ -386,6 +361,7 @@ def main():
         print(f"Model Exists: {'✅' if ai_status['model_exists'] else '❌'}")
         print(f"Classes: {ai_status['class_names']}")
         print(f"Detection Threshold: {ai_status['threshold']}")
+        print(f"Save Mode: {ai_status.get('save_mode', 'analyzed_images_only')}")
         if not ai_status['model_loaded']:
             print("⚠️  AI will use placeholder results until model is available")
         print("========================")
@@ -403,69 +379,39 @@ def main():
             print(f"⚠️  Last Error: {distance_status['last_error']}")
         if distance_status['simulation_mode']:
             print("⚠️  Distance sensor using simulation mode")
-        print("==============================\n")
+        print("==============================")
         
-        # Print configuration status with IP information
-        config.print_status()
+        # Print image service info
+        image_stats = image_service.get_storage_stats()
+        if image_stats['success']:
+            stats = image_stats['stats']
+            print("\n=== Image Storage Status ===")
+            print(f"Total Files: {stats['total_files']}")
+            print(f"Analyzed Images (Gallery): {stats['analyzed_files']} ({stats['analyzed_size_kb']} KB)")
+            print(f"Original Images (Hidden): {stats['original_files']} ({stats['original_size_kb']} KB)")
+            print(f"Total Storage: {stats['total_size_kb']} KB")
+            if stats['original_files'] > 0:
+                print(f"💡 Tip: Use /cleanup-originals endpoint to remove {stats['original_files']} hidden original images")
+            print("============================\n")
         
-        # Enhanced SSL certificate validation for IP changes
-        print("🔒 Validating SSL certificates for current IP...")
-        ssl_status = config.get_ssl_status_for_ip()
-        
-        print(f"📊 SSL Status for IP {ssl_status['current_ip']}:")
-        print(f"   Certificate file: {'✅' if ssl_status['cert_exists'] else '❌'} ({ssl_status['expected_cert_name']})")
-        print(f"   Private key file: {'✅' if ssl_status['key_exists'] else '❌'} ({ssl_status['expected_key_name']})")
-        print(f"   OpenSSL available: {'✅' if ssl_status['openssl_available'] else '❌'}")
-        
-        # Validate certificates
-        ssl_valid = config.validate_ssl_certificates()
-        
-        if ssl_valid and ssl_status['cert_exists'] and ssl_status['key_exists']:
-            print("=" * 70)
-            print("🔒 STARTING REBAR VISTA WITH SSL (HTTPS)")
-            print(f"🌐 HTTPS URL: https://{config.current_ip}:{config.PORT}")
-            print(f"🏠 Local HTTPS: https://localhost:{config.PORT}")
-            print("📱 Mobile: Accept security warning on first visit")
-            print("🔧 SSL certificates validated for current IP")
-            print("=" * 70)
-            
-            try:
-                app.run(
-                    host=config.HOST,
-                    port=config.PORT,
-                    ssl_context=config.ssl_context,
-                    use_reloader=False,
-                    threaded=True,
-                    debug=config.DEBUG
-                )
-            except Exception as ssl_error:
-                print(f"❌ SSL startup failed: {ssl_error}")
-                print("🔄 Falling back to HTTP mode...")
-                
-                app.run(
-                    host=config.HOST,
-                    port=config.PORT,
-                    use_reloader=False,
-                    threaded=True,
-                    debug=config.DEBUG
-                )
-        else:
-            print("=" * 70)
-            print("⚠️  STARTING REBAR VISTA WITHOUT SSL (HTTP)")
-            print(f"🌐 HTTP URL: http://{config.current_ip}:{config.PORT}")
-            print(f"🏠 Local HTTP: http://localhost:{config.PORT}")
-            print("📱 Mobile: No security warnings, but no encryption")
-            print("🔧 SSL certificates could not be validated")
-            print("=" * 70)
-            
-            # Option to generate certificates manually
-            print("🛠️  To enable SSL, run:")
-            print(f"   python3 -c \"from app.utils.config import config; config.force_ssl_regeneration()\"")
-            print("")
-            
+        # Check SSL certificates and start server
+        if not os.path.exists(config.SSL_CERT_PATH):
+            print(f"SSL certificate not found at {config.SSL_CERT_PATH}")
+            print("Running HTTP server (no SSL)...")
             app.run(
                 host=config.HOST,
                 port=config.PORT,
+                use_reloader=False,
+                threaded=True,
+                debug=config.DEBUG
+            )
+        else:
+            print(f"Using SSL certificates from {config.SSL_CERT_PATH}")
+            print("Running HTTPS server...")
+            app.run(
+                host=config.HOST,
+                port=config.PORT,
+                ssl_context=config.ssl_context,
                 use_reloader=False,
                 threaded=True,
                 debug=config.DEBUG
@@ -497,9 +443,10 @@ def main():
         traceback.print_exc()
 
 if __name__ == '__main__':
-    print("REBAR VISTA - AI-POWERED REBAR DETECTION WITH DISTANCE SENSOR")
-    print("AI-powered rebar detection and optimal positioning system")
+    print("REBAR VISTA - AI-POWERED REBAR DETECTION (ANALYZED IMAGES ONLY)")
+    print("AI-powered rebar detection with optimal positioning system")
     print("Portrait 480x640 image processing with Detectron2 and HC-SR04")
     print("Optimal distance range: 160-200cm for best analysis results")
+    print("Save Mode: Only analyzed images with AI overlays are saved")
     print("")
     main()

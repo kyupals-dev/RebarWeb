@@ -1,6 +1,6 @@
 """
 AI Analysis Routes for Rebar Detection
-Complete version with comprehensive debugging capabilities
+MODIFIED: Works with direct camera frame data - only saves analyzed images
 """
 
 from flask import Blueprint, jsonify, request
@@ -13,12 +13,14 @@ ai_bp = Blueprint('ai', __name__)
 
 # This will be injected when the blueprint is registered
 ai_service = None
+camera_manager = None  # Added camera manager dependency
 
-def init_ai_routes(ai_svc):
+def init_ai_routes(ai_svc, cam_manager=None):
     """Initialize the AI routes with service dependencies"""
-    global ai_service
+    global ai_service, camera_manager
     ai_service = ai_svc
-    print("AI routes initialized with service")
+    camera_manager = cam_manager
+    print("AI routes initialized with AI service and camera manager")
 
 def _validate_ai_service():
     """Helper function to validate AI service availability"""
@@ -29,61 +31,104 @@ def _validate_ai_service():
         }), 503
     return None
 
-# ==================== MAIN AI ROUTES ====================
+def _validate_camera_service():
+    """Helper function to validate camera service availability"""
+    if not camera_manager:
+        return jsonify({
+            'success': False,
+            'error': 'Camera service not available for frame access'
+        }), 503
+    return None
 
 @ai_bp.route('/analyze-rebar', methods=['POST'])
 def analyze_rebar():
     """
-    Analyze captured image for rebar detection
-    Expects JSON with image_path or filename
+    Analyze current camera frame for rebar detection
+    MODIFIED: Works with direct frame data - only saves analyzed image with AI overlays
     """
     try:
-        print("🔍 AI analysis request received")
+        print("🔍 AI analysis request received (analyzed image only mode)")
         
         # Validate AI service
         validation_error = _validate_ai_service()
         if validation_error:
             return validation_error
         
-        # Get request data
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                'success': False,
-                'error': 'No data provided'
-            }), 400
+        # Validate camera service for direct frame access
+        validation_error = _validate_camera_service()
+        if validation_error:
+            return validation_error
         
-        # Get image path
-        if 'image_path' in data:
-            image_path = data['image_path']
-        elif 'filename' in data:
+        # Get request data for fallback image path (optional)
+        # Handle case where request has no JSON body
+        try:
+            data = request.get_json(silent=True) or {}
+        except Exception:
+            data = {}
+        
+        fallback_image_path = None
+        
+        # Check if fallback image path provided (for legacy compatibility)
+        if 'filename' in data:
             filename = data['filename']
-            image_path = os.path.join(config.UPLOAD_FOLDER, filename)
+            fallback_image_path = os.path.join(config.UPLOAD_FOLDER, filename)
+            print(f"📁 Fallback image path provided: {filename}")
+        elif 'image_path' in data:
+            fallback_image_path = data['image_path']
+            print(f"📁 Fallback image path provided: {fallback_image_path}")
+        
+        # PRIMARY METHOD: Get current frame directly from camera
+        print("📸 Attempting to get current frame from camera...")
+        current_frame = camera_manager.get_current_frame()
+        
+        if current_frame is not None:
+            print(f"✅ Using direct camera frame: {current_frame.shape}")
+            print("   📝 NOTE: No original will be saved - only analyzed image")
+            
+            # Analyze frame directly (no original image saved)
+            result = ai_service.analyze_image(image_data=current_frame)
+            
+        elif fallback_image_path and os.path.exists(fallback_image_path):
+            print(f"🔄 Fallback: Using existing image file: {fallback_image_path}")
+            print("   📝 NOTE: Only analyzed image will be saved")
+            
+            # Fallback to existing image file
+            result = ai_service.analyze_image(image_path=fallback_image_path)
+            
         else:
+            error_msg = "No current camera frame available"
+            if fallback_image_path:
+                error_msg += f" and fallback image not found: {fallback_image_path}"
+            
             return jsonify({
                 'success': False,
-                'error': 'No image path or filename provided'
+                'error': error_msg
             }), 400
-        
-        # Validate image exists
-        if not os.path.exists(image_path):
-            return jsonify({
-                'success': False,
-                'error': f'Image file not found: {image_path}'
-            }), 404
-        
-        print(f"📸 Analyzing image: {os.path.basename(image_path)}")
-        
-        # Run AI analysis
-        result = ai_service.analyze_image(image_path)
         
         if result['success']:
             print("✅ Analysis completed successfully")
             
+            # Ensure analyzed image was saved
+            if 'analyzed_image_path' not in result or not result['analyzed_image_path']:
+                return jsonify({
+                    'success': False,
+                    'error': 'Analysis succeeded but no analyzed image was created'
+                }), 500
+            
+            # Verify analyzed image file exists
+            if not os.path.exists(result['analyzed_image_path']):
+                return jsonify({
+                    'success': False,
+                    'error': 'Analyzed image file not found after creation'
+                }), 500
+            
+            analyzed_filename = os.path.basename(result['analyzed_image_path'])
+            print(f"📁 Analyzed image saved: {analyzed_filename}")
+            
             # Format response for frontend
             response = {
                 'success': True,
-                'analysis_id': f"analysis_{len(os.listdir(config.UPLOAD_FOLDER))}",
+                'analysis_id': f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 'dimensions': {
                     'length': result['dimensions']['length'],
                     'width': result['dimensions']['width'],
@@ -105,13 +150,16 @@ def analyze_rebar():
                     'items': result.get('detections', [])
                 },
                 'images': {
-                    'original': f"/static/captured_images/{os.path.basename(image_path)}",
-                    'analyzed': f"/static/captured_images/{os.path.basename(result['analyzed_image_path'])}" if result.get('analyzed_image_path') else f"/static/captured_images/{os.path.basename(image_path)}"
+                    # Only return the analyzed image (the ONLY one that was saved)
+                    'analyzed': f"/static/captured_images/{analyzed_filename}"
+                    # No original image - wasn't saved
                 },
                 'metadata': {
                     'processing_time': '2.3s',
                     'model_confidence': 'High',
-                    'placeholder_mode': result.get('model_type') != 'real_model'
+                    'placeholder_mode': result.get('placeholder', False),
+                    'save_mode': 'analyzed_only',  # Indicate save mode
+                    'source': 'camera_frame' if current_frame is not None else 'fallback_file'
                 }
             }
             
@@ -156,6 +204,10 @@ def ai_model_status():
         
         status = ai_service.get_model_status()
         
+        # Add save mode info
+        status['save_mode'] = 'analyzed_images_only'
+        status['original_images_saved'] = False
+        
         return jsonify({
             'success': True,
             'status': status
@@ -170,28 +222,78 @@ def ai_model_status():
 
 @ai_bp.route('/test-ai-model', methods=['POST'])
 def test_ai_model():
-    """Test AI model with a sample image"""
+    """Test AI model with current camera frame or sample image"""
     try:
         # Validate AI service
         validation_error = _validate_ai_service()
         if validation_error:
             return validation_error
         
-        # Get optional test image from request
+        # Get optional test parameters
         data = request.get_json() or {}
         test_image_path = data.get('test_image_path')
+        use_camera_frame = data.get('use_camera_frame', True)
         
-        print("🧪 Running AI model test...")
+        print("🧪 Running AI model test (analyzed image only mode)...")
         
-        # Run test
-        result = ai_service.test_model(test_image_path)
+        test_result = None
         
-        if result['success']:
-            print("✅ Model test passed")
+        # Try camera frame first if available and requested
+        if use_camera_frame and camera_manager:
+            current_frame = camera_manager.get_current_frame()
+            if current_frame is not None:
+                print("📸 Testing with current camera frame")
+                test_result = ai_service.analyze_image(image_data=current_frame)
+                test_result['test_source'] = 'camera_frame'
+        
+        # Fallback to test image path
+        if not test_result and test_image_path:
+            print(f"📁 Testing with image file: {test_image_path}")
+            test_result = ai_service.analyze_image(image_path=test_image_path)
+            test_result['test_source'] = 'test_file'
+        
+        # Final fallback to most recent image in upload folder
+        if not test_result:
+            captured_dir = config.UPLOAD_FOLDER
+            if os.path.exists(captured_dir):
+                images = [f for f in os.listdir(captured_dir) 
+                         if f.endswith(('.jpg', '.jpeg', '.png'))]
+                if images:
+                    # Sort by modification time, get most recent
+                    images.sort(key=lambda x: os.path.getmtime(os.path.join(captured_dir, x)), reverse=True)
+                    test_path = os.path.join(captured_dir, images[0])
+                    print(f"📁 Testing with most recent image: {images[0]}")
+                    test_result = ai_service.analyze_image(image_path=test_path)
+                    test_result['test_source'] = 'recent_file'
+        
+        if not test_result:
+            return jsonify({
+                'success': False,
+                'error': 'No test image available (no camera frame and no files)'
+            })
+        
+        if test_result['success']:
+            model_type = test_result.get('model_type', 'unknown')
+            print(f"✅ AI model test successful! (Model type: {model_type})")
+            print("   📝 Only analyzed image saved during test")
+            
+            return jsonify({
+                'success': True,
+                'test_source': test_result.get('test_source', 'unknown'),
+                'detections_found': test_result.get('num_detections', 0),
+                'model_type': model_type,
+                'analyzed_image_saved': test_result.get('analyzed_image_path'),
+                'save_mode': 'analyzed_only',
+                'dimensions': test_result.get('dimensions', {}),
+                'test_result': test_result
+            })
         else:
-            print(f"❌ Model test failed: {result.get('error')}")
-        
-        return jsonify(result)
+            print(f"❌ AI model test failed: {test_result.get('error', 'Unknown error')}")
+            return jsonify({
+                'success': False,
+                'error': test_result.get('error', 'Test failed'),
+                'test_source': test_result.get('test_source', 'unknown')
+            })
         
     except Exception as e:
         print(f"❌ Model test error: {str(e)}")
@@ -210,10 +312,14 @@ def ai_health_check():
                 'status': 'AI service not initialized'
             }), 503
         
+        camera_available = camera_manager is not None
+        
         return jsonify({
             'success': True,
             'status': 'AI service healthy',
             'model_loaded': ai_service.model_loaded,
+            'camera_service_available': camera_available,
+            'save_mode': 'analyzed_images_only',
             'timestamp': str(datetime.now())
         })
         
@@ -221,125 +327,4 @@ def ai_health_check():
         return jsonify({
             'success': False,
             'status': f'Health check failed: {str(e)}'
-        }), 500
-
-# ==================== BASIC DEBUG ROUTES ====================
-
-@ai_bp.route('/debug-model', methods=['GET'])
-def debug_model():
-    """Debug route to check model status in detail"""
-    try:
-        if not ai_service:
-            return jsonify({
-                'success': False,
-                'error': 'AI service not available'
-            }), 503
-        
-        status = ai_service.get_model_status()
-        
-        # Additional debug info
-        debug_info = {
-            'model_file_exists': os.path.exists(status.get('model_path', '')),
-            'model_file_size': os.path.getsize(status.get('model_path', '')) if os.path.exists(status.get('model_path', '')) else 0,
-            'upload_folder': config.UPLOAD_FOLDER,
-            'upload_folder_exists': os.path.exists(config.UPLOAD_FOLDER)
-        }
-        
-        return jsonify({
-            'success': True,
-            'model_status': status,
-            'debug_info': debug_info
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Debug failed: {str(e)}'
-        }), 500
-
-@ai_bp.route('/force-placeholder-test', methods=['POST'])
-def force_placeholder_test():
-    """Force placeholder analysis for testing UI without real model"""
-    try:
-        print("🎭 PLACEHOLDER: Forcing placeholder test...")
-        
-        validation_error = _validate_ai_service()
-        if validation_error:
-            return validation_error
-        
-        data = request.get_json()
-        if not data or 'filename' not in data:
-            return jsonify({
-                'success': False,
-                'error': 'No filename provided'
-            }), 400
-        
-        filename = data['filename']
-        image_path = os.path.join(config.UPLOAD_FOLDER, filename)
-        
-        if not os.path.exists(image_path):
-            return jsonify({
-                'success': False,
-                'error': f'Image file not found: {image_path}'
-            }), 404
-        
-        # Create basic placeholder response
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-        placeholder_filename = f'placeholder_analysis_{timestamp}.jpg'
-        placeholder_path = os.path.join(config.UPLOAD_FOLDER, placeholder_filename)
-        
-        # Copy original image as placeholder analyzed image
-        import shutil
-        shutil.copy2(image_path, placeholder_path)
-        
-        result = {
-            'success': True,
-            'placeholder': True,
-            'detections': [
-                {
-                    'class_name': 'front_vertical',
-                    'confidence': 0.85,
-                    'bbox': [100, 50, 200, 300]
-                },
-                {
-                    'class_name': 'front_horizontal', 
-                    'confidence': 0.78,
-                    'bbox': [80, 280, 220, 320]
-                }
-            ],
-            'num_detections': 2,
-            'dimensions': {
-                'length': 25.4,
-                'width': 25.4,
-                'height': 200.0,
-                'unit': 'cm',
-                'volume': 101600,
-                'display': '25cm x 25cm x 200cm = 101600cm³',
-                'method': 'placeholder_forced'
-            },
-            'cement_mixture': {
-                'cement': 1,
-                'sand': 2,
-                'aggregate': 3,
-                'ratio_string': '1 Cement : 2 Sand : 3 Aggregate'
-            },
-            'analyzed_image_path': placeholder_path,
-            'original_image_path': image_path,
-            'model_type': 'forced_placeholder'
-        }
-        
-        print("🎭 PLACEHOLDER: Forced placeholder analysis complete")
-        
-        return jsonify({
-            'success': True,
-            'forced_placeholder': True,
-            'test_image': filename,
-            'result': result
-        })
-        
-    except Exception as e:
-        print(f"🎭 PLACEHOLDER: Force placeholder error: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f'Force placeholder failed: {str(e)}'
         }), 500

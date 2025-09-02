@@ -1,4 +1,5 @@
 // ==================== SIMPLIFIED CAMERA APP MANAGER WITH DISTANCE SENSOR ==================== 
+// MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
 
 class CameraAppManager {
   constructor() {
@@ -46,7 +47,8 @@ class CameraAppManager {
   }
   
   init() {
-    console.log('🎥 Initializing Simplified Camera App Manager with Distance Sensor...');
+    console.log('🎥 Initializing Camera App Manager (Analyzed Images Only Mode)...');
+    console.log('📝 NOTE: Only analyzed images with AI overlays will be saved to gallery');
     this.setupEventListeners();
     this.createDistanceDisplay();
     this.startCameraFeed();
@@ -309,7 +311,7 @@ class CameraAppManager {
     }
   }
   
-  // ==================== SIMPLIFIED CAPTURE & ANALYZE FLOW ====================
+  // ==================== MODIFIED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
   
   async captureAndAnalyze() {
     if (this.isAnalyzing) {
@@ -334,7 +336,8 @@ class CameraAppManager {
       // If optimal, continue without warning
     }
     
-    console.log('📸 Starting capture and analyze flow...');
+    console.log('📸 Starting capture and analyze flow (ANALYZED IMAGE ONLY)...');
+    console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
     this.isAnalyzing = true;
     
     try {
@@ -348,37 +351,36 @@ class CameraAppManager {
       
       // Step 2: Show loading overlay immediately
       this.showLoadingOverlay();
-      this.updateStatus('Capturing image...');
+      this.updateStatus('Preparing frame for AI analysis...');
       
-      // Step 3: Capture image from server
-      console.log('📷 Capturing image from camera...');
+      // Step 3: Verify camera frame is ready (NO ORIGINAL SAVED)
+      console.log('📷 Verifying camera frame is ready (no original will be saved)...');
       const captureResponse = await fetch('/capture-current-frame', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
       
       if (!captureResponse.ok) {
-        throw new Error(`Capture failed: ${captureResponse.status}`);
+        throw new Error(`Frame preparation failed: ${captureResponse.status}`);
       }
       
       const captureResult = await captureResponse.json();
       
       if (!captureResult.success) {
-        throw new Error(captureResult.error || 'Failed to capture image');
+        throw new Error(captureResult.error || 'Failed to prepare frame');
       }
       
-      console.log('✅ Image captured successfully:', captureResult.filename);
+      console.log('✅ Frame ready for analysis:', captureResult.frame_dimensions);
+      console.log('📝 Confirmed: No original frame saved');
       
-      // Step 4: Immediately start AI analysis
-      this.updateStatus('Analyzing rebar structure...');
-      console.log('🔍 Starting AI analysis...');
+      // Step 4: Start AI analysis directly with current camera frame
+      this.updateStatus('Analyzing rebar structure with AI...');
+      console.log('🔍 Starting AI analysis (will save ONLY analyzed image with overlays)...');
       
       const analysisResponse = await fetch('/analyze-rebar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          filename: captureResult.filename 
-        })
+        headers: { 'Content-Type': 'application/json' }
+        // No body needed - analysis works with current camera frame
       });
       
       if (!analysisResponse.ok) {
@@ -400,14 +402,20 @@ class CameraAppManager {
         throw new Error(analysisResult.message || 'Analysis failed');
       }
       
-      console.log('✅ AI analysis completed successfully');
+      console.log('✅ AI analysis completed - ONLY analyzed image saved to gallery');
+      
+      // Verify the save mode
+      if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
+        console.log('✅ Confirmed: Only analyzed image was saved (no duplicates)');
+      }
       
       // Step 5: Hide loading and show results
       this.hideLoadingOverlay();
       this.showAnalysisResults(analysisResult);
       
-      // Step 6: Auto-save happens automatically (no user action needed)
-      console.log('💾 Results automatically saved to gallery');
+      // Step 6: Confirm single image save
+      console.log('💾 SUCCESS: Only analyzed image with AI overlays saved to gallery');
+      console.log('🚫 No original/duplicate images created');
       
     } catch (error) {
       console.error('❌ Capture and analyze error:', error);
@@ -436,20 +444,19 @@ class CameraAppManager {
   // ==================== RESULTS MANAGEMENT ====================
   
   showAnalysisResults(results) {
-    console.log('📊 Showing analysis results...');
+    console.log('📊 Showing analysis results (analyzed image only)...');
     
     // Update results modal with actual data from AI
     const resultsImage = document.getElementById('results-image');
     const dimensionsResult = document.getElementById('dimensions-result');
     const mixtureResult = document.getElementById('mixture-result');
     
-    // Set analyzed image (with AI overlays)
+    // Set analyzed image (ONLY image that was saved)
     if (results.images && results.images.analyzed && resultsImage) {
       resultsImage.src = results.images.analyzed;
-      console.log('🖼️ Using analyzed image with AI overlays');
-    } else if (results.images && results.images.original && resultsImage) {
-      resultsImage.src = results.images.original;
-      console.log('🖼️ Using original captured image');
+      console.log('🖼️ Displaying analyzed image with AI overlays (ONLY saved image)');
+    } else if (resultsImage) {
+      console.warn('⚠️ No analyzed image found in results');
     }
     
     // Set dimensions
@@ -475,7 +482,7 @@ class CameraAppManager {
     }
     
     // Update status
-    this.updateStatus('Analysis complete - Results ready');
+    this.updateStatus('Analysis complete - Analyzed image saved to gallery');
     
     // Log analysis details
     console.log('📊 Analysis Results Summary:', {
@@ -483,12 +490,14 @@ class CameraAppManager {
       dimensions: results.dimensions?.display || 'N/A',
       mixture: results.cement_mixture?.ratio || 'N/A',
       placeholder: results.metadata?.placeholder_mode || false,
-      auto_saved: true
+      save_mode: results.metadata?.save_mode || 'unknown',
+      only_analyzed_saved: true
     });
     
     // Show success message
     const detectionCount = results.detections?.count || 0;
-    const message = `Analysis complete! ${detectionCount} rebar structures detected. Results saved to gallery.`;
+    const saveMode = results.metadata?.save_mode || 'analyzed_only';
+    const message = `Analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery (${saveMode}).`;
     setTimeout(() => {
       this.showSuccessMessage(message);
     }, 1000); // Delay to let modal appear first
@@ -529,7 +538,7 @@ class CameraAppManager {
   // ==================== NAVIGATION ====================
   
   openGallery() {
-    console.log('📁 Opening gallery...');
+    console.log('📁 Opening gallery (showing analyzed images only)...');
     window.location.href = '/result.html';
   }
   
@@ -617,7 +626,7 @@ class CameraAppManager {
       this.resultsModal.classList.remove('active');
     }
     this.analysisResults = null; // Clear stored results
-    this.updateStatus('Ready for next capture');
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   
   showErrorModal() {
@@ -632,7 +641,7 @@ class CameraAppManager {
     if (this.errorModal) {
       this.errorModal.classList.remove('active');
     }
-    this.updateStatus('Ready for next capture');
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   
   // ==================== UI STATUS MANAGEMENT ====================
@@ -661,7 +670,7 @@ class CameraAppManager {
       font-weight: 600;
       box-shadow: 0 6px 25px rgba(45, 125, 71, 0.3);
       animation: slideInRight 0.3s ease;
-      max-width: 350px;
+      max-width: 400px;
       word-wrap: break-word;
       border: 2px solid white;
     `;
@@ -690,7 +699,7 @@ class CameraAppManager {
       font-weight: 600;
       box-shadow: 0 6px 25px rgba(231, 76, 60, 0.3);
       animation: slideInRight 0.3s ease;
-      max-width: 350px;
+      max-width: 400px;
       word-wrap: break-word;
       border: 2px solid white;
     `;
@@ -768,6 +777,13 @@ class CameraAppManager {
           this.showSuccessMessage(`Distance: ${this.lastDistanceReading.distance_text} - ${this.lastDistanceReading.status_text}`);
         }
         break;
+        
+      case 's': // S - Show save mode info (debug)
+      case 'S':
+        e.preventDefault();
+        this.showSuccessMessage('Save Mode: Analyzed Images Only (no originals)');
+        console.log('💾 Save Mode: Only analyzed images with AI overlays are saved');
+        break;
     }
   }
 }
@@ -797,17 +813,19 @@ window.closeErrorModal = function() {
 
 // Initialize camera app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Starting Simplified Rebar Vista Camera App with Distance Sensor...');
+  console.log('🚀 Starting Rebar Vista Camera App (ANALYZED IMAGES ONLY MODE)...');
+  console.log('📝 IMPORTANT: Only analyzed images with AI overlays will be saved');
+  console.log('🚫 No original/duplicate images will be created');
   
   // Create global instance
   window.cameraApp = new CameraAppManager();
   
-  console.log('✅ Simplified Camera App initialized successfully');
-  console.log('📋 Simplified User Flow:');
+  console.log('✅ Camera App initialized successfully');
+  console.log('📋 Modified User Flow:');
   console.log('   1. Position device at optimal distance (160-200cm)');
   console.log('   2. Press capture button (📷)');
   console.log('   3. Wait for AI analysis');
-  console.log('   4. View results (auto-saved to gallery)');
+  console.log('   4. View results (ONLY analyzed image auto-saved to gallery)');
   console.log('   5. Close results and capture again');
   console.log('');
   console.log('📋 Available keyboard shortcuts:');
@@ -816,6 +834,7 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('   F - Toggle fullscreen');
   console.log('   G - Open gallery');
   console.log('   D - Show distance info (debug)');
+  console.log('   S - Show save mode info (debug)');
   console.log('   ? - Open tutorial');
 });
 

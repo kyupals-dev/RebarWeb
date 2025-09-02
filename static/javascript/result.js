@@ -1,22 +1,24 @@
-// ==================== UPDATED RESULT PAGE JAVASCRIPT - PORTRAIT 3x5 GRID WITH ANALYSIS DATA ==================== 
+// ==================== MODERN RESULT PAGE JAVASCRIPT (ANALYZED IMAGES ONLY) ==================== 
+// MODIFIED: Fixed to properly display filtered analyzed images only
 
 // Global state management
 const state = {
   allImages: [],
   filteredImages: [],
   currentPage: 1,
-  itemsPerPage: 15, // 3x5 grid = 15 images per page
+  itemsPerPage: 6, // 3 images per row, 2 rows
   totalPages: 1,
   currentFilters: {
     timeframe: 'all',
     sort: 'newest'
   },
-  currentModalImage: null
+  currentModalImage: null,
+  imageStats: null // Store filtering stats
 };
 
 // ==================== INITIALIZATION ==================== 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Gallery page loaded, initializing...');
+  console.log('Result page loaded, initializing (analyzed images only mode)...');
   initializePage();
 });
 
@@ -26,10 +28,10 @@ async function initializePage() {
     await loadImages();
     setupEventListeners();
     applyFilters();
-    console.log('Gallery page initialized successfully');
+    console.log('Result page initialized successfully (analyzed images only)');
   } catch (error) {
     console.error('Error initializing page:', error);
-    showErrorState('Failed to load analysis results');
+    showErrorState('Failed to load images');
   }
 }
 
@@ -82,15 +84,21 @@ function handleKeyboard(e) {
 }
 
 function handleResize() {
-  // Keep 3x5 grid (15 items per page) for portrait optimization
-  state.itemsPerPage = 15;
+  // Adjust items per page based on screen size - keeping 3 columns on tablet
+  const width = window.innerWidth;
+  if (width <= 768) {
+    state.itemsPerPage = 6; // 1 per row, 6 rows on mobile
+  } else {
+    state.itemsPerPage = 6; // 3 per row, 2 rows on desktop and tablet
+  }
+  
   applyFilters(); // Recalculate pagination
 }
 
-// ==================== IMAGE LOADING ==================== 
+// ==================== IMAGE LOADING (FIXED FOR ANALYZED IMAGES) ==================== 
 async function loadImages() {
   try {
-    console.log('Loading analysis results from server...');
+    console.log('Loading analyzed images from server...');
     const response = await fetch('/get-images');
     
     if (!response.ok) {
@@ -101,27 +109,41 @@ async function loadImages() {
     console.log('Server response:', result);
     
     if (!result.success) {
-      throw new Error(result.error || 'Failed to load analysis results');
+      throw new Error(result.error || 'Failed to load images');
     }
     
-    // UPDATED: Filter to only show analyzed images (with analysis metadata)
-    state.allImages = (result.images || []).filter(image => {
-      return image.filename && image.filename.startsWith('analysis_') && image.has_metadata;
-    });
+    // Store the filtered analyzed images
+    state.allImages = result.images || [];
     
-    console.log(`Loaded ${state.allImages.length} analysis results`);
+    // Store filtering stats if available
+    if (result.stats) {
+      state.imageStats = result.stats;
+      console.log('Image filtering stats:', result.stats);
+      console.log(`Gallery shows ${result.stats.analyzed_shown} analyzed images, hides ${result.stats.originals_hidden} original images`);
+    }
+    
+    console.log(`Loaded ${state.allImages.length} analyzed images for gallery`);
+    
+    // Log types of images loaded
+    if (state.allImages.length > 0) {
+      const imageTypes = state.allImages.map(img => img.type || 'analyzed').reduce((acc, type) => {
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('Image types loaded:', imageTypes);
+    }
     
   } catch (error) {
-    console.error('Error loading analysis results:', error);
+    console.error('Error loading images:', error);
     throw error;
   }
 }
 
 // ==================== FILTERING AND SORTING ==================== 
 function applyFilters() {
-  console.log('Applying filters:', state.currentFilters);
+  console.log('Applying filters to analyzed images:', state.currentFilters);
   
-  // Start with all analyzed images
+  // Start with all analyzed images (already filtered by backend)
   let filtered = [...state.allImages];
   
   // Apply timeframe filter
@@ -137,6 +159,8 @@ function applyFilters() {
   if (state.currentPage > state.totalPages) {
     state.currentPage = Math.max(1, state.totalPages);
   }
+  
+  console.log(`Filtered results: ${filtered.length} images, ${state.totalPages} pages`);
   
   renderGallery();
   renderPagination();
@@ -166,9 +190,7 @@ function filterByTimeframe(images, timeframe) {
   }
   
   return images.filter(image => {
-    // Use analysis timestamp if available, otherwise fall back to file timestamp
-    const timestampToUse = image.analysis?.analysis_timestamp || image.timestamp;
-    const imageDate = new Date(timestampToUse);
+    const imageDate = new Date(image.timestamp);
     return imageDate >= cutoff;
   });
 }
@@ -178,17 +200,9 @@ function sortImages(images, sortBy) {
   
   switch (sortBy) {
     case 'newest':
-      return sorted.sort((a, b) => {
-        const timestampA = a.analysis?.analysis_timestamp || a.timestamp;
-        const timestampB = b.analysis?.analysis_timestamp || b.timestamp;
-        return new Date(timestampB) - new Date(timestampA);
-      });
+      return sorted.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     case 'oldest':
-      return sorted.sort((a, b) => {
-        const timestampA = a.analysis?.analysis_timestamp || a.timestamp;
-        const timestampB = b.analysis?.analysis_timestamp || b.timestamp;
-        return new Date(timestampA) - new Date(timestampB);
-      });
+      return sorted.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     default:
       return sorted;
   }
@@ -224,24 +238,20 @@ function renderGallery() {
 }
 
 function createImageCard(image, index) {
-  // Use analysis timestamp if available
-  const timestamp = image.analysis?.analysis_timestamp || image.timestamp;
-  const analysisDate = new Date(timestamp).toLocaleDateString();
-  
-  // Get detection count for display
-  const detectionCount = image.analysis?.num_detections || 0;
-  const modelType = image.analysis?.model_type || 'unknown';
+  const capturedDate = new Date(image.timestamp).toLocaleDateString();
+  const imageType = image.type || 'analyzed';
   
   return `
-    <div class="image-card" data-index="${index}">
+    <div class="image-card" data-index="${index}" data-type="${imageType}">
       <div class="image-container">
-        <img src="${image.url}" alt="Analysis Result" loading="lazy" onerror="handleImageError(this)">
+        <img src="${image.url}" alt="Analyzed image with AI overlays" loading="lazy" onerror="handleImageError(this)">
         <div class="image-overlay">
           <div class="image-actions">
-            <button class="view-btn" onclick="openModal('${image.filename}', '${image.url}', '${analysisDate}', ${index})">
+            <button class="view-btn" onclick="openModal('${image.filename}', '${image.url}', '${capturedDate}')">
               View Analysis
             </button>
           </div>
+          <div class="image-type-badge">${imageType === 'analyzed' ? 'AI Analysis' : imageType}</div>
         </div>
       </div>
     </div>
@@ -257,7 +267,7 @@ function handleImageError(img) {
       <div class="image-container">
         <div class="error-placeholder">
           <span>⚠️</span>
-          <p>Analysis result not found</p>
+          <p>Analyzed image not found</p>
         </div>
       </div>
     `;
@@ -351,25 +361,15 @@ function goToPage(page) {
   }
 }
 
-// ==================== UPDATED MODAL FUNCTIONALITY - ENHANCED WITH ANALYSIS DATA ==================== 
-function openModal(filename, url, analysisDate, imageIndex) {
+// ==================== MODAL FUNCTIONALITY ==================== 
+function openModal(filename, url, captured) {
   const modal = document.getElementById('image-modal');
   const modalImage = document.getElementById('modal-image');
-  const modalDimensions = document.getElementById('modal-dimensions');
-  const modalMixture = document.getElementById('modal-mixture');
-  const modalAnalysisDate = document.getElementById('modal-analysis-date');
-  const modalDetections = document.getElementById('modal-detections');
-  const modalModelType = document.getElementById('modal-model-type');
+  const modalFilename = document.getElementById('modal-filename');
+  const modalCaptured = document.getElementById('modal-captured');
   
   if (!modal || !modalImage) {
     console.error('Modal elements not found');
-    return;
-  }
-  
-  // Get image data from current filtered list
-  const imageData = state.filteredImages[imageIndex];
-  if (!imageData) {
-    console.error('Image data not found for index:', imageIndex);
     return;
   }
   
@@ -377,71 +377,21 @@ function openModal(filename, url, analysisDate, imageIndex) {
   state.currentModalImage = {
     filename,
     url,
-    analysisDate,
-    imageData
+    captured
   };
   
-  // Update modal image
+  // Update modal content
   modalImage.src = url;
-  modalImage.alt = `Analysis Result - ${filename}`;
+  modalImage.alt = `Analyzed image: ${filename}`;
   
-  // UPDATED: Set analysis data from JSON metadata
-  if (imageData.analysis) {
-    const analysis = imageData.analysis;
-    
-    // Set dimensions
-    if (modalDimensions) {
-      const dimensions = analysis.dimensions?.display || 
-                        `${analysis.dimensions?.length || 0}cm × ${analysis.dimensions?.width || 0}cm × ${analysis.dimensions?.height || 0}cm`;
-      modalDimensions.textContent = dimensions;
-    }
-    
-    // Set cement mixture
-    if (modalMixture) {
-      modalMixture.textContent = analysis.cement_mixture?.ratio || 'Data not available';
-    }
-    
-    // Set analysis date
-    if (modalAnalysisDate) {
-      const timestamp = analysis.analysis_timestamp;
-      if (timestamp) {
-        const date = new Date(timestamp);
-        modalAnalysisDate.textContent = date.toLocaleString();
-      } else {
-        modalAnalysisDate.textContent = analysisDate;
-      }
-    }
-    
-    // Set detections count
-    if (modalDetections) {
-      const count = analysis.num_detections || 0;
-      const detectionsText = count === 1 ? '1 structure detected' : `${count} structures detected`;
-      modalDetections.textContent = detectionsText;
-    }
-    
-    // Set model type
-    if (modalModelType) {
-      const modelType = analysis.model_type || 'Unknown';
-      modalModelType.textContent = modelType === 'real_trained_model' ? 'AI Model' : 
-                                  modelType === 'placeholder' ? 'Simulation' : modelType;
-    }
-  } else {
-    // Fallback if no analysis data
-    if (modalDimensions) modalDimensions.textContent = 'Analysis data not available';
-    if (modalMixture) modalMixture.textContent = 'Analysis data not available';
-    if (modalAnalysisDate) modalAnalysisDate.textContent = analysisDate;
-    if (modalDetections) modalDetections.textContent = 'Unknown';
-    if (modalModelType) modalModelType.textContent = 'Unknown';
-  }
+  if (modalFilename) modalFilename.textContent = filename;
+  if (modalCaptured) modalCaptured.textContent = captured;
   
   // Show modal
   modal.classList.add('active');
   document.body.style.overflow = 'hidden'; // Prevent background scrolling
   
-  console.log('Enhanced modal opened for:', filename);
-  if (imageData.analysis) {
-    console.log('Analysis data:', imageData.analysis);
-  }
+  console.log('Modal opened for analyzed image:', filename);
 }
 
 function closeModal() {
@@ -464,13 +414,13 @@ function isModalOpen() {
 function downloadCurrentImage() {
   if (!state.currentModalImage) {
     console.error('No current modal image to download');
-    showNotification('No analysis result selected for download', 'error');
+    showNotification('No image selected for download', 'error');
     return;
   }
   
   const { filename, url } = state.currentModalImage;
   
-  console.log('Downloading analysis result:', filename, 'from:', url);
+  console.log('Downloading analyzed image:', filename, 'from:', url);
   
   try {
     // Method 1: Try using fetch to get the blob first
@@ -501,8 +451,8 @@ function downloadCurrentImage() {
           window.URL.revokeObjectURL(blobUrl);
         }, 100);
         
-        showNotification('Analysis result download started successfully', 'success');
-        console.log('Download initiated successfully for:', filename);
+        showNotification('Analyzed image download started successfully', 'success');
+        console.log('Download initiated successfully for analyzed image:', filename);
       })
       .catch(error => {
         console.error('Fetch download failed, trying direct method:', error);
@@ -528,13 +478,13 @@ function downloadCurrentImage() {
         link.dispatchEvent(event);
         document.body.removeChild(link);
         
-        showNotification('Analysis result download initiated (fallback method)', 'success');
+        showNotification('Download initiated (fallback method)', 'success');
         console.log('Fallback download initiated for:', filename);
       });
       
   } catch (error) {
     console.error('Download error:', error);
-    showNotification('Failed to download analysis result: ' + error.message, 'error');
+    showNotification('Failed to download image: ' + error.message, 'error');
   }
 }
 
@@ -546,12 +496,12 @@ async function deleteCurrentImage() {
   
   const { filename } = state.currentModalImage;
   
-  if (!confirm(`Are you sure you want to delete this analysis result "${filename}"? This action cannot be undone.`)) {
+  if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
     return;
   }
   
   try {
-    console.log('Deleting analysis result:', filename);
+    console.log('Deleting analyzed image:', filename);
     
     const response = await fetch(`/delete-image/${encodeURIComponent(filename)}`, {
       method: 'DELETE'
@@ -560,7 +510,7 @@ async function deleteCurrentImage() {
     const result = await response.json();
     
     if (result.success) {
-      console.log('Analysis result deleted successfully:', filename);
+      console.log('Analyzed image deleted successfully:', filename);
       
       // Close modal
       closeModal();
@@ -569,14 +519,14 @@ async function deleteCurrentImage() {
       await loadImages();
       applyFilters();
       
-      showNotification('Analysis result deleted successfully', 'success');
+      showNotification('Analyzed image deleted successfully', 'success');
     } else {
-      throw new Error(result.error || 'Failed to delete analysis result');
+      throw new Error(result.error || 'Failed to delete image');
     }
     
   } catch (error) {
-    console.error('Error deleting analysis result:', error);
-    showNotification('Failed to delete analysis result: ' + error.message, 'error');
+    console.error('Error deleting image:', error);
+    showNotification('Failed to delete image: ' + error.message, 'error');
   }
 }
 
@@ -600,12 +550,16 @@ function clearFilters() {
 }
 
 async function clearAllImages() {
-  if (!confirm('Are you sure you want to delete ALL analysis results? This action cannot be undone!')) {
+  const confirmMessage = state.imageStats && state.imageStats.analyzed_shown > 0
+    ? `Are you sure you want to delete all ${state.imageStats.analyzed_shown} analyzed images? This action cannot be undone!`
+    : 'Are you sure you want to delete ALL analyzed images? This action cannot be undone!';
+    
+  if (!confirm(confirmMessage)) {
     return;
   }
   
   try {
-    console.log('Clearing all analysis results...');
+    console.log('Clearing all analyzed images...');
     
     const response = await fetch('/clear-all-images', {
       method: 'DELETE'
@@ -614,24 +568,27 @@ async function clearAllImages() {
     const result = await response.json();
     
     if (result.success) {
-      console.log('All analysis results cleared successfully');
+      console.log('All analyzed images cleared successfully');
       
+      // Reset state
       state.allImages = [];
       state.filteredImages = [];
       state.currentPage = 1;
       state.totalPages = 1;
+      state.imageStats = null;
       
       showEmptyState();
       renderPagination();
       
-      showNotification('All analysis results cleared successfully', 'success');
+      const clearedCount = result.details ? result.details.total_deleted : 'All';
+      showNotification(`${clearedCount} analyzed images cleared successfully`, 'success');
     } else {
-      throw new Error(result.error || 'Failed to clear analysis results');
+      throw new Error(result.error || 'Failed to clear images');
     }
     
   } catch (error) {
-    console.error('Error clearing analysis results:', error);
-    showNotification('Failed to clear analysis results: ' + error.message, 'error');
+    console.error('Error clearing images:', error);
+    showNotification('Failed to clear images: ' + error.message, 'error');
   }
 }
 
@@ -648,7 +605,7 @@ function showLoadingState() {
     galleryGrid.innerHTML = `
       <div class="loading-state">
         <div class="loading-spinner"></div>
-        <p>Loading analysis results...</p>
+        <p>Loading analyzed images...</p>
       </div>
     `;
   }
@@ -660,10 +617,28 @@ function showEmptyState() {
   if (galleryGrid) {
     const hasFilters = state.currentFilters.timeframe !== 'all' || state.currentFilters.sort !== 'newest';
     
+    let emptyMessage, emptyDescription;
+    
+    if (hasFilters) {
+      emptyMessage = 'No images match your filters';
+      emptyDescription = 'Try adjusting your filters or clear them to see all analyzed images.';
+    } else {
+      emptyMessage = 'No analyzed images yet';
+      emptyDescription = 'Go back and capture some images with AI analysis!';
+    }
+    
+    // Add stats info if available
+    let statsInfo = '';
+    if (state.imageStats && state.imageStats.originals_hidden > 0) {
+      statsInfo = `<p class="stats-info">Note: ${state.imageStats.originals_hidden} original images are hidden. Only analyzed images with AI overlays are shown.</p>`;
+    }
+    
     galleryGrid.innerHTML = `
       <div class="empty-state">
-        <h3>${hasFilters ? 'No results match your filters' : 'No analysis results yet'}</h3>
-        <p>${hasFilters ? 'Try adjusting your filters or clear them to see all results.' : 'Go back and analyze some rebar structures!'}</p>
+        <h3>${emptyMessage}</h3>
+        <p>${emptyDescription}</p>
+        ${statsInfo}
+        <p class="hint">Only images with AI analysis and overlays are shown in this gallery.</p>
         ${hasFilters ? '<button class="clear-filters-btn" onclick="clearFilters()">Clear Filters</button>' : ''}
       </div>
     `;
@@ -676,7 +651,7 @@ function showErrorState(message) {
   if (galleryGrid) {
     galleryGrid.innerHTML = `
       <div class="empty-state">
-        <h3>Error loading analysis results</h3>
+        <h3>Error loading analyzed images</h3>
         <p>${message}</p>
         <button class="clear-filters-btn" onclick="initializePage()">Try Again</button>
       </div>
@@ -728,6 +703,25 @@ function showNotification(message, type = 'info') {
       @keyframes slideInRight {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
+      }
+      .stats-info {
+        font-size: 0.9em;
+        color: #666;
+        font-style: italic;
+        margin: 10px 0;
+      }
+      .image-type-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(45, 125, 71, 0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
     `;
     document.head.appendChild(styles);

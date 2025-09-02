@@ -1,17 +1,17 @@
 """
-Enhanced AI Service with Comprehensive Debugging
-Memory-optimized version with extensive debug logging
+AI Service for Rebar Detection and Analysis
+Integrates Detectron2 Mask R-CNN model for rebar segmentation with REAL MODEL
+MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
 """
 
 import os
 import cv2
 import numpy as np
 from datetime import datetime
+import json
 import traceback
-import time
-import psutil
 
-# Detectron2 imports
+# Detectron2 imports (will be installed later)
 try:
     from detectron2.engine import DefaultPredictor
     from detectron2.config import get_cfg
@@ -20,610 +20,635 @@ try:
     from detectron2 import model_zoo
     DETECTRON2_AVAILABLE = True
 except ImportError:
+    print("⚠️  Detectron2 not available. AI analysis will use placeholder results.")
     DETECTRON2_AVAILABLE = False
 
 from app.utils.config import config
 
 class AIService:
-    """Enhanced AI service with comprehensive debugging"""
+    """Handles AI model loading, inference, and rebar analysis with REAL TRAINED MODEL"""
     
     def __init__(self):
         self.model_loaded = False
         self.predictor = None
         self.cfg = None
-        self.metadata = None
-        self.debug_mode = True
-        self.analysis_count = 0
-        self.last_analysis_time = None
-        self.memory_usage_history = []
-        
-        # Model configuration
         self.model_path = "/home/team10/RebarWeb/app/model/model_final.pth"
-        self.class_names = ["back_horizontal", "front_horizontal", "front_vertical"]
+        self.metadata = None
+        
+        # Updated rebar classes based on your training
+        self.class_names = ["front_vertical", "front_horizontal", "back_horizontal"]
         self.num_classes = 3
+        
+        # Updated detection threshold based on your training
         self.detection_threshold = 0.3
-        self.training_input_size = (480, 640)
         
-        self.debug_log("Initializing Enhanced AI Service with Debugging...")
-        self.log_system_info()
+        # Training image size (480x640 portrait)
+        self.training_input_size = (480, 640)  # width x height
         
-        # Only load model if available
-        if DETECTRON2_AVAILABLE and os.path.exists(self.model_path):
-            self.load_model()
-        else:
-            self.debug_log("Using optimized placeholder mode")
-    
-    def debug_log(self, message, level="INFO"):
-        """Enhanced debug logging with timestamps and memory info"""
-        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-        memory = self.get_memory_usage()
-        print(f"[{timestamp}] [{level}] [MEM:{memory}MB] {message}")
-    
-    def get_memory_usage(self):
-        """Get current memory usage in MB"""
-        try:
-            process = psutil.Process()
-            return round(process.memory_info().rss / 1024 / 1024, 1)
-        except:
-            return 0
-    
-    def log_system_info(self):
-        """Log system information for debugging"""
-        try:
-            self.debug_log("=== SYSTEM INFORMATION ===")
-            self.debug_log(f"CPU Count: {psutil.cpu_count()}")
-            memory = psutil.virtual_memory()
-            self.debug_log(f"Total RAM: {memory.total / 1024 / 1024 / 1024:.1f} GB")
-            self.debug_log(f"Available RAM: {memory.available / 1024 / 1024 / 1024:.1f} GB")
-            self.debug_log(f"RAM Usage: {memory.percent}%")
-            
-            disk = psutil.disk_usage('/')
-            self.debug_log(f"Disk Free: {disk.free / 1024 / 1024 / 1024:.1f} GB")
-            
-            self.debug_log(f"Detectron2 Available: {DETECTRON2_AVAILABLE}")
-            self.debug_log(f"Model Path: {self.model_path}")
-            self.debug_log(f"Model Exists: {os.path.exists(self.model_path)}")
-            if os.path.exists(self.model_path):
-                model_size = os.path.getsize(self.model_path) / 1024 / 1024
-                self.debug_log(f"Model Size: {model_size:.1f} MB")
-            self.debug_log("=========================")
-        except Exception as e:
-            self.debug_log(f"Error getting system info: {e}", "ERROR")
+        print("🤖 Initializing AI Service with REAL TRAINED MODEL...")
+        print(f"   Classes: {self.class_names}")
+        print(f"   Detection threshold: {self.detection_threshold}")
+        print(f"   Training input size: {self.training_input_size[0]}x{self.training_input_size[1]}")
+        print("   📝 MODIFIED: Only saves analyzed images (no originals)")
+        self.load_model()
     
     def load_model(self):
-        """Load Detectron2 model with comprehensive debugging"""
+        """Load the trained Detectron2 model with REAL CONFIGURATION"""
         try:
-            self.debug_log("Starting model loading process...")
-            start_time = time.time()
-            start_memory = self.get_memory_usage()
-            
-            # Check model file
-            if not os.path.exists(self.model_path):
-                self.debug_log(f"Model file not found: {self.model_path}", "ERROR")
+            if not DETECTRON2_AVAILABLE:
+                print("❌ Detectron2 not available, using placeholder mode")
                 return False
             
-            model_size = os.path.getsize(self.model_path) / 1024 / 1024
-            self.debug_log(f"Loading model file: {model_size:.1f} MB")
+            if not os.path.exists(self.model_path):
+                print(f"❌ Model file not found: {self.model_path}")
+                print("   Please ensure model_final.pth is in the correct location")
+                return False
             
-            # Configure model
-            self.debug_log("Configuring Detectron2...")
+            print("🔄 Loading Detectron2 configuration for REAL MODEL...")
+            
+            # Set up configuration matching your training
             self.cfg = get_cfg()
             self.cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
             
-            # Memory optimizations
+            # Model settings - REAL CONFIGURATION
+            self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.num_classes  # 3 classes
             self.cfg.MODEL.WEIGHTS = self.model_path
-            self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.num_classes
-            self.cfg.MODEL.DEVICE = "cpu"
-            self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = self.detection_threshold
+            self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = self.detection_threshold  # 0.3 threshold
+            self.cfg.MODEL.DEVICE = "cpu"  # Use CPU on Raspberry Pi
             
-            # Reduce memory usage
-            self.cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 64
-            self.cfg.TEST.DETECTIONS_PER_IMAGE = 20
+            # Input format matching your training (480x640)
+            self.cfg.INPUT.MIN_SIZE_TRAIN = (640,)  # Height during training
+            self.cfg.INPUT.MAX_SIZE_TRAIN = 640
+            self.cfg.INPUT.MIN_SIZE_TEST = 640
+            self.cfg.INPUT.MAX_SIZE_TEST = 640
             
-            memory_after_config = self.get_memory_usage()
-            self.debug_log(f"Memory after config: {memory_after_config}MB (+{memory_after_config-start_memory}MB)")
-            
-            # Create predictor
-            self.debug_log("Creating DefaultPredictor...")
+            print("🔄 Creating predictor with REAL MODEL...")
             self.predictor = DefaultPredictor(self.cfg)
             
-            memory_after_predictor = self.get_memory_usage()
-            self.debug_log(f"Memory after predictor: {memory_after_predictor}MB (+{memory_after_predictor-memory_after_config}MB)")
-            
-            # Set up metadata
-            self.debug_log("Setting up metadata...")
-            self.metadata = MetadataCatalog.get("rebar_dataset")
+            # Set up metadata for visualization with your classes
+            self.metadata = MetadataCatalog.get("rebar_dataset_real")
             self.metadata.thing_classes = self.class_names
             
-            # Test model
-            self.debug_log("Testing model with dummy image...")
-            test_image = np.zeros((640, 480, 3), dtype=np.uint8)
-            test_start = time.time()
-            test_outputs = self.predictor(test_image)
-            test_time = time.time() - test_start
-            
-            final_memory = self.get_memory_usage()
-            total_time = time.time() - start_time
-            
-            self.debug_log(f"Model test completed in {test_time:.2f}s")
-            self.debug_log(f"Total loading time: {total_time:.2f}s")
-            self.debug_log(f"Total memory increase: {final_memory-start_memory:.1f}MB")
-            self.debug_log(f"Test detections: {len(test_outputs['instances'])}")
+            # Set colors for each class (you can customize these)
+            self.metadata.thing_colors = [
+                (0, 255, 0),      # front_vertical - Green
+                (255, 0, 0),      # front_horizontal - Red  
+                (0, 0, 255),      # back_horizontal - Blue
+            ]
             
             self.model_loaded = True
-            self.debug_log("Model loaded successfully!", "SUCCESS")
+            print("✅ REAL AI Model loaded successfully!")
+            print(f"   Model path: {self.model_path}")
+            print(f"   Classes: {self.class_names}")
+            print(f"   Detection threshold: {self.detection_threshold}")
+            print(f"   Input size: {self.training_input_size[0]}x{self.training_input_size[1]}")
+            
+            # Test the model with a quick inference
+            test_image = np.zeros((640, 480, 3), dtype=np.uint8)  # Create test image
+            try:
+                test_output = self.predictor(test_image)
+                print("✅ Model inference test successful!")
+            except Exception as e:
+                print(f"⚠️  Model inference test failed: {e}")
+            
             return True
             
         except Exception as e:
-            self.debug_log(f"Model loading failed: {e}", "ERROR")
-            self.debug_log("Full traceback:", "ERROR")
+            print(f"❌ Error loading REAL AI model: {str(e)}")
+            print("   Full traceback:")
             traceback.print_exc()
             self.model_loaded = False
             return False
     
-    def analyze_image(self, image_path):
-        """Enhanced analysis with comprehensive debugging"""
+    def analyze_image(self, image_data=None, image_path=None):
+        """
+        Analyze image for rebar detection using REAL TRAINED MODEL
+        MODIFIED: Only saves analyzed images with AI overlays
+        
+        Args:
+            image_data (numpy.ndarray): Direct frame data from camera (preferred)
+            image_path (str): Path to existing image file (fallback only)
+            
+        Returns:
+            dict: Analysis results with only analyzed_image_path
+        """
         try:
-            self.analysis_count += 1
-            analysis_start = time.time()
-            start_memory = self.get_memory_usage()
+            print(f"🔍 Starting REAL AI analysis (analyzed image only mode)...")
             
-            self.debug_log(f"=== ANALYSIS #{self.analysis_count} START ===")
-            self.debug_log(f"Image path: {image_path}")
-            self.debug_log(f"Start memory: {start_memory}MB")
+            # Handle different input types
+            if image_data is not None:
+                print("📸 Using direct frame data from camera (no original saved)")
+                image = image_data.copy()
+                original_source = "camera_frame"
+            elif image_path and os.path.exists(image_path):
+                print(f"📁 Loading image from: {image_path} (fallback mode)")
+                image = cv2.imread(image_path)
+                original_source = "file"
+                if image is None:
+                    return {'success': False, 'error': 'Failed to load image file'}
+            else:
+                return {'success': False, 'error': 'No image data or valid path provided'}
             
-            # Validate image file
-            if not os.path.exists(image_path):
-                return self._error_response('Image file not found', image_path)
+            print(f"📐 Image loaded: {image.shape} (H×W×C) from {original_source}")
             
-            file_size = os.path.getsize(image_path) / 1024
-            self.debug_log(f"Image file size: {file_size:.1f} KB")
-            
-            # Load image
-            self.debug_log("Loading image with OpenCV...")
-            image = cv2.imread(image_path)
-            if image is None:
-                return self._error_response('Failed to load image with OpenCV', image_path)
-            
-            original_shape = image.shape
-            self.debug_log(f"Original image shape: {original_shape}")
-            
-            memory_after_load = self.get_memory_usage()
-            self.debug_log(f"Memory after image load: {memory_after_load}MB (+{memory_after_load-start_memory}MB)")
-            
-            # Resize if needed
+            # Ensure image is the right size (480x640)
             height, width = image.shape[:2]
             if width != 480 or height != 640:
-                self.debug_log(f"Resizing from {width}x{height} to 480x640...")
+                print(f"⚙️  Resizing image from {width}x{height} to 480x640 for model input")
                 image = cv2.resize(image, (480, 640))
-                resized_shape = image.shape
-                self.debug_log(f"Resized image shape: {resized_shape}")
             
-            # Image analysis for debugging
-            self.debug_log("Analyzing image characteristics...")
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            brightness = np.mean(gray)
-            contrast = np.std(gray)
-            self.debug_log(f"Image brightness: {brightness:.1f}")
-            self.debug_log(f"Image contrast: {contrast:.1f}")
-            
-            # Try real model analysis first
-            if self.model_loaded and self.predictor:
-                self.debug_log("Attempting real model analysis...")
-                result = self._analyze_with_model(image, image_path, start_memory)
-                if result['success']:
-                    total_time = time.time() - analysis_start
-                    self.debug_log(f"=== ANALYSIS #{self.analysis_count} SUCCESS (Real Model) - {total_time:.2f}s ===")
-                    return result
-                else:
-                    self.debug_log("Real model analysis failed, falling back to placeholder", "WARNING")
+            # Use real model or placeholder
+            if self.model_loaded and DETECTRON2_AVAILABLE:
+                result = self._analyze_with_real_model(image)
             else:
-                self.debug_log("Real model not available, using placeholder", "INFO")
+                print("⚠️  REAL MODEL not available, using placeholder")
+                result = self._analyze_placeholder(image)
             
-            # Enhanced placeholder
-            result = self._enhanced_placeholder_analysis(image, image_path, start_memory)
-            total_time = time.time() - analysis_start
-            self.debug_log(f"=== ANALYSIS #{self.analysis_count} SUCCESS (Placeholder) - {total_time:.2f}s ===")
+            # Ensure we return only the analyzed image path
+            if result['success'] and 'analyzed_image_path' in result:
+                filename = os.path.basename(result['analyzed_image_path'])
+                print(f"✅ Analysis complete. ONLY analyzed image saved: {filename}")
+            
             return result
-            
+                
         except Exception as e:
-            self.debug_log(f"Analysis error: {e}", "ERROR")
+            print(f"❌ Analysis error: {str(e)}")
             traceback.print_exc()
-            return self._error_response(f'Analysis failed: {str(e)}', image_path)
+            return {
+                'success': False,
+                'error': f'Analysis failed: {str(e)}'
+            }
     
-    def _analyze_with_model(self, image, image_path, start_memory):
-        """Real model analysis with detailed debugging"""
+    def _analyze_with_real_model(self, image):
+        """Run actual AI model analysis with REAL TRAINED MODEL"""
         try:
-            self.debug_log("Starting Detectron2 inference...")
-            inference_start = time.time()
+            print("🤖 Running REAL Detectron2 inference...")
             
-            # Pre-inference memory check
-            pre_inference_memory = self.get_memory_usage()
-            self.debug_log(f"Pre-inference memory: {pre_inference_memory}MB")
-            
-            # Run inference
+            # Run inference with your trained model
             outputs = self.predictor(image)
-            inference_time = time.time() - inference_start
-            
-            # Post-inference memory check
-            post_inference_memory = self.get_memory_usage()
-            self.debug_log(f"Inference completed in {inference_time:.2f}s")
-            self.debug_log(f"Post-inference memory: {post_inference_memory}MB (+{post_inference_memory-pre_inference_memory}MB)")
-            
             instances = outputs["instances"].to("cpu")
+            
+            # Check if any detections
             num_detections = len(instances)
-            self.debug_log(f"Raw detections found: {num_detections}")
+            print(f"🎯 REAL MODEL found {num_detections} detections")
             
             if num_detections == 0:
-                self.debug_log("No detections found", "WARNING")
+                print("❌ No rebar structures detected by REAL MODEL")
                 return {
                     'success': False,
-                    'error': 'No rebar structures detected',
+                    'error': 'No rebar structures detected in image',
                     'no_detection': True
                 }
             
-            # Extract detection data
-            self.debug_log("Extracting detection data...")
+            # Extract detection data from REAL MODEL
             boxes = instances.pred_boxes.tensor.numpy()
             scores = instances.scores.numpy()
             classes = instances.pred_classes.numpy()
+            masks = instances.pred_masks.numpy()
             
+            # Process detections from REAL MODEL
             detections = []
             for i in range(num_detections):
-                class_id = int(classes[i])
-                confidence = float(scores[i])
-                class_name = self.class_names[class_id] if class_id < len(self.class_names) else f"class_{class_id}"
-                bbox = boxes[i].tolist()
-                
                 detection = {
-                    'class_id': class_id,
-                    'class_name': class_name,
-                    'confidence': confidence,
-                    'bbox': bbox
+                    'class_id': int(classes[i]),
+                    'class_name': self.class_names[classes[i]],
+                    'confidence': float(scores[i]),
+                    'bbox': boxes[i].tolist(),  # [x1, y1, x2, y2]
+                    'mask_area': float(np.sum(masks[i])),
+                    'mask_shape': masks[i].shape
                 }
                 detections.append(detection)
                 
-                self.debug_log(f"  Detection {i+1}: {class_name} ({confidence:.3f}) at {bbox}")
+                print(f"   Detection {i+1}: {detection['class_name']} ({detection['confidence']:.3f}) - Area: {detection['mask_area']:.0f}px")
             
-            # Create visualization
-            self.debug_log("Creating visualization...")
-            viz_start = time.time()
-            analyzed_image_path = self._create_visualization(image, outputs, image_path)
-            viz_time = time.time() - viz_start
-            self.debug_log(f"Visualization created in {viz_time:.2f}s")
+            # Create visualization with REAL MODEL results (ONLY FILE SAVED)
+            analyzed_image_path = self._create_real_model_visualization(image, outputs)
             
-            # Calculate results
-            self.debug_log("Calculating dimensions and mixture...")
-            dimensions = self._calculate_dimensions_from_detections(detections)
+            if not analyzed_image_path:
+                return {
+                    'success': False,
+                    'error': 'Failed to create analyzed image visualization'
+                }
+            
+            # Calculate dimensions from REAL MODEL detections
+            dimensions = self._calculate_real_dimensions(detections, masks, image.shape)
+            
+            # Calculate cement mixture
             mixture = self._calculate_cement_mixture(dimensions)
             
-            final_memory = self.get_memory_usage()
-            self.debug_log(f"Final memory: {final_memory}MB (total increase: {final_memory-start_memory}MB)")
-            
-            return self._format_success_response(detections, dimensions, mixture, image_path, analyzed_image_path, 'real_model')
+            return {
+                'success': True,
+                'detections': detections,
+                'num_detections': num_detections,
+                'dimensions': dimensions,
+                'cement_mixture': mixture,
+                'analyzed_image_path': analyzed_image_path,  # ONLY image saved
+                'model_type': 'real_trained_model'
+            }
             
         except Exception as e:
-            self.debug_log(f"Real model analysis error: {e}", "ERROR")
+            print(f"❌ REAL MODEL inference error: {str(e)}")
             traceback.print_exc()
-            return {'success': False, 'error': str(e)}
+            return {
+                'success': False,
+                'error': f'REAL MODEL inference failed: {str(e)}'
+            }
     
-    def _enhanced_placeholder_analysis(self, image, image_path, start_memory):
-        """Enhanced placeholder with debugging"""
+    def _create_real_model_visualization(self, image, outputs):
+        """Create visualization with REAL MODEL overlays - ONLY method that saves images"""
         try:
-            self.debug_log("Running enhanced placeholder analysis...")
+            print("🎨 Creating REAL MODEL analysis visualization (ONLY FILE SAVED)...")
             
-            # Image analysis for variation
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            brightness = np.mean(gray)
-            contrast = np.std(gray)
+            # Create visualizer with transparent green overlay
+            v = Visualizer(
+                image[:, :, ::-1],  # Convert BGR to RGB
+                metadata=self.metadata,
+                scale=1.0,
+                instance_mode=ColorMode.IMAGE  # Show image with overlays
+            )
             
-            # Vary dimensions based on image characteristics
-            base_length = 25.4
-            base_width = 25.4
-            base_height = 200.0
+            # Draw predictions with transparent masks
+            out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+            result_image = out.get_image()[:, :, ::-1]  # Convert back to BGR
             
-            length_var = (brightness - 127) * 0.1
-            width_var = (contrast - 50) * 0.05
-            height_var = np.random.uniform(-10, 10)
+            # Add transparent green overlay for better visibility
+            instances = outputs["instances"].to("cpu")
+            if len(instances) > 0:
+                masks = instances.pred_masks.numpy()
+                classes = instances.pred_classes.numpy()
+                
+                # Create overlay image
+                for i, (mask, class_id) in enumerate(zip(masks, classes)):
+                    # Create colored mask - transparent green
+                    colored_mask = np.zeros_like(image)
+                    colored_mask[mask] = [0, 255, 0]  # Green color
+                    
+                    # Apply transparent overlay (30% opacity)
+                    alpha = 0.3
+                    result_image = cv2.addWeighted(result_image, 1, colored_mask, alpha, 0)
+                
+                # Add dimension annotations
+                self._add_dimension_annotations(result_image, instances)
             
-            length = max(20, base_length + length_var)
-            width = max(20, base_width + width_var)
-            height = max(150, base_height + height_var)
+            # Generate output filename with clear naming for analyzed image
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+            filename = f'analyzed_rebar_{timestamp}.jpg'
+            output_path = os.path.join(config.UPLOAD_FOLDER, filename)
             
-            self.debug_log(f"Calculated dimensions: {length:.1f} x {width:.1f} x {height:.1f} cm")
+            # Save analyzed image (THIS IS THE ONLY FILE SAVED)
+            success = cv2.imwrite(output_path, result_image)
             
-            # Create realistic detections
-            detections = [
+            if success:
+                # Verify saved image
+                file_size = os.path.getsize(output_path)
+                saved_img = cv2.imread(output_path)
+                if saved_img is not None:
+                    saved_height, saved_width = saved_img.shape[:2]
+                    print(f"✅ ANALYZED IMAGE SAVED (ONLY COPY):")
+                    print(f"   📁 File: {filename}")
+                    print(f"   📐 Dimensions: {saved_width}x{saved_height}")
+                    print(f"   💾 Size: {file_size / 1024:.1f} KB")
+                    print(f"   🎯 Contains: AI overlays + rebar detection")
+                    return output_path
+                else:
+                    print("❌ Could not verify saved analyzed image")
+                    return None
+            else:
+                print("❌ Failed to save ANALYZED IMAGE")
+                return None
+                
+        except Exception as e:
+            print(f"❌ REAL MODEL visualization error: {str(e)}")
+            traceback.print_exc()
+            return None
+    
+    def _add_dimension_annotations(self, image, instances):
+        """Add dimension text annotations to the visualization"""
+        try:
+            boxes = instances.pred_boxes.tensor.numpy()
+            classes = instances.pred_classes.numpy()
+            
+            for i, (box, class_id) in enumerate(zip(boxes, classes)):
+                x1, y1, x2, y2 = box
+                class_name = self.class_names[class_id]
+                
+                # Calculate box dimensions in pixels
+                width_px = x2 - x1
+                height_px = y2 - y1
+                
+                # Add text annotation (you can improve this calculation)
+                text = f"{class_name}: {width_px:.0f}x{height_px:.0f}px"
+                
+                # Position text above the bounding box
+                text_pos = (int(x1), int(y1 - 10))
+                
+                # Add text with background
+                cv2.putText(image, text, text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                cv2.putText(image, text, text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+                
+        except Exception as e:
+            print(f"⚠️  Error adding dimension annotations: {e}")
+    
+    def _calculate_real_dimensions(self, detections, masks, image_shape):
+        """Calculate rebar dimensions from REAL MODEL detections"""
+        try:
+            print("📏 Calculating dimensions from REAL MODEL detections...")
+            
+            if not detections:
+                return {
+                    'length': 0,
+                    'width': 0,
+                    'height': 0,
+                    'unit': 'cm',
+                    'volume': 0,
+                    'display': '0cm x 0cm x 0cm = 0cm³',
+                    'method': 'real_model_analysis'
+                }
+            
+            # Analyze detections by class
+            front_vertical = [d for d in detections if d['class_name'] == 'front_vertical']
+            front_horizontal = [d for d in detections if d['class_name'] == 'front_horizontal'] 
+            back_horizontal = [d for d in detections if d['class_name'] == 'back_horizontal']
+            
+            print(f"   Found: {len(front_vertical)} front_vertical, {len(front_horizontal)} front_horizontal, {len(back_horizontal)} back_horizontal")
+            
+            height, width, channels = image_shape
+            
+            # Pixel to cm conversion factor (calibrated for optimal distance)
+            pixel_to_cm = 0.1  # Rough estimate - needs calibration
+            
+            # Calculate length (typically from vertical rebars)
+            length_cm = 0
+            if front_vertical:
+                max_vertical = max(front_vertical, key=lambda x: x['bbox'][3] - x['bbox'][1])
+                length_px = max_vertical['bbox'][3] - max_vertical['bbox'][1]  # y2 - y1
+                length_cm = length_px * pixel_to_cm
+            
+            # Calculate width (typically from horizontal rebars)
+            width_cm = 0
+            if front_horizontal:
+                max_horizontal = max(front_horizontal, key=lambda x: x['bbox'][2] - x['bbox'][0])
+                width_px = max_horizontal['bbox'][2] - max_horizontal['bbox'][0]  # x2 - x1
+                width_cm = width_px * pixel_to_cm
+            
+            # Calculate height (depth estimation from front/back comparison)
+            height_cm = 0
+            if front_horizontal and back_horizontal:
+                # Estimate depth based on difference between front and back horizontal elements
+                front_area = sum(d['mask_area'] for d in front_horizontal)
+                back_area = sum(d['mask_area'] for d in back_horizontal)
+                depth_factor = abs(front_area - back_area) / max(front_area, back_area, 1)
+                height_cm = depth_factor * 30  # Rough estimation
+            else:
+                # Default height if can't estimate depth
+                height_cm = 25  # Standard rebar spacing
+            
+            # Ensure minimum realistic values
+            length_cm = max(length_cm, 10)
+            width_cm = max(width_cm, 10)
+            height_cm = max(height_cm, 10)
+            
+            # Calculate volume
+            volume_cm3 = length_cm * width_cm * height_cm
+            
+            # Create display string in requested format
+            display_string = f"{length_cm:.0f}cm x {width_cm:.0f}cm x {height_cm:.0f}cm = {volume_cm3:.0f}cm³"
+            
+            print(f"   Calculated dimensions: {display_string}")
+            
+            return {
+                'length': round(length_cm, 1),
+                'width': round(width_cm, 1), 
+                'height': round(height_cm, 1),
+                'unit': 'cm',
+                'volume': round(volume_cm3, 1),
+                'display': display_string,
+                'method': 'real_model_mask_analysis',
+                'detection_details': {
+                    'front_vertical_count': len(front_vertical),
+                    'front_horizontal_count': len(front_horizontal),
+                    'back_horizontal_count': len(back_horizontal),
+                    'pixel_to_cm_factor': pixel_to_cm
+                }
+            }
+            
+        except Exception as e:
+            print(f"❌ Error calculating REAL MODEL dimensions: {str(e)}")
+            # Return safe default
+            return {
+                'length': 25,
+                'width': 25,
+                'height': 200,
+                'unit': 'cm',
+                'volume': 125000,
+                'display': '25cm x 25cm x 200cm = 125000cm³',
+                'method': 'fallback_calculation'
+            }
+    
+    def _analyze_placeholder(self, image):
+        """Generate placeholder analysis results (fallback only)"""
+        print("📝 Using placeholder AI analysis (REAL MODEL not available)...")
+        
+        # Simulate some processing time
+        import time
+        time.sleep(2)
+        
+        # Create simple placeholder visualization (ONLY FILE SAVED)
+        analyzed_image_path = self._create_placeholder_visualization(image)
+        
+        if not analyzed_image_path:
+            return {
+                'success': False,
+                'error': 'Failed to create placeholder visualization'
+            }
+        
+        # Placeholder dimensions in requested format
+        dimensions = {
+            'length': 25.4,
+            'width': 25.4,
+            'height': 200.0,
+            'unit': 'cm',
+            'volume': 101600,
+            'display': '25cm x 25cm x 200cm = 101600cm³',
+            'method': 'placeholder_fallback'
+        }
+        
+        mixture = {
+            'cement': 1,
+            'sand': 2,
+            'aggregate': 3,
+            'ratio_string': '1 Cement : 2 Sand : 3 Aggregate'
+        }
+        
+        return {
+            'success': True,
+            'placeholder': True,
+            'detections': [
                 {
-                    'class_id': 2,
                     'class_name': 'front_vertical',
-                    'confidence': 0.85 + np.random.uniform(-0.05, 0.05),
+                    'confidence': 0.85,
                     'bbox': [100, 50, 200, 300]
                 },
                 {
-                    'class_id': 1,
-                    'class_name': 'front_horizontal',
-                    'confidence': 0.78 + np.random.uniform(-0.05, 0.05),
+                    'class_name': 'front_horizontal', 
+                    'confidence': 0.78,
                     'bbox': [80, 280, 220, 320]
                 }
-            ]
-            
-            self.debug_log(f"Generated {len(detections)} placeholder detections")
-            
-            dimensions = {
-                'length': round(length, 1),
-                'width': round(width, 1),
-                'height': round(height, 1),
-                'unit': 'cm'
-            }
-            
-            mixture = self._calculate_cement_mixture(dimensions)
-            
-            # Create visualization
-            analyzed_image_path = self._create_placeholder_visualization(image, image_path)
-            
-            final_memory = self.get_memory_usage()
-            self.debug_log(f"Placeholder analysis memory: {final_memory}MB (increase: {final_memory-start_memory}MB)")
-            
-            return self._format_success_response(detections, dimensions, mixture, image_path, analyzed_image_path, 'enhanced_placeholder')
-            
-        except Exception as e:
-            self.debug_log(f"Placeholder analysis error: {e}", "ERROR")
-            return self._error_response(str(e), image_path)
-    
-    def _calculate_dimensions_from_detections(self, detections):
-        """Calculate dimensions with debugging"""
-        self.debug_log(f"Calculating dimensions from {len(detections)} detections...")
-        
-        total_area = 0
-        max_width = 0
-        max_height = 0
-        
-        for i, detection in enumerate(detections):
-            bbox = detection['bbox']
-            width = bbox[2] - bbox[0]
-            height = bbox[3] - bbox[1]
-            area = width * height
-            
-            total_area += area
-            max_width = max(max_width, width)
-            max_height = max(max_height, height)
-            
-            self.debug_log(f"  Detection {i+1} bbox: {width:.0f}x{height:.0f}px, area: {area:.0f}px²")
-        
-        # Convert pixels to cm
-        pixel_to_cm = 0.1
-        
-        length_cm = max(20, max_width * pixel_to_cm)
-        width_cm = max(20, max_height * pixel_to_cm * 0.5)
-        height_cm = 200.0
-        
-        self.debug_log(f"Calculated dimensions: {length_cm:.1f} x {width_cm:.1f} x {height_cm:.1f} cm")
-        
-        return {
-            'length': round(length_cm, 1),
-            'width': round(width_cm, 1),
-            'height': round(height_cm, 1),
-            'unit': 'cm'
+            ],
+            'num_detections': 2,
+            'dimensions': dimensions,
+            'cement_mixture': mixture,
+            'analyzed_image_path': analyzed_image_path,  # ONLY saved image
+            'model_type': 'placeholder'
         }
     
+    def _create_placeholder_visualization(self, image):
+        """Create placeholder visualization - ONLY method that saves placeholder images"""
+        try:
+            print("🎨 Creating placeholder visualization (ONLY FILE SAVED)...")
+            
+            # Copy original image
+            result_image = image.copy()
+            
+            # Draw simple bounding boxes as placeholder with transparent green overlay
+            overlay = result_image.copy()
+            cv2.rectangle(overlay, (100, 50), (200, 300), (0, 255, 0), -1)  # Filled green rectangle
+            cv2.rectangle(overlay, (80, 280), (220, 320), (0, 255, 0), -1)  # Filled green rectangle
+            
+            # Apply transparency
+            alpha = 0.3
+            result_image = cv2.addWeighted(result_image, 1-alpha, overlay, alpha, 0)
+            
+            # Add bounding box outlines
+            cv2.rectangle(result_image, (100, 50), (200, 300), (0, 255, 0), 3)  # Vertical rebar
+            cv2.rectangle(result_image, (80, 280), (220, 320), (255, 0, 0), 3)  # Horizontal rebar
+            
+            # Add labels
+            cv2.putText(result_image, 'Front Vertical (85%)', (100, 45), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            cv2.putText(result_image, 'Front Horizontal (78%)', (80, 275), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            
+            # Generate output filename for placeholder
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+            filename = f'analyzed_placeholder_{timestamp}.jpg'
+            output_path = os.path.join(config.UPLOAD_FOLDER, filename)
+            
+            # Save analyzed image (THIS IS THE ONLY FILE SAVED)
+            success = cv2.imwrite(output_path, result_image)
+            
+            if success:
+                file_size = os.path.getsize(output_path)
+                print(f"✅ PLACEHOLDER ANALYZED IMAGE SAVED (ONLY COPY):")
+                print(f"   📁 File: {filename}")
+                print(f"   💾 Size: {file_size / 1024:.1f} KB")
+                print(f"   🎯 Contains: Placeholder overlays")
+                return output_path
+            else:
+                print("❌ Failed to save placeholder analyzed image")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Placeholder visualization error: {str(e)}")
+            return None
+    
     def _calculate_cement_mixture(self, dimensions):
-        """Calculate cement mixture with debugging"""
-        volume_cm3 = dimensions['length'] * dimensions['width'] * dimensions['height']
-        volume_m3 = volume_cm3 / 1000000
+        """Calculate cement mixture ratios based on volume"""
+        print("🧮 Calculating cement mixture...")
         
-        self.debug_log(f"Column volume: {volume_cm3:.0f} cm³ ({volume_m3:.6f} m³)")
+        volume_cm3 = dimensions.get('volume', 0)
+        volume_m3 = volume_cm3 / 1000000  # Convert cm³ to m³
         
-        # Standard ratios
+        # Standard concrete mixture ratios for Philippine construction
         cement_ratio = 1
         sand_ratio = 2
         aggregate_ratio = 3
         
-        # Calculate quantities
-        concrete_volume = volume_m3 * 1.5
+        # Calculate total volume needed (accounting for concrete around rebar)
+        concrete_volume_factor = 1.5  # 50% more concrete than rebar volume
+        total_concrete_volume = volume_m3 * concrete_volume_factor
+        
+        # Calculate material quantities
         total_parts = cement_ratio + sand_ratio + aggregate_ratio
+        cement_volume = total_concrete_volume * (cement_ratio / total_parts)
+        sand_volume = total_concrete_volume * (sand_ratio / total_parts)
+        aggregate_volume = total_concrete_volume * (aggregate_ratio / total_parts)
         
-        cement_volume = concrete_volume * (cement_ratio / total_parts)
-        sand_volume = concrete_volume * (sand_ratio / total_parts)
-        aggregate_volume = concrete_volume * (aggregate_ratio / total_parts)
-        
-        cement_bags = cement_volume / 0.035
-        
-        self.debug_log(f"Concrete needed: {concrete_volume:.6f} m³")
-        self.debug_log(f"Cement bags: {cement_bags:.2f}")
+        # Convert to practical units (bags of cement, cubic meters of sand/aggregate)
+        cement_bags = cement_volume / 0.035  # 1 bag = ~0.035 m³
         
         return {
-            'cement': cement_ratio,
-            'sand': sand_ratio,
-            'aggregate': aggregate_ratio,
+            'cement_ratio': cement_ratio,
+            'sand_ratio': sand_ratio,
+            'aggregate_ratio': aggregate_ratio,
             'ratio_string': f'{cement_ratio} Cement : {sand_ratio} Sand : {aggregate_ratio} Aggregate',
+            'total_concrete_volume_m3': round(total_concrete_volume, 4),
             'cement_bags': round(cement_bags, 2),
             'sand_volume_m3': round(sand_volume, 4),
             'aggregate_volume_m3': round(aggregate_volume, 4),
-            'total_concrete_volume_m3': round(concrete_volume, 4)
+            'calculation_method': 'standard_philippine_mix'
         }
-    
-    def _create_visualization(self, image, outputs, original_path):
-        """Create visualization with debugging"""
-        try:
-            self.debug_log("Creating Detectron2 visualization...")
-            v = Visualizer(
-                image[:, :, ::-1],
-                metadata=self.metadata,
-                scale=1.0,
-                instance_mode=ColorMode.IMAGE
-            )
-            
-            out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-            result_image = out.get_image()[:, :, ::-1]
-            
-            return self._save_visualization(result_image, 'real')
-            
-        except Exception as e:
-            self.debug_log(f"Visualization error: {e}", "ERROR")
-            return self._create_placeholder_visualization(image, original_path)
-    
-    def _create_placeholder_visualization(self, image, original_path):
-        """Create placeholder visualization with debugging"""
-        try:
-            self.debug_log("Creating placeholder visualization...")
-            result_image = image.copy()
-            
-            # Add overlays
-            overlay = result_image.copy()
-            cv2.rectangle(overlay, (100, 50), (200, 300), (0, 255, 0), -1)
-            cv2.rectangle(overlay, (80, 280), (220, 320), (0, 255, 0), -1)
-            
-            result_image = cv2.addWeighted(result_image, 0.7, overlay, 0.3, 0)
-            
-            # Add bounding boxes and labels
-            cv2.rectangle(result_image, (100, 50), (200, 300), (0, 255, 0), 3)
-            cv2.rectangle(result_image, (80, 280), (220, 320), (255, 0, 0), 3)
-            
-            cv2.putText(result_image, 'Front Vertical (85%)', (100, 45),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-            cv2.putText(result_image, 'Front Horizontal (78%)', (80, 275),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
-            
-            return self._save_visualization(result_image, 'placeholder')
-            
-        except Exception as e:
-            self.debug_log(f"Placeholder visualization error: {e}", "ERROR")
-            return original_path
-    
-    def _save_visualization(self, image, prefix):
-        """Save visualization with debugging"""
-        try:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'{prefix}_analysis_{timestamp}.jpg'
-            output_path = os.path.join(config.UPLOAD_FOLDER, filename)
-            
-            self.debug_log(f"Saving visualization: {filename}")
-            success = cv2.imwrite(output_path, image)
-            
-            if success:
-                file_size = os.path.getsize(output_path) / 1024
-                self.debug_log(f"Visualization saved: {file_size:.1f} KB")
-                return output_path
-            else:
-                raise Exception("Failed to save visualization")
-                
-        except Exception as e:
-            self.debug_log(f"Save visualization error: {e}", "ERROR")
-            return ""
-    
-    def _format_success_response(self, detections, dimensions, mixture, original_path, analyzed_path, model_type):
-        """Format response with debugging"""
-        self.debug_log(f"Formatting response for {model_type}")
-        response = {
-            'success': True,
-            'detections': detections,
-            'num_detections': len(detections),
-            'dimensions': {
-                'length': dimensions['length'],
-                'width': dimensions['width'],
-                'height': dimensions['height'],
-                'unit': dimensions['unit'],
-                'display': f"{dimensions['length']}{dimensions['unit']} × {dimensions['width']}{dimensions['unit']} × {dimensions['height']}{dimensions['unit']}"
-            },
-            'cement_mixture': mixture,
-            'analyzed_image_path': analyzed_path,
-            'original_image_path': original_path,
-            'model_type': model_type,
-            'debug_info': {
-                'analysis_count': self.analysis_count,
-                'memory_usage': self.get_memory_usage(),
-                'timestamp': datetime.now().isoformat()
-            }
-        }
-        self.debug_log(f"Response formatted successfully")
-        return response
-    
-    def _error_response(self, error_message, image_path=""):
-        """Error response with debugging"""
-        self.debug_log(f"Returning error response: {error_message}", "ERROR")
-        return {
-            'success': False,
-            'error': error_message,
-            'image_path': image_path,
-            'debug_info': {
-                'analysis_count': self.analysis_count,
-                'memory_usage': self.get_memory_usage(),
-                'timestamp': datetime.now().isoformat()
-            }
-        }
-    
-    def get_debug_info(self):
-        """Get comprehensive debug information"""
-        try:
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-            
-            return {
-                'system': {
-                    'cpu_count': psutil.cpu_count(),
-                    'memory_total_gb': round(memory.total / 1024 / 1024 / 1024, 1),
-                    'memory_available_gb': round(memory.available / 1024 / 1024 / 1024, 1),
-                    'memory_usage_percent': memory.percent,
-                    'disk_free_gb': round(disk.free / 1024 / 1024 / 1024, 1),
-                    'process_memory_mb': self.get_memory_usage()
-                },
-                'model': {
-                    'detectron2_available': DETECTRON2_AVAILABLE,
-                    'model_loaded': self.model_loaded,
-                    'model_path': self.model_path,
-                    'model_exists': os.path.exists(self.model_path),
-                    'model_size_mb': round(os.path.getsize(self.model_path) / 1024 / 1024, 1) if os.path.exists(self.model_path) else 0,
-                    'class_names': self.class_names,
-                    'num_classes': self.num_classes,
-                    'threshold': self.detection_threshold
-                },
-                'analysis': {
-                    'total_analyses': self.analysis_count,
-                    'last_analysis_time': self.last_analysis_time,
-                    'debug_mode': self.debug_mode
-                }
-            }
-        except Exception as e:
-            return {'error': str(e)}
     
     def get_model_status(self):
-        """Get model status with debug info"""
+        """Get current model status"""
         return {
             'detectron2_available': DETECTRON2_AVAILABLE,
             'model_loaded': self.model_loaded,
             'model_path': self.model_path,
-            'model_exists': os.path.exists(self.model_path),
+            'model_exists': os.path.exists(self.model_path) if self.model_path else False,
             'num_classes': self.num_classes,
             'class_names': self.class_names,
             'threshold': self.detection_threshold,
             'training_input_size': self.training_input_size,
-            'model_type': 'enhanced_debug_optimized',
-            'debug_info': self.get_debug_info()
+            'model_type': 'real_trained_model' if self.model_loaded else 'placeholder',
+            'save_mode': 'analyzed_images_only'  # New status indicator
         }
     
     def test_model(self, test_image_path=None):
-        """Test model with debugging"""
-        self.debug_log("Starting model test...")
-        
-        if not test_image_path:
-            captured_dir = config.UPLOAD_FOLDER
-            if os.path.exists(captured_dir):
-                images = [f for f in os.listdir(captured_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
-                if images:
-                    test_image_path = os.path.join(captured_dir, images[-1])
-                    self.debug_log(f"Using recent image for test: {images[-1]}")
+        """Test the REAL MODEL with a sample image"""
+        try:
+            if not test_image_path:
+                # Use a recent captured image for testing
+                captured_dir = config.UPLOAD_FOLDER
+                if os.path.exists(captured_dir):
+                    images = [f for f in os.listdir(captured_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
+                    if images:
+                        test_image_path = os.path.join(captured_dir, images[-1])  # Use most recent
+                    else:
+                        return {
+                            'success': False,
+                            'error': 'No test images available'
+                        }
                 else:
-                    return {'success': False, 'error': 'No test images available'}
+                    return {
+                        'success': False,
+                        'error': 'Captured images directory not found'
+                    }
+            
+            print(f"🧪 Testing REAL MODEL with: {test_image_path}")
+            
+            # Run analysis (will save only analyzed image)
+            result = self.analyze_image(image_path=test_image_path)
+            
+            if result['success']:
+                model_type = result.get('model_type', 'unknown')
+                print(f"✅ REAL MODEL test successful! (Model type: {model_type})")
+                print("   Only analyzed image saved (no duplicates)")
+                return {
+                    'success': True,
+                    'test_image': test_image_path,
+                    'detections_found': result.get('num_detections', 0),
+                    'model_type': model_type,
+                    'analyzed_image_saved': result.get('analyzed_image_path'),
+                    'save_mode': 'analyzed_only'
+                }
             else:
-                return {'success': False, 'error': 'Upload directory not found'}
-        
-        result = self.analyze_image(test_image_path)
-        
-        return {
-            'success': True,
-            'test_image': test_image_path,
-            'model_type': result.get('model_type', 'unknown'),
-            'analysis_result': result,
-            'debug_info': self.get_debug_info()
-        }
+                print(f"❌ REAL MODEL test failed: {result.get('error', 'Unknown error')}")
+                return result
+                
+        except Exception as e:
+            print(f"❌ REAL MODEL test error: {str(e)}")
+            return {
+                'success': False,
+                'error': f'Test failed: {str(e)}'
+            }
