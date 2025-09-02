@@ -1,3 +1,55 @@
-# Large model files
+# Virtual Environment
+RebarApp/
+venv/
+env/
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Detectron2 build files
+detectron2/build/
+detectron2/*.so
+detectron2/**/*.so
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Certificates (optional - you may want to keep these)
+certificates/*.pem
+
+# Large model files (optional)
 app/model/*.pth
-app/model/*.pkl
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+temp/
