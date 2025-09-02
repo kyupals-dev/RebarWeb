@@ -53,3 +53,4 @@ app/model/*.pth
 # Temporary files
 *.tmp
 temp/
+detectron2/
