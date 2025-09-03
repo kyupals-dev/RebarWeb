@@ -1,4 +1,4 @@
-# Updated app/routes/image_routes.py with metadata support
+# Updated app/routes/image_routes.py with metadata support and cleanup endpoints
 
 from flask import Blueprint, jsonify, request
 
@@ -189,6 +189,108 @@ def clear_all_images():
             'error': f'Clear failed: {str(e)}'
         }), 500
 
+@image_bp.route('/cleanup-originals', methods=['POST'])
+def cleanup_original_images():
+    """
+    NEW: Clean up original images while keeping analyzed images
+    This will delete the 376 original images mentioned in your logs
+    """
+    try:
+        # Validate service
+        validation_error = _validate_image_service()
+        if validation_error:
+            return validation_error
+            
+        print("🧹 Starting cleanup of original images...")
+        result = image_service.cleanup_original_images()
+        
+        if result['success']:
+            details = result.get('details', {})
+            print(f"✅ Cleanup completed:")
+            print(f"   Originals deleted: {details.get('originals_deleted', 0)}")
+            print(f"   Analyzed kept: {details.get('analyzed_kept', 0)}")
+            print(f"   Space freed: {details.get('space_freed_kb', 0)} KB")
+        else:
+            print(f"❌ Cleanup failed: {result.get('error', 'unknown error')}")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"💥 Error in cleanup_original_images: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Cleanup failed: {str(e)}'
+        }), 500
+
+@image_bp.route('/storage-stats', methods=['GET'])
+def get_storage_stats():
+    """
+    NEW: Get detailed storage statistics
+    """
+    try:
+        # Validate service
+        validation_error = _validate_image_service()
+        if validation_error:
+            return validation_error
+            
+        result = image_service.get_storage_stats()
+        
+        if result['success']:
+            stats = result.get('stats', {})
+            print(f"📊 Storage Stats Retrieved:")
+            print(f"   Total files: {stats.get('total_files', 0)}")
+            print(f"   Analyzed: {stats.get('analyzed_files', 0)}")
+            print(f"   Originals: {stats.get('original_files', 0)}")
+            print(f"   Total size: {stats.get('total_size_kb', 0)} KB")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"💥 Error getting storage stats: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Stats retrieval failed: {str(e)}'
+        }), 500
+
+@image_bp.route('/get-all-images-debug', methods=['GET'])
+def get_all_images_debug():
+    """
+    NEW: Debug endpoint to get ALL images including originals (for troubleshooting)
+    """
+    try:
+        # Validate service
+        validation_error = _validate_image_service()
+        if validation_error:
+            return validation_error
+        
+        # Check if the image service has the debug method
+        if hasattr(image_service, 'get_all_images_including_originals'):
+            result = image_service.get_all_images_including_originals()
+        else:
+            # Fallback to regular method with additional debug info
+            result = image_service.get_all_images()
+            if result['success']:
+                result['debug_note'] = 'Using regular get_all_images method'
+        
+        if result['success']:
+            total_count = len(result.get('images', []))
+            analyzed_count = len([img for img in result.get('images', []) if img.get('type') == 'analyzed'])
+            original_count = total_count - analyzed_count
+            
+            print(f"🔍 DEBUG: All Images Retrieved:")
+            print(f"   Total: {total_count}")
+            print(f"   Analyzed: {analyzed_count}")
+            print(f"   Originals: {original_count}")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"💥 Error in get_all_images_debug: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Debug retrieval failed: {str(e)}'
+        }), 500
+
 @image_bp.route('/image-service-status', methods=['GET'])
 def image_service_status():
     """Get image service status - useful for debugging"""
@@ -200,15 +302,34 @@ def image_service_status():
             }), 503
         
         # Get basic service info
-        return jsonify({
+        status_info = {
             'success': True,
             'status': {
                 'service_available': True,
                 'upload_folder': image_service.upload_folder,
                 'allowed_extensions': list(image_service.allowed_extensions),
-                'storage_mode': 'single_image_plus_json_metadata'
+                'storage_mode': 'analyzed_images_only_with_cleanup',
+                'features': [
+                    'Image upload and storage',
+                    'Analyzed image filtering',
+                    'Original image cleanup',
+                    'Storage statistics',
+                    'Image metadata extraction',
+                    'Debug endpoints'
+                ]
             }
-        })
+        }
+        
+        # Try to get storage stats if available
+        try:
+            if hasattr(image_service, 'get_storage_stats'):
+                storage_result = image_service.get_storage_stats()
+                if storage_result['success']:
+                    status_info['storage_stats'] = storage_result['stats']
+        except Exception as e:
+            status_info['storage_stats_error'] = str(e)
+        
+        return jsonify(status_info)
         
     except Exception as e:
         return jsonify({

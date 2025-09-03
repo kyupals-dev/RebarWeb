@@ -6,14 +6,13 @@ from app.utils.config import config
 
 class ImageService:
     """
-    Handles image saving, loading, and management operations with dimension logging
-    MODIFIED: Gallery shows only analyzed images with AI overlays
+    FIXED: Handles image saving, loading, and management with improved filtering
     """
     
     def __init__(self):
         self.upload_folder = config.UPLOAD_FOLDER
         self.allowed_extensions = config.ALLOWED_EXTENSIONS
-        print("📁 Image Service initialized (analyzed images only mode)")
+        print("📁 Image Service initialized (analyzed images only mode) - FIXED VERSION")
     
     def _generate_filename(self, prefix='capture'):
         """Generate a unique filename with timestamp"""
@@ -26,21 +25,42 @@ class ImageService:
                filename.rsplit('.', 1)[1].lower() in self.allowed_extensions
     
     def _is_analyzed_image(self, filename):
-        """Check if filename indicates an analyzed image with AI overlays"""
+        """FIXED: Check if filename indicates an analyzed image with AI overlays"""
+        # Expanded list of analyzed image prefixes
         analyzed_prefixes = [
+            'analyzed_',               # Most common
             'analyzed_rebar_',         # Real model results
-            'analyzed_placeholder_',   # Placeholder results
+            'analyzed_placeholder_',   # Placeholder results  
+            'analyzed_enhanced_',      # Enhanced detection
+            'analyzed_guaranteed_',    # Guaranteed detection
+            'analyzed_real_',          # Real model
+            'analyzed_simple_',        # Simple visualization
+            'analyzed_emergency_',     # Emergency fallback
             'real_analysis_',          # Legacy real model naming
-            'placeholder_analysis_'    # Legacy placeholder naming
+            'placeholder_analysis_',   # Legacy placeholder naming
+            'phase_analysis_',         # Phase-based analysis
+            'ai_analysis_',            # AI analysis results
+            'rebar_analysis_',         # Rebar-specific analysis
         ]
         
-        return any(filename.startswith(prefix) for prefix in analyzed_prefixes)
+        # Check if filename starts with any analyzed prefix
+        for prefix in analyzed_prefixes:
+            if filename.startswith(prefix):
+                return True
+        
+        # Additional check: look for analysis-related keywords in filename
+        analysis_keywords = ['analysis', 'detected', 'overlay', 'result']
+        filename_lower = filename.lower()
+        for keyword in analysis_keywords:
+            if keyword in filename_lower and not filename_lower.startswith('frame_'):
+                return True
+        
+        return False
     
     def _log_image_dimensions(self, filepath, source="Unknown"):
         """Log dimensions of saved image file"""
         try:
             if os.path.exists(filepath):
-                # Read image to get dimensions
                 img = cv2.imread(filepath)
                 if img is not None:
                     height, width, channels = img.shape
@@ -51,7 +71,6 @@ class ImageService:
                     print(f"   📐 Dimensions: {width} x {height} pixels")
                     print(f"   🎨 Channels: {channels}")
                     print(f"   💾 File Size: {file_size / 1024:.1f} KB")
-                    print(f"   📍 Path: {filepath}")
                     
                     return {
                         'width': width,
@@ -71,29 +90,21 @@ class ImageService:
             return None
     
     def save_frame(self, frame, prefix='frame_capture'):
-        """
-        Save a cv2 frame as an image file with dimension logging
-        NOTE: This method is now rarely used since we only save analyzed images
-        """
+        """Save a cv2 frame as an image file with dimension logging"""
         try:
             filename = self._generate_filename(prefix)
             filepath = os.path.join(self.upload_folder, filename)
             
-            # Log frame dimensions before saving
             if frame is not None:
                 height, width = frame.shape[:2]
                 print(f"💾 Saving Frame:")
                 print(f"   🖼️  Frame Shape: {frame.shape}")
                 print(f"   📐 Frame Size: {width} x {height} pixels")
-                print("   📝 NOTE: Consider if this should be an analyzed image instead")
             
-            # Save the frame using OpenCV
             success = cv2.imwrite(filepath, frame)
             
             if success:
                 print(f"✅ Frame saved: {filename}")
-                
-                # Analyze saved image
                 image_info = self._log_image_dimensions(filepath, "Frame Saved")
                 
                 return {
@@ -115,7 +126,6 @@ class ImageService:
     def save_base64_image(self, image_data, prefix='web_capture'):
         """Save a base64 encoded image with dimension logging"""
         try:
-            # Remove the data URL prefix if present
             if ',' in image_data:
                 image_data = image_data.split(',')[1]
             
@@ -124,13 +134,11 @@ class ImageService:
             
             print(f"💾 Saving base64 image to: {filepath}")
             
-            # Decode and save the image
             with open(filepath, 'wb') as f:
                 f.write(base64.b64decode(image_data))
             
             print(f"✅ Base64 image saved: {filename}")
             
-            # Analyze saved image
             image_info = self._log_image_dimensions(filepath, "Web Captured")
             
             return {
@@ -149,45 +157,58 @@ class ImageService:
     
     def get_all_images(self):
         """
-        Get list of ONLY analyzed images with AI overlays (no originals)
-        MODIFIED: Filters to show only meaningful results
+        FIXED: Get list of ONLY analyzed images with AI overlays
         """
         try:
             all_images = []
             analyzed_images = []
             
             if os.path.exists(self.upload_folder):
+                print(f"📁 Scanning upload folder: {self.upload_folder}")
+                
                 for filename in os.listdir(self.upload_folder):
                     if self._is_allowed_file(filename):
                         filepath = os.path.join(self.upload_folder, filename)
-                        file_stats = os.stat(filepath)
                         
-                        # Get image dimensions
-                        image_info = self._log_image_dimensions(filepath, "Gallery Scan")
-                        
-                        image_data = {
-                            'filename': filename,
-                            'url': f'/static/captured_images/{filename}',
-                            'timestamp': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
-                            'size': file_stats.st_size
-                        }
-                        
-                        # Add dimension info if available
-                        if image_info:
-                            image_data.update({
-                                'width': image_info['width'],
-                                'height': image_info['height'],
-                                'dimensions_text': f"{image_info['width']}x{image_info['height']}"
-                            })
-                        
-                        all_images.append(image_data)
-                        
-                        # Filter for analyzed images only
-                        if self._is_analyzed_image(filename):
-                            image_data['type'] = 'analyzed'
-                            analyzed_images.append(image_data)
-                        else:
-                            image_data['type'] = 'original'
+                        try:
+                            file_stats = os.stat(filepath)
+                            
+                            # Basic image data
+                            image_data = {
+                                'filename': filename,
+                                'url': f'/static/captured_images/{filename}',
+                                'timestamp': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                                'size': file_stats.st_size
+                            }
+                            
+                            # Get image dimensions (but don't spam the logs)
+                            try:
+                                img = cv2.imread(filepath)
+                                if img is not None:
+                                    height, width = img.shape[:2]
+                                    image_data.update({
+                                        'width': width,
+                                        'height': height,
+                                        'dimensions_text': f"{width}x{height}"
+                                    })
+                            except Exception:
+                                pass  # Skip dimension info if failed
+                            
+                            all_images.append(image_data)
+                            
+                            # FIXED: Check if this is an analyzed image
+                            if self._is_analyzed_image(filename):
+                                image_data['type'] = 'analyzed'
+                                image_data['is_analyzed'] = True
+                                analyzed_images.append(image_data)
+                                print(f"✅ Analyzed image: {filename}")
+                            else:
+                                image_data['type'] = 'original'
+                                image_data['is_analyzed'] = False
+                                
+                        except Exception as e:
+                            print(f"⚠️  Error processing {filename}: {e}")
+                            continue
             
             # Sort analyzed images by timestamp (newest first)
             analyzed_images.sort(key=lambda x: x['timestamp'], reverse=True)
@@ -196,7 +217,7 @@ class ImageService:
             analyzed_count = len(analyzed_images)
             original_count = total_count - analyzed_count
             
-            print(f"📚 Gallery Filter Results:")
+            print(f"📚 FIXED Gallery Filter Results:")
             print(f"   📊 Total images found: {total_count}")
             print(f"   ✅ Analyzed images (shown): {analyzed_count}")
             print(f"   🚫 Original images (hidden): {original_count}")
@@ -205,6 +226,7 @@ class ImageService:
                 print(f"   📝 NOTE: {original_count} original images exist but are hidden from gallery")
                 print("   💡 Consider cleaning up original images if no longer needed")
             
+            # FIXED: Return only analyzed images with proper metadata
             return {
                 'success': True,
                 'images': analyzed_images,  # Only return analyzed images
@@ -222,64 +244,56 @@ class ImageService:
                 'error': str(e)
             }
     
-    def get_all_images_including_originals(self):
-        """
-        Get ALL images including originals (for debugging/admin purposes)
-        This method can be used for cleanup or debugging
-        """
+    def get_image_metadata(self, filename):
+        """FIXED: Get specific image metadata"""
         try:
-            images = []
+            if not self._is_allowed_file(filename):
+                return {
+                    'success': False,
+                    'error': 'Invalid file type'
+                }
             
-            if os.path.exists(self.upload_folder):
-                for filename in os.listdir(self.upload_folder):
-                    if self._is_allowed_file(filename):
-                        filepath = os.path.join(self.upload_folder, filename)
-                        file_stats = os.stat(filepath)
-                        
-                        # Get image dimensions
-                        image_info = self._log_image_dimensions(filepath, "Full Scan")
-                        
-                        image_data = {
-                            'filename': filename,
-                            'url': f'/static/captured_images/{filename}',
-                            'timestamp': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
-                            'size': file_stats.st_size,
-                            'type': 'analyzed' if self._is_analyzed_image(filename) else 'original'
-                        }
-                        
-                        # Add dimension info if available
-                        if image_info:
-                            image_data.update({
-                                'width': image_info['width'],
-                                'height': image_info['height'],
-                                'dimensions_text': f"{image_info['width']}x{image_info['height']}"
-                            })
-                        
-                        images.append(image_data)
+            filepath = os.path.join(self.upload_folder, filename)
             
-            # Sort by timestamp (newest first)
-            images.sort(key=lambda x: x['timestamp'], reverse=True)
+            if not os.path.exists(filepath):
+                return {
+                    'success': False,
+                    'error': 'Image not found'
+                }
             
-            analyzed_count = len([img for img in images if img['type'] == 'analyzed'])
-            original_count = len([img for img in images if img['type'] == 'original'])
+            # Get file stats
+            file_stats = os.stat(filepath)
             
-            print(f"📚 Full Image List:")
-            print(f"   📊 Total images: {len(images)}")
-            print(f"   ✅ Analyzed: {analyzed_count}")
-            print(f"   📁 Originals: {original_count}")
+            # Get image dimensions
+            image_info = self._log_image_dimensions(filepath, "Metadata Request")
+            
+            # Check if it's an analyzed image
+            is_analyzed = self._is_analyzed_image(filename)
+            
+            metadata = {
+                'filename': filename,
+                'url': f'/static/captured_images/{filename}',
+                'timestamp': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                'size': file_stats.st_size,
+                'type': 'analyzed' if is_analyzed else 'original',
+                'is_analyzed': is_analyzed
+            }
+            
+            if image_info:
+                metadata.update({
+                    'width': image_info['width'],
+                    'height': image_info['height'],
+                    'channels': image_info['channels'],
+                    'dimensions_text': f"{image_info['width']}x{image_info['height']}"
+                })
             
             return {
                 'success': True,
-                'images': images,
-                'stats': {
-                    'total': len(images),
-                    'analyzed': analyzed_count,
-                    'originals': original_count
-                }
+                'metadata': metadata
             }
             
         except Exception as e:
-            print(f"💥 Error getting all images: {str(e)}")
+            print(f"💥 Error getting image metadata: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
@@ -288,7 +302,6 @@ class ImageService:
     def delete_image(self, filename):
         """Delete a specific image file"""
         try:
-            # Security check - only allow files in upload folder
             if not self._is_allowed_file(filename):
                 return {
                     'success': False,
@@ -298,10 +311,8 @@ class ImageService:
             filepath = os.path.join(self.upload_folder, filename)
             
             if os.path.exists(filepath):
-                # Log image info before deletion
                 image_type = "Analyzed" if self._is_analyzed_image(filename) else "Original"
                 print(f"🗑️  Deleting {image_type} image: {filename}")
-                self._log_image_dimensions(filepath, f"Deleting {image_type}")
                 
                 os.remove(filepath)
                 print(f"✅ {image_type} image deleted: {filename}")
@@ -337,7 +348,6 @@ class ImageService:
                         file_size = os.path.getsize(filepath)
                         total_size += file_size
                         
-                        # Track type before deletion
                         if self._is_analyzed_image(filename):
                             analyzed_deleted += 1
                         else:
@@ -371,10 +381,7 @@ class ImageService:
             }
     
     def cleanup_original_images(self):
-        """
-        Delete only original images, keeping analyzed images
-        Useful for cleaning up duplicate originals when only analyzed images are needed
-        """
+        """Delete only original images, keeping analyzed images"""
         try:
             deleted_count = 0
             total_size = 0
@@ -386,14 +393,12 @@ class ImageService:
                         filepath = os.path.join(self.upload_folder, filename)
                         
                         if not self._is_analyzed_image(filename):
-                            # This is an original image - delete it
                             file_size = os.path.getsize(filepath)
                             total_size += file_size
                             os.remove(filepath)
                             deleted_count += 1
                             print(f"🗑️  Deleted original: {filename}")
                         else:
-                            # This is an analyzed image - keep it
                             kept_count += 1
             
             print(f"🧹 Original Image Cleanup:")
@@ -454,12 +459,6 @@ class ImageService:
                 'gallery_shows': analyzed_files,
                 'hidden_from_gallery': original_files
             }
-            
-            print(f"📊 Storage Statistics:")
-            print(f"   📁 Total files: {stats['total_files']}")
-            print(f"   ✅ Analyzed (shown): {stats['analyzed_files']} ({stats['analyzed_size_kb']} KB)")
-            print(f"   📄 Originals (hidden): {stats['original_files']} ({stats['original_size_kb']} KB)")
-            print(f"   💾 Total size: {stats['total_size_kb']} KB")
             
             return {
                 'success': True,
