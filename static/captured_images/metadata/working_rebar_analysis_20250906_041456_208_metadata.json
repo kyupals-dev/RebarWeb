@@ -1,0 +1,64 @@
+{
+  "analysis_date": "2025-09-06T04:14:56.213165",
+  "image_filename": "working_rebar_analysis_20250906_041456_208.jpg",
+  "analysis_type": "working_rebar_detection_with_updated_offset",
+  "dimensions": {
+    "length": 21.9,
+    "width": 21.9,
+    "height": 74.2,
+    "unit": "cm",
+    "volume": 35683.3,
+    "display": "21.9cm x 21.9cm x 74.2cm = 35683cm\u00b3",
+    "offset_applied": "4.5cm per side (UPDATED from 2cm)",
+    "method": "working_intersection_based_with_offset",
+    "internal_dimensions": {
+      "width_cm": 12.9,
+      "height_cm": 74.2
+    },
+    "pixel_measurements": {
+      "width_px": 107.77043151855469,
+      "height_px": 618.1714859008789,
+      "conversion_factor": 0.12
+    }
+  },
+  "cement_mixture": {
+    "cement_ratio": 1,
+    "sand_ratio": 2,
+    "aggregate_ratio": 3,
+    "ratio_string": "1 Cement : 2 Sand : 3 Aggregate",
+    "cement_bags": 0.24,
+    "sand_volume_m3": 0.0167,
+    "aggregate_volume_m3": 0.025,
+    "total_concrete_volume_m3": 0.05,
+    "column_volume_m3": 0.0357,
+    "wastage_factor": 1.4
+  },
+  "detections": {
+    "count": 13,
+    "front_vertical_count": 2,
+    "front_horizontal_count": 11,
+    "intersection_count": 12,
+    "target_achieved": {
+      "vertical": true,
+      "horizontal": true
+    },
+    "confidence_scores": {
+      "vertical_avg": 0.5733267366886139,
+      "horizontal_avg": 0.7318500849333677
+    }
+  },
+  "model_info": {
+    "model_type": "working_real_model",
+    "detection_threshold": 0.2,
+    "classes_detected": [
+      "front_vertical",
+      "front_horizontal"
+    ],
+    "placeholder_mode": false,
+    "offset_cm": 4.5,
+    "working_approach": true,
+    "vertical_detection_fixed": true
+  },
+  "created_at": "2025-09-06T04:14:56.213261",
+  "metadata_version": "1.0"
+}
