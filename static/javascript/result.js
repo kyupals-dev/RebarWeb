@@ -1,5 +1,5 @@
-// ==================== MODERN RESULT PAGE JAVASCRIPT (ANALYZED IMAGES ONLY) ==================== 
-// MODIFIED: Fixed to properly display filtered analyzed images only
+// ==================== UPDATED RESULT PAGE JAVASCRIPT (ENHANCED GALLERY MODAL) ==================== 
+// MODIFIED: Gallery modal now matches main result modal with rebar analysis details
 
 // Global state management
 const state = {
@@ -361,12 +361,10 @@ function goToPage(page) {
   }
 }
 
-// ==================== MODAL FUNCTIONALITY ==================== 
-function openModal(filename, url, captured) {
+// ==================== ENHANCED MODAL FUNCTIONALITY ==================== 
+async function openModal(filename, url, captured) {
   const modal = document.getElementById('image-modal');
   const modalImage = document.getElementById('modal-image');
-  const modalFilename = document.getElementById('modal-filename');
-  const modalCaptured = document.getElementById('modal-captured');
   
   if (!modal || !modalImage) {
     console.error('Modal elements not found');
@@ -384,14 +382,112 @@ function openModal(filename, url, captured) {
   modalImage.src = url;
   modalImage.alt = `Analyzed image: ${filename}`;
   
-  if (modalFilename) modalFilename.textContent = filename;
-  if (modalCaptured) modalCaptured.textContent = captured;
+  // Load and display metadata
+  await loadImageMetadata(filename);
   
   // Show modal
   modal.classList.add('active');
   document.body.style.overflow = 'hidden'; // Prevent background scrolling
   
-  console.log('Modal opened for analyzed image:', filename);
+  console.log('Enhanced modal opened for analyzed image:', filename);
+}
+
+async function loadImageMetadata(filename) {
+  try {
+    console.log('Loading metadata for:', filename);
+    
+    // Try to get metadata from server
+    const response = await fetch(`/get-image-metadata/${encodeURIComponent(filename)}`);
+    
+    if (response.ok) {
+      const result = await response.json();
+      
+      if (result.success && result.metadata) {
+        console.log('Metadata loaded:', result.metadata);
+        updateModalWithMetadata(result.metadata);
+      } else {
+        console.warn('No metadata available:', result.error);
+        updateModalWithDefaultData();
+      }
+    } else {
+      console.warn('Failed to fetch metadata:', response.status);
+      updateModalWithDefaultData();
+    }
+    
+  } catch (error) {
+    console.error('Error loading metadata:', error);
+    updateModalWithDefaultData();
+  }
+}
+
+function updateModalWithMetadata(metadata) {
+  // Update dimensions
+  const dimensionsElement = document.getElementById('modal-dimensions');
+  if (dimensionsElement && metadata.dimensions) {
+    dimensionsElement.textContent = metadata.dimensions.display || 
+      `${metadata.dimensions.length}cm × ${metadata.dimensions.width}cm × ${metadata.dimensions.height}cm`;
+  }
+  
+  // Update cement mixture
+  const mixtureElement = document.getElementById('modal-mixture');
+  if (mixtureElement && metadata.cement_mixture) {
+    mixtureElement.textContent = metadata.cement_mixture.ratio_string || 
+      metadata.cement_mixture.ratio || 
+      '1 Cement : 2 Sand : 3 Aggregate';
+  }
+  
+  // Update analysis date
+  const dateElement = document.getElementById('modal-analysis-date');
+  if (dateElement) {
+    if (metadata.analysis_date) {
+      const date = new Date(metadata.analysis_date);
+      dateElement.textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    } else if (state.currentModalImage?.captured) {
+      dateElement.textContent = state.currentModalImage.captured;
+    } else {
+      dateElement.textContent = 'Unknown';
+    }
+  }
+  
+  // Update detections count
+  const detectionsElement = document.getElementById('modal-detections');
+  if (detectionsElement && metadata.detections) {
+    const frontVertical = metadata.detections.front_vertical_count || 0;
+    const frontHorizontal = metadata.detections.front_horizontal_count || 0;
+    const total = metadata.detections.count || (frontVertical + frontHorizontal);
+    
+    detectionsElement.textContent = `${frontVertical}V + ${frontHorizontal}H (Total: ${total})`;
+  }
+  
+  // REMOVED: Model Type display as requested
+}
+
+function updateModalWithDefaultData() {
+  console.log('Using default data for modal');
+  
+  // Set default dimensions
+  const dimensionsElement = document.getElementById('modal-dimensions');
+  if (dimensionsElement) {
+    dimensionsElement.textContent = '25.4cm × 25.4cm × 200cm';
+  }
+  
+  // Set default mixture
+  const mixtureElement = document.getElementById('modal-mixture');
+  if (mixtureElement) {
+    mixtureElement.textContent = '1 Cement : 2 Sand : 3 Aggregate';
+  }
+  
+  // Set default date
+  const dateElement = document.getElementById('modal-analysis-date');
+  if (dateElement) {
+    dateElement.textContent = state.currentModalImage?.captured || 'Unknown';
+  }
+  
+  // Set default detections
+  const detectionsElement = document.getElementById('modal-detections');
+  if (detectionsElement) {
+    detectionsElement.textContent = 'Analysis data not available';
+  }
 }
 
 function closeModal() {
