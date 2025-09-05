@@ -1,32 +1,19 @@
 import os
 import base64
 import cv2
-import json
 from datetime import datetime
 from app.utils.config import config
 
 class ImageService:
     """
     Handles image saving, loading, and management operations with dimension logging
-    MODIFIED: Gallery shows only analyzed images with AI overlays
-    UPDATED: Added metadata support for gallery modal display
+    FIXED: Gallery shows analyzed images including simplified_analysis_ files
     """
     
     def __init__(self):
         self.upload_folder = config.UPLOAD_FOLDER
         self.allowed_extensions = config.ALLOWED_EXTENSIONS
-        self.metadata_folder = os.path.join(self.upload_folder, 'metadata')
-        self._ensure_metadata_folder()
-        print("📁 Image Service initialized (analyzed images only mode with metadata)")
-    
-    def _ensure_metadata_folder(self):
-        """Ensure metadata folder exists"""
-        try:
-            if not os.path.exists(self.metadata_folder):
-                os.makedirs(self.metadata_folder)
-                print(f"📂 Created metadata folder: {self.metadata_folder}")
-        except Exception as e:
-            print(f"⚠️  Could not create metadata folder: {e}")
+        print("📁 Image Service initialized (analyzed images only mode)")
     
     def _generate_filename(self, prefix='capture'):
         """Generate a unique filename with timestamp"""
@@ -39,169 +26,16 @@ class ImageService:
                filename.rsplit('.', 1)[1].lower() in self.allowed_extensions
     
     def _is_analyzed_image(self, filename):
-        """Check if filename indicates an analyzed image with AI overlays"""
+        """FIXED: Check if filename indicates an analyzed image with AI overlays"""
         analyzed_prefixes = [
             'analyzed_rebar_',         # Real model results
             'analyzed_placeholder_',   # Placeholder results
-            'analyzed_simplified_',    # NEW: Simplified analysis results
-            'analyzed_placeholder_simplified_',  # NEW: Simplified placeholder
+            'simplified_analysis_',    # NEW: Simplified model results
             'real_analysis_',          # Legacy real model naming
             'placeholder_analysis_'    # Legacy placeholder naming
         ]
         
         return any(filename.startswith(prefix) for prefix in analyzed_prefixes)
-    
-    def _get_metadata_path(self, image_filename):
-        """Get the metadata file path for an image"""
-        base_name = os.path.splitext(image_filename)[0]
-        return os.path.join(self.metadata_folder, f'{base_name}_metadata.json')
-    
-    def _save_image_metadata(self, image_filename, metadata):
-        """Save metadata for an analyzed image"""
-        try:
-            metadata_path = self._get_metadata_path(image_filename)
-            
-            # Add timestamp if not present
-            if 'created_at' not in metadata:
-                metadata['created_at'] = datetime.now().isoformat()
-            
-            metadata['image_filename'] = image_filename
-            metadata['metadata_version'] = '1.0'
-            
-            with open(metadata_path, 'w') as f:
-                json.dump(metadata, f, indent=2, default=str)
-            
-            print(f"📖 Metadata saved: {os.path.basename(metadata_path)}")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error saving metadata for {image_filename}: {e}")
-            return False
-    
-    def _load_image_metadata(self, image_filename):
-        """Load metadata for an analyzed image"""
-        try:
-            metadata_path = self._get_metadata_path(image_filename)
-            
-            if os.path.exists(metadata_path):
-                with open(metadata_path, 'r') as f:
-                    metadata = json.load(f)
-                return metadata
-            else:
-                # Return basic metadata if file doesn't exist
-                return self._create_basic_metadata(image_filename)
-                
-        except Exception as e:
-            print(f"⚠️  Error loading metadata for {image_filename}: {e}")
-            return self._create_basic_metadata(image_filename)
-    
-    def _create_basic_metadata(self, image_filename):
-        """Create basic metadata when none exists"""
-        try:
-            filepath = os.path.join(self.upload_folder, image_filename)
-            
-            if os.path.exists(filepath):
-                file_stats = os.stat(filepath)
-                
-                # Get image dimensions
-                image_info = self._log_image_dimensions(filepath, "Basic Metadata")
-                
-                basic_metadata = {
-                    'image_filename': image_filename,
-                    'analysis_date': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
-                    'analysis_type': 'unknown',
-                    'file_size': file_stats.st_size,
-                    'dimensions': {
-                        'length': 25.4,
-                        'width': 25.4,
-                        'height': 200.0,
-                        'unit': 'cm',
-                        'volume': 101600,
-                        'display': '25.4cm × 25.4cm × 200cm',
-                        'method': 'basic_fallback'
-                    },
-                    'cement_mixture': {
-                        'ratio_string': '1 Cement : 2 Sand : 3 Aggregate'
-                    },
-                    'detections': {
-                        'count': 0,
-                        'front_vertical_count': 0,
-                        'front_horizontal_count': 0
-                    },
-                    'model_info': {
-                        'model_type': 'unknown'
-                    }
-                }
-                
-                # Add image dimension info if available
-                if image_info:
-                    basic_metadata.update({
-                        'image_width': image_info['width'],
-                        'image_height': image_info['height'],
-                        'image_dimensions_text': f"{image_info['width']}x{image_info['height']}"
-                    })
-                
-                return basic_metadata
-            else:
-                # File doesn't exist, return minimal metadata
-                return {
-                    'image_filename': image_filename,
-                    'analysis_date': datetime.now().isoformat(),
-                    'analysis_type': 'missing_file',
-                    'error': 'Image file not found'
-                }
-                
-        except Exception as e:
-            print(f"❌ Error creating basic metadata for {image_filename}: {e}")
-            return {
-                'image_filename': image_filename,
-                'analysis_date': datetime.now().isoformat(),
-                'analysis_type': 'error',
-                'error': str(e)
-            }
-    
-    def get_image_metadata(self, image_filename):
-        """Get metadata for a specific image (for gallery modal)"""
-        try:
-            if not self._is_allowed_file(image_filename):
-                return {
-                    'success': False,
-                    'error': 'Invalid file type'
-                }
-            
-            # Load metadata
-            metadata = self._load_image_metadata(image_filename)
-            
-            # Verify image file exists
-            filepath = os.path.join(self.upload_folder, image_filename)
-            if not os.path.exists(filepath):
-                return {
-                    'success': False,
-                    'error': 'Image file not found'
-                }
-            
-            # Get file info
-            file_stats = os.stat(filepath)
-            
-            result = {
-                'success': True,
-                'filename': image_filename,
-                'url': f'/static/captured_images/{image_filename}',
-                'timestamp': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
-                'file_size': file_stats.st_size,
-                'type': 'analyzed' if self._is_analyzed_image(image_filename) else 'original',
-                'metadata': metadata
-            }
-            
-            print(f"📖 Retrieved metadata for: {image_filename}")
-            return result
-            
-        except Exception as e:
-            print(f"❌ Error getting metadata for {image_filename}: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
     
     def _log_image_dimensions(self, filepath, source="Unknown"):
         """Log dimensions of saved image file"""
@@ -316,8 +150,7 @@ class ImageService:
     
     def get_all_images(self):
         """
-        Get list of ONLY analyzed images with AI overlays (no originals)
-        MODIFIED: Filters to show only meaningful results with metadata
+        FIXED: Get list of ONLY analyzed images including simplified_analysis_ files
         """
         try:
             all_images = []
@@ -329,8 +162,19 @@ class ImageService:
                         filepath = os.path.join(self.upload_folder, filename)
                         file_stats = os.stat(filepath)
                         
-                        # Get image dimensions
-                        image_info = self._log_image_dimensions(filepath, "Gallery Scan")
+                        # Get image dimensions (reduced logging for gallery scan)
+                        image_info = None
+                        try:
+                            img = cv2.imread(filepath)
+                            if img is not None:
+                                height, width, channels = img.shape
+                                image_info = {
+                                    'width': width,
+                                    'height': height,
+                                    'channels': channels
+                                }
+                        except:
+                            pass
                         
                         image_data = {
                             'filename': filename,
@@ -349,17 +193,11 @@ class ImageService:
                         
                         all_images.append(image_data)
                         
-                        # Filter for analyzed images only
+                        # FIXED: Filter for analyzed images (now includes simplified_analysis_)
                         if self._is_analyzed_image(filename):
                             image_data['type'] = 'analyzed'
-                            
-                            # Add metadata for analyzed images
-                            metadata = self._load_image_metadata(filename)
-                            image_data['has_metadata'] = True
-                            image_data['analysis_type'] = metadata.get('analysis_type', 'unknown')
-                            image_data['detections_count'] = metadata.get('detections', {}).get('count', 0)
-                            
                             analyzed_images.append(image_data)
+                            print(f"📸 Gallery: Including {filename} (analyzed image)")
                         else:
                             image_data['type'] = 'original'
             
@@ -370,14 +208,18 @@ class ImageService:
             analyzed_count = len(analyzed_images)
             original_count = total_count - analyzed_count
             
-            print(f"📚 Gallery Filter Results:")
+            print(f"📚 FIXED Gallery Filter Results:")
             print(f"   📊 Total images found: {total_count}")
             print(f"   ✅ Analyzed images (shown): {analyzed_count}")
             print(f"   🚫 Original images (hidden): {original_count}")
             
+            if analyzed_count > 0:
+                print(f"   📝 Analyzed images in gallery:")
+                for img in analyzed_images[:3]:  # Show first 3
+                    print(f"      - {img['filename']}")
+            
             if original_count > 0:
-                print(f"   📝 NOTE: {original_count} original images exist but are hidden from gallery")
-                print("   💡 Consider cleaning up original images if no longer needed")
+                print(f"   💡 {original_count} original images exist but are hidden from gallery")
             
             return {
                 'success': True,
@@ -429,14 +271,6 @@ class ImageService:
                                 'dimensions_text': f"{image_info['width']}x{image_info['height']}"
                             })
                         
-                        # Add metadata for analyzed images
-                        if self._is_analyzed_image(filename):
-                            metadata = self._load_image_metadata(filename)
-                            image_data['metadata'] = metadata
-                            image_data['has_metadata'] = True
-                        else:
-                            image_data['has_metadata'] = False
-                        
                         images.append(image_data)
             
             # Sort by timestamp (newest first)
@@ -467,8 +301,74 @@ class ImageService:
                 'error': str(e)
             }
     
+    def get_image_metadata(self, filename):
+        """FIXED: Get metadata for specific image (for gallery modal)"""
+        try:
+            if not self._is_allowed_file(filename):
+                return {
+                    'success': False,
+                    'error': 'Invalid file type'
+                }
+            
+            filepath = os.path.join(self.upload_folder, filename)
+            
+            if not os.path.exists(filepath):
+                return {
+                    'success': False,
+                    'error': 'Image not found'
+                }
+            
+            # Get file stats
+            file_stats = os.stat(filepath)
+            
+            # Get image dimensions
+            image_info = self._log_image_dimensions(filepath, "Gallery Modal")
+            
+            metadata = {
+                'filename': filename,
+                'url': f'/static/captured_images/{filename}',
+                'timestamp': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                'size': file_stats.st_size,
+                'type': 'analyzed' if self._is_analyzed_image(filename) else 'original',
+                'is_analyzed': self._is_analyzed_image(filename)
+            }
+            
+            if image_info:
+                metadata.update({
+                    'width': image_info['width'],
+                    'height': image_info['height'],
+                    'dimensions_text': f"{image_info['width']}x{image_info['height']}",
+                    'file_size_kb': image_info['file_size_kb']
+                })
+            
+            # Add analysis info for analyzed images
+            if self._is_analyzed_image(filename):
+                if filename.startswith('simplified_analysis_'):
+                    metadata['analysis_type'] = 'Simplified Front Detection'
+                    metadata['model_info'] = '2 Verticals + 11 Horizontals Pattern'
+                elif filename.startswith('analyzed_rebar_'):
+                    metadata['analysis_type'] = 'Full AI Model Analysis'
+                    metadata['model_info'] = 'Detectron2 Mask R-CNN'
+                else:
+                    metadata['analysis_type'] = 'AI Analysis Result'
+                    metadata['model_info'] = 'Rebar Detection Model'
+            
+            print(f"📋 Metadata for {filename}: {metadata['type']} image")
+            
+            return {
+                'success': True,
+                'metadata': metadata
+            }
+            
+        except Exception as e:
+            print(f"💥 Error getting metadata for {filename}: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
     def delete_image(self, filename):
-        """Delete a specific image file and its metadata"""
+        """Delete a specific image file"""
         try:
             # Security check - only allow files in upload folder
             if not self._is_allowed_file(filename):
@@ -485,16 +385,8 @@ class ImageService:
                 print(f"🗑️  Deleting {image_type} image: {filename}")
                 self._log_image_dimensions(filepath, f"Deleting {image_type}")
                 
-                # Delete image file
                 os.remove(filepath)
-                
-                # Delete metadata file if it exists
-                metadata_path = self._get_metadata_path(filename)
-                if os.path.exists(metadata_path):
-                    os.remove(metadata_path)
-                    print(f"🗑️  Deleted metadata: {os.path.basename(metadata_path)}")
-                
-                print(f"✅ {image_type} image and metadata deleted: {filename}")
+                print(f"✅ {image_type} image deleted: {filename}")
                 return {
                     'success': True,
                     'message': f'{image_type} image deleted successfully!'
@@ -513,16 +405,14 @@ class ImageService:
             }
     
     def clear_all_images(self):
-        """Delete all images and metadata in the upload folder"""
+        """Delete all images in the upload folder"""
         try:
             deleted_count = 0
             analyzed_deleted = 0
             original_deleted = 0
-            metadata_deleted = 0
             total_size = 0
             
             if os.path.exists(self.upload_folder):
-                # Delete image files
                 for filename in os.listdir(self.upload_folder):
                     if self._is_allowed_file(filename):
                         filepath = os.path.join(self.upload_folder, filename)
@@ -537,46 +427,26 @@ class ImageService:
                         
                         os.remove(filepath)
                         deleted_count += 1
-                        
-                        # Delete corresponding metadata file
-                        metadata_path = self._get_metadata_path(filename)
-                        if os.path.exists(metadata_path):
-                            os.remove(metadata_path)
-                            metadata_deleted += 1
-                
-                # Clean up empty metadata folder
-                if os.path.exists(self.metadata_folder):
-                    try:
-                        # Remove any remaining metadata files
-                        for metadata_file in os.listdir(self.metadata_folder):
-                            if metadata_file.endswith('_metadata.json'):
-                                metadata_path = os.path.join(self.metadata_folder, metadata_file)
-                                os.remove(metadata_path)
-                                metadata_deleted += 1
-                    except Exception as e:
-                        print(f"⚠️  Error cleaning metadata folder: {e}")
             
-            print(f"🗑️  Image and Metadata Cleanup Complete:")
-            print(f"   📊 Total images deleted: {deleted_count}")
+            print(f"🗑️  Image Cleanup Complete:")
+            print(f"   📊 Total deleted: {deleted_count} images")
             print(f"   ✅ Analyzed deleted: {analyzed_deleted}")
             print(f"   📁 Originals deleted: {original_deleted}")
-            print(f"   📖 Metadata files deleted: {metadata_deleted}")
             print(f"   💾 Space freed: {total_size / 1024:.1f} KB")
             
             return {
                 'success': True,
-                'message': f'Cleared {deleted_count} images and {metadata_deleted} metadata files successfully!',
+                'message': f'Cleared {deleted_count} images successfully!',
                 'details': {
                     'total_deleted': deleted_count,
                     'analyzed_deleted': analyzed_deleted,
                     'original_deleted': original_deleted,
-                    'metadata_deleted': metadata_deleted,
                     'space_freed_kb': round(total_size / 1024, 1)
                 }
             }
             
         except Exception as e:
-            print(f"💥 Error clearing images and metadata: {str(e)}")
+            print(f"💥 Error clearing images: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
@@ -584,7 +454,7 @@ class ImageService:
     
     def cleanup_original_images(self):
         """
-        Delete only original images, keeping analyzed images and their metadata
+        Delete only original images, keeping analyzed images
         Useful for cleaning up duplicate originals when only analyzed images are needed
         """
         try:
@@ -598,30 +468,28 @@ class ImageService:
                         filepath = os.path.join(self.upload_folder, filename)
                         
                         if not self._is_analyzed_image(filename):
-                            # This is an original image - delete it (but not its metadata)
+                            # This is an original image - delete it
                             file_size = os.path.getsize(filepath)
                             total_size += file_size
                             os.remove(filepath)
                             deleted_count += 1
                             print(f"🗑️  Deleted original: {filename}")
                         else:
-                            # This is an analyzed image - keep it and its metadata
+                            # This is an analyzed image - keep it
                             kept_count += 1
             
             print(f"🧹 Original Image Cleanup:")
             print(f"   🗑️  Originals deleted: {deleted_count}")
             print(f"   ✅ Analyzed kept: {kept_count}")
             print(f"   💾 Space freed: {total_size / 1024:.1f} KB")
-            print(f"   📖 Metadata preserved for analyzed images")
             
             return {
                 'success': True,
-                'message': f'Cleaned up {deleted_count} original images, kept {kept_count} analyzed images with metadata',
+                'message': f'Cleaned up {deleted_count} original images, kept {kept_count} analyzed images',
                 'details': {
                     'originals_deleted': deleted_count,
                     'analyzed_kept': kept_count,
-                    'space_freed_kb': round(total_size / 1024, 1),
-                    'metadata_preserved': True
+                    'space_freed_kb': round(total_size / 1024, 1)
                 }
             }
             
@@ -633,19 +501,16 @@ class ImageService:
             }
     
     def get_storage_stats(self):
-        """Get detailed storage statistics including metadata"""
+        """Get detailed storage statistics"""
         try:
             all_files = 0
             analyzed_files = 0
             original_files = 0
-            metadata_files = 0
             total_size = 0
             analyzed_size = 0
             original_size = 0
-            metadata_size = 0
             
             if os.path.exists(self.upload_folder):
-                # Scan image files
                 for filename in os.listdir(self.upload_folder):
                     if self._is_allowed_file(filename):
                         filepath = os.path.join(self.upload_folder, filename)
@@ -660,35 +525,22 @@ class ImageService:
                         else:
                             original_files += 1
                             original_size += file_size
-                
-                # Scan metadata files
-                if os.path.exists(self.metadata_folder):
-                    for metadata_file in os.listdir(self.metadata_folder):
-                        if metadata_file.endswith('_metadata.json'):
-                            metadata_path = os.path.join(self.metadata_folder, metadata_file)
-                            metadata_file_size = os.path.getsize(metadata_path)
-                            metadata_files += 1
-                            metadata_size += metadata_file_size
-                            total_size += metadata_file_size
             
             stats = {
                 'total_files': all_files,
                 'analyzed_files': analyzed_files,
                 'original_files': original_files,
-                'metadata_files': metadata_files,
                 'total_size_kb': round(total_size / 1024, 1),
                 'analyzed_size_kb': round(analyzed_size / 1024, 1),
                 'original_size_kb': round(original_size / 1024, 1),
-                'metadata_size_kb': round(metadata_size / 1024, 1),
                 'gallery_shows': analyzed_files,
                 'hidden_from_gallery': original_files
             }
             
-            print(f"📊 Storage Statistics (with metadata):")
-            print(f"   📁 Total image files: {stats['total_files']}")
+            print(f"📊 Storage Statistics:")
+            print(f"   📁 Total files: {stats['total_files']}")
             print(f"   ✅ Analyzed (shown): {stats['analyzed_files']} ({stats['analyzed_size_kb']} KB)")
             print(f"   📄 Originals (hidden): {stats['original_files']} ({stats['original_size_kb']} KB)")
-            print(f"   📖 Metadata files: {stats['metadata_files']} ({stats['metadata_size_kb']} KB)")
             print(f"   💾 Total size: {stats['total_size_kb']} KB")
             
             return {
@@ -698,59 +550,6 @@ class ImageService:
             
         except Exception as e:
             print(f"💥 Error getting storage stats: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
-    def cleanup_orphaned_metadata(self):
-        """Remove metadata files that don't have corresponding image files"""
-        try:
-            if not os.path.exists(self.metadata_folder):
-                return {
-                    'success': True,
-                    'message': 'No metadata folder to clean',
-                    'orphaned_removed': 0
-                }
-            
-            orphaned_count = 0
-            orphaned_size = 0
-            
-            for metadata_file in os.listdir(self.metadata_folder):
-                if metadata_file.endswith('_metadata.json'):
-                    # Extract image filename from metadata filename
-                    base_name = metadata_file.replace('_metadata.json', '')
-                    
-                    # Check if corresponding image exists
-                    image_found = False
-                    for ext in ['.jpg', '.jpeg', '.png']:
-                        image_path = os.path.join(self.upload_folder, base_name + ext)
-                        if os.path.exists(image_path):
-                            image_found = True
-                            break
-                    
-                    if not image_found:
-                        # Remove orphaned metadata
-                        metadata_path = os.path.join(self.metadata_folder, metadata_file)
-                        file_size = os.path.getsize(metadata_path)
-                        os.remove(metadata_path)
-                        orphaned_count += 1
-                        orphaned_size += file_size
-                        print(f"🗑️  Removed orphaned metadata: {metadata_file}")
-            
-            print(f"🧹 Orphaned Metadata Cleanup:")
-            print(f"   🗑️  Orphaned metadata removed: {orphaned_count}")
-            print(f"   💾 Space freed: {orphaned_size / 1024:.1f} KB")
-            
-            return {
-                'success': True,
-                'message': f'Cleaned up {orphaned_count} orphaned metadata files',
-                'orphaned_removed': orphaned_count,
-                'space_freed_kb': round(orphaned_size / 1024, 1)
-            }
-            
-        except Exception as e:
-            print(f"💥 Error cleaning orphaned metadata: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)

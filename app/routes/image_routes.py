@@ -1,6 +1,8 @@
-# Updated app/routes/image_routes.py with metadata support and cleanup endpoints
+# Updated app/routes/image_routes.py with metadata support and debug routes
 
 from flask import Blueprint, jsonify, request
+import os
+from datetime import datetime
 
 # Create a Blueprint for image management routes
 image_bp = Blueprint('images', __name__)
@@ -78,7 +80,7 @@ def upload_image():
 
 @image_bp.route('/get-images', methods=['GET'])
 def get_images():
-    """UPDATED: Get list of all analyzed images with metadata"""
+    """UPDATED: Get list of all analyzed images with metadata (FIXED for simplified_analysis_)"""
     try:
         # Validate service
         validation_error = _validate_image_service()
@@ -90,6 +92,7 @@ def get_images():
         if result['success']:
             analyzed_count = len([img for img in result.get('images', []) if img.get('is_analyzed', False)])
             print(f"Retrieved {len(result.get('images', []))} total images ({analyzed_count} analyzed)")
+            print(f"FIXED: Now includes simplified_analysis_ files in gallery")
         
         return jsonify(result)
         
@@ -189,108 +192,6 @@ def clear_all_images():
             'error': f'Clear failed: {str(e)}'
         }), 500
 
-@image_bp.route('/cleanup-originals', methods=['POST'])
-def cleanup_original_images():
-    """
-    NEW: Clean up original images while keeping analyzed images
-    This will delete the 376 original images mentioned in your logs
-    """
-    try:
-        # Validate service
-        validation_error = _validate_image_service()
-        if validation_error:
-            return validation_error
-            
-        print("🧹 Starting cleanup of original images...")
-        result = image_service.cleanup_original_images()
-        
-        if result['success']:
-            details = result.get('details', {})
-            print(f"✅ Cleanup completed:")
-            print(f"   Originals deleted: {details.get('originals_deleted', 0)}")
-            print(f"   Analyzed kept: {details.get('analyzed_kept', 0)}")
-            print(f"   Space freed: {details.get('space_freed_kb', 0)} KB")
-        else:
-            print(f"❌ Cleanup failed: {result.get('error', 'unknown error')}")
-        
-        return jsonify(result)
-        
-    except Exception as e:
-        print(f"💥 Error in cleanup_original_images: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f'Cleanup failed: {str(e)}'
-        }), 500
-
-@image_bp.route('/storage-stats', methods=['GET'])
-def get_storage_stats():
-    """
-    NEW: Get detailed storage statistics
-    """
-    try:
-        # Validate service
-        validation_error = _validate_image_service()
-        if validation_error:
-            return validation_error
-            
-        result = image_service.get_storage_stats()
-        
-        if result['success']:
-            stats = result.get('stats', {})
-            print(f"📊 Storage Stats Retrieved:")
-            print(f"   Total files: {stats.get('total_files', 0)}")
-            print(f"   Analyzed: {stats.get('analyzed_files', 0)}")
-            print(f"   Originals: {stats.get('original_files', 0)}")
-            print(f"   Total size: {stats.get('total_size_kb', 0)} KB")
-        
-        return jsonify(result)
-        
-    except Exception as e:
-        print(f"💥 Error getting storage stats: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f'Stats retrieval failed: {str(e)}'
-        }), 500
-
-@image_bp.route('/get-all-images-debug', methods=['GET'])
-def get_all_images_debug():
-    """
-    NEW: Debug endpoint to get ALL images including originals (for troubleshooting)
-    """
-    try:
-        # Validate service
-        validation_error = _validate_image_service()
-        if validation_error:
-            return validation_error
-        
-        # Check if the image service has the debug method
-        if hasattr(image_service, 'get_all_images_including_originals'):
-            result = image_service.get_all_images_including_originals()
-        else:
-            # Fallback to regular method with additional debug info
-            result = image_service.get_all_images()
-            if result['success']:
-                result['debug_note'] = 'Using regular get_all_images method'
-        
-        if result['success']:
-            total_count = len(result.get('images', []))
-            analyzed_count = len([img for img in result.get('images', []) if img.get('type') == 'analyzed'])
-            original_count = total_count - analyzed_count
-            
-            print(f"🔍 DEBUG: All Images Retrieved:")
-            print(f"   Total: {total_count}")
-            print(f"   Analyzed: {analyzed_count}")
-            print(f"   Originals: {original_count}")
-        
-        return jsonify(result)
-        
-    except Exception as e:
-        print(f"💥 Error in get_all_images_debug: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f'Debug retrieval failed: {str(e)}'
-        }), 500
-
 @image_bp.route('/image-service-status', methods=['GET'])
 def image_service_status():
     """Get image service status - useful for debugging"""
@@ -302,34 +203,117 @@ def image_service_status():
             }), 503
         
         # Get basic service info
-        status_info = {
+        return jsonify({
             'success': True,
             'status': {
                 'service_available': True,
                 'upload_folder': image_service.upload_folder,
                 'allowed_extensions': list(image_service.allowed_extensions),
-                'storage_mode': 'analyzed_images_only_with_cleanup',
-                'features': [
-                    'Image upload and storage',
-                    'Analyzed image filtering',
-                    'Original image cleanup',
-                    'Storage statistics',
-                    'Image metadata extraction',
-                    'Debug endpoints'
-                ]
+                'storage_mode': 'analyzed_images_only',
+                'supports_simplified_analysis': True
             }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# NEW DEBUG ROUTES
+@image_bp.route('/debug-images', methods=['GET'])
+def debug_images():
+    """Debug route to see all images in upload folder"""
+    try:
+        if not image_service:
+            return jsonify({'error': 'Image service not available'}), 503
+        
+        upload_folder = image_service.upload_folder
+        debug_info = {
+            'upload_folder': upload_folder,
+            'folder_exists': os.path.exists(upload_folder),
+            'all_files': [],
+            'analyzed_files': [],
+            'original_files': []
         }
         
-        # Try to get storage stats if available
-        try:
-            if hasattr(image_service, 'get_storage_stats'):
-                storage_result = image_service.get_storage_stats()
-                if storage_result['success']:
-                    status_info['storage_stats'] = storage_result['stats']
-        except Exception as e:
-            status_info['storage_stats_error'] = str(e)
+        if os.path.exists(upload_folder):
+            for filename in os.listdir(upload_folder):
+                if image_service._is_allowed_file(filename):
+                    filepath = os.path.join(upload_folder, filename)
+                    file_stats = os.stat(filepath)
+                    
+                    file_info = {
+                        'filename': filename,
+                        'size': file_stats.st_size,
+                        'modified': datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                        'is_analyzed': image_service._is_analyzed_image(filename)
+                    }
+                    
+                    debug_info['all_files'].append(file_info)
+                    
+                    if image_service._is_analyzed_image(filename):
+                        debug_info['analyzed_files'].append(file_info)
+                    else:
+                        debug_info['original_files'].append(file_info)
         
-        return jsonify(status_info)
+        print(f"🐛 Debug Images:")
+        print(f"   Total files: {len(debug_info['all_files'])}")
+        print(f"   Analyzed: {len(debug_info['analyzed_files'])}")
+        print(f"   Original: {len(debug_info['original_files'])}")
+        
+        return jsonify({
+            'success': True,
+            'debug_info': debug_info
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@image_bp.route('/cleanup-originals', methods=['POST'])
+def cleanup_originals():
+    """Remove original images, keep only analyzed ones"""
+    try:
+        if not image_service:
+            return jsonify({'error': 'Image service not available'}), 503
+        
+        result = image_service.cleanup_original_images()
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@image_bp.route('/storage-stats', methods=['GET'])
+def storage_stats():
+    """Get detailed storage statistics"""
+    try:
+        if not image_service:
+            return jsonify({'error': 'Image service not available'}), 503
+        
+        result = image_service.get_storage_stats()
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@image_bp.route('/all-images-debug', methods=['GET'])
+def all_images_debug():
+    """Get ALL images including originals (for debugging)"""
+    try:
+        if not image_service:
+            return jsonify({'error': 'Image service not available'}), 503
+        
+        result = image_service.get_all_images_including_originals()
+        return jsonify(result)
         
     except Exception as e:
         return jsonify({
