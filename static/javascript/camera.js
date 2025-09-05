@@ -1,5 +1,5 @@
-// ==================== COMPLETE CAMERA APP MANAGER (SECRET FORMAT IMPLEMENTATION) ==================== 
-// SECRET: Implements V = XxYxZ format behind the scenes without mentioning it to users
+// ==================== SIMPLIFIED CAMERA APP MANAGER WITH DISTANCE SENSOR ==================== 
+// MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
 
 class CameraAppManager {
   constructor() {
@@ -47,8 +47,8 @@ class CameraAppManager {
   }
   
   init() {
-    console.log('🎥 Initializing Camera App Manager...');
-    console.log('📝 NOTE: Only analyzed images with AI overlays will be saved');
+    console.log('🎥 Initializing Camera App Manager (Analyzed Images Only Mode)...');
+    console.log('📝 NOTE: Only analyzed images with AI overlays will be saved to gallery');
     this.setupEventListeners();
     this.createDistanceDisplay();
     this.startCameraFeed();
@@ -311,7 +311,7 @@ class CameraAppManager {
     }
   }
   
-  // ==================== CAPTURE & ANALYZE (SECRET FORMAT IMPLEMENTATION) ====================
+  // ==================== MODIFIED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
   
   async captureAndAnalyze() {
     if (this.isAnalyzing) {
@@ -336,7 +336,7 @@ class CameraAppManager {
       // If optimal, continue without warning
     }
     
-    console.log('📸 Starting capture and analyze flow...');
+    console.log('📸 Starting capture and analyze flow (ANALYZED IMAGE ONLY)...');
     console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
     this.isAnalyzing = true;
     
@@ -373,9 +373,9 @@ class CameraAppManager {
       console.log('✅ Frame ready for analysis:', captureResult.frame_dimensions);
       console.log('📝 Confirmed: No original frame saved');
       
-      // Step 4: Start AI analysis directly with current camera frame (SECRET: V=XxYxZ format)
+      // Step 4: Start AI analysis directly with current camera frame
       this.updateStatus('Analyzing rebar structure with AI...');
-      console.log('🔍 Starting AI analysis...');
+      console.log('🔍 Starting AI analysis (will save ONLY analyzed image with overlays)...');
       
       const analysisResponse = await fetch('/analyze-rebar', {
         method: 'POST',
@@ -388,9 +388,8 @@ class CameraAppManager {
           // No rebar detected
           const result = await analysisResponse.json();
           if (result.error === 'no_rebar_detected') {
-            console.log('⚠️  No rebar detected');
             this.hideLoadingOverlay();
-            this.showNoDetectionResults(result);
+            this.showErrorModal();
             return;
           }
         }
@@ -403,14 +402,14 @@ class CameraAppManager {
         throw new Error(analysisResult.message || 'Analysis failed');
       }
       
-      console.log('✅ AI analysis completed');
+      console.log('✅ AI analysis completed - ONLY analyzed image saved to gallery');
       
       // Verify the save mode
       if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
         console.log('✅ Confirmed: Only analyzed image was saved (no duplicates)');
       }
       
-      // Step 5: Hide loading and show results (SECRET: V=XxYxZ format)
+      // Step 5: Hide loading and show results
       this.hideLoadingOverlay();
       this.showAnalysisResults(analysisResult);
       
@@ -442,12 +441,12 @@ class CameraAppManager {
     }
   }
   
-  // ==================== RESULTS MANAGEMENT (SECRET FORMAT IMPLEMENTATION) ====================
+  // ==================== RESULTS MANAGEMENT ====================
   
   showAnalysisResults(results) {
-    console.log('📊 Showing analysis results...');
+    console.log('📊 Showing analysis results (analyzed image only)...');
     
-    // Update results modal with actual data from AI (SECRET: V=XxYxZ format)
+    // Update results modal with actual data from AI
     const resultsImage = document.getElementById('results-image');
     const dimensionsResult = document.getElementById('dimensions-result');
     const mixtureResult = document.getElementById('mixture-result');
@@ -460,37 +459,18 @@ class CameraAppManager {
       console.warn('⚠️ No analyzed image found in results');
     }
     
-    // Set dimensions (SECRET: V=XxYxZ format implementation)
-    if (results.dimensions && dimensionsResult) {
-      let dimensionText = '';
-      
-      // Primary format: V = XxYxZ
-      if (results.dimensions.display) {
-        dimensionText = results.dimensions.display;
-      } else {
-        dimensionText = `V = ${results.dimensions.length}cm x ${results.dimensions.width}cm x ${results.dimensions.height}cm`;
-      }
-      
-      // Secondary format: V = volume cm^3
-      if (results.dimensions.volume_display) {
-        dimensionText += `\n${results.dimensions.volume_display}`;
-      } else if (results.dimensions.volume) {
-        dimensionText += `\nV = ${results.dimensions.volume.toLocaleString()} cm³`;
-      }
-      
-      dimensionsResult.innerHTML = dimensionText.replace('\n', '<br>');
-      console.log('📐 Dimensions set:', dimensionText);
+    // Set dimensions
+    if (results.dimensions && results.dimensions.display && dimensionsResult) {
+      dimensionsResult.textContent = results.dimensions.display;
     } else if (dimensionsResult) {
-      dimensionsResult.innerHTML = 'V = 25.4cm × 25.4cm × 200cm<br>V = 101,600 cm³'; // Fallback
+      dimensionsResult.textContent = '25.4cm × 25.4cm × 200cm'; // Fallback
     }
     
-    // Set cement mixture (SECRET: X:Y:Z format implementation)
+    // Set cement mixture
     if (results.cement_mixture && results.cement_mixture.ratio && mixtureResult) {
-      const ratioText = `Ratio: ${results.cement_mixture.ratio}`;
-      mixtureResult.textContent = ratioText;
-      console.log('🧮 Ratio set:', ratioText);
+      mixtureResult.textContent = results.cement_mixture.ratio;
     } else if (mixtureResult) {
-      mixtureResult.textContent = 'Ratio: 1:2:4'; // Default fallback
+      mixtureResult.textContent = '1 Cement : 2 Sand : 3 Aggregate'; // Fallback
     }
     
     // Store results for reference
@@ -508,8 +488,7 @@ class CameraAppManager {
     console.log('📊 Analysis Results Summary:', {
       detections: results.detections?.count || 0,
       dimensions: results.dimensions?.display || 'N/A',
-      volume: results.dimensions?.volume_display || 'N/A',
-      ratio: results.cement_mixture?.ratio || 'N/A',
+      mixture: results.cement_mixture?.ratio || 'N/A',
       placeholder: results.metadata?.placeholder_mode || false,
       save_mode: results.metadata?.save_mode || 'unknown',
       only_analyzed_saved: true
@@ -522,51 +501,6 @@ class CameraAppManager {
     setTimeout(() => {
       this.showSuccessMessage(message);
     }, 1000); // Delay to let modal appear first
-  }
-  
-  showNoDetectionResults(result) {
-    console.log('⚠️  Showing NO DETECTION results...');
-    
-    // Update results modal with ZERO values (SECRET: V=0x0x0 format)
-    const resultsImage = document.getElementById('results-image');
-    const dimensionsResult = document.getElementById('dimensions-result');
-    const mixtureResult = document.getElementById('mixture-result');
-    
-    // Clear image or show placeholder
-    if (resultsImage) {
-      resultsImage.src = '';
-      resultsImage.alt = 'No rebar detected';
-    }
-    
-    // Set ZERO dimensions (SECRET: V=0x0x0 format)
-    if (dimensionsResult) {
-      const zeroDimensions = result.dimensions || {};
-      let dimensionText = zeroDimensions.display || 'V = 0cm x 0cm x 0cm';
-      let volumeText = zeroDimensions.volume_display || 'V = 0 cm³';
-      
-      dimensionsResult.innerHTML = `${dimensionText}<br>${volumeText}`;
-      console.log('📐 Zero dimensions set:', dimensionText, volumeText);
-    }
-    
-    // Set ZERO ratio (SECRET: 0:0:0 format)
-    if (mixtureResult) {
-      const zeroRatio = result.cement_mixture?.ratio || '0:0:0';
-      mixtureResult.textContent = `Ratio: ${zeroRatio}`;
-      console.log('🧮 Zero ratio set:', zeroRatio);
-    }
-    
-    // Show error modal instead of results modal
-    this.showErrorModal();
-    
-    // Update status
-    this.updateStatus('No rebar detected');
-    
-    console.log('📊 Zero Results:', {
-      detections: 0,
-      dimensions: 'V = 0cm x 0cm x 0cm',
-      volume: 'V = 0 cm³',
-      ratio: '0:0:0'
-    });
   }
   
   // ==================== GRID TOGGLE FUNCTIONALITY ====================
@@ -692,7 +626,7 @@ class CameraAppManager {
       this.resultsModal.classList.remove('active');
     }
     this.analysisResults = null; // Clear stored results
-    this.updateStatus('Ready for next capture');
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   
   showErrorModal() {
@@ -707,7 +641,7 @@ class CameraAppManager {
     if (this.errorModal) {
       this.errorModal.classList.remove('active');
     }
-    this.updateStatus('Ready for next capture');
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   
   // ==================== UI STATUS MANAGEMENT ====================
@@ -850,3 +784,66 @@ class CameraAppManager {
         this.showSuccessMessage('Save Mode: Analyzed Images Only (no originals)');
         console.log('💾 Save Mode: Only analyzed images with AI overlays are saved');
         break;
+    }
+  }
+}
+
+// ==================== GLOBAL MODAL FUNCTIONS ====================
+
+// Global functions for modal button onclick events
+window.closeTutorialModal = function() {
+  if (window.cameraApp) {
+    window.cameraApp.closeTutorialModal();
+  }
+};
+
+window.closeResultsModal = function() {
+  if (window.cameraApp) {
+    window.cameraApp.closeResultsModal();
+  }
+};
+
+window.closeErrorModal = function() {
+  if (window.cameraApp) {
+    window.cameraApp.closeErrorModal();
+  }
+};
+
+// ==================== INITIALIZATION ====================
+
+// Initialize camera app when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🚀 Starting Rebar Vista Camera App (ANALYZED IMAGES ONLY MODE)...');
+  console.log('📝 IMPORTANT: Only analyzed images with AI overlays will be saved');
+  console.log('🚫 No original/duplicate images will be created');
+  
+  // Create global instance
+  window.cameraApp = new CameraAppManager();
+  
+  console.log('✅ Camera App initialized successfully');
+  console.log('📋 Modified User Flow:');
+  console.log('   1. Position device at optimal distance (160-200cm)');
+  console.log('   2. Press capture button (📷)');
+  console.log('   3. Wait for AI analysis');
+  console.log('   4. View results (ONLY analyzed image auto-saved to gallery)');
+  console.log('   5. Close results and capture again');
+  console.log('');
+  console.log('📋 Available keyboard shortcuts:');
+  console.log('   Space/Enter - Capture & analyze');
+  console.log('   Escape - Close modals');
+  console.log('   F - Toggle fullscreen');
+  console.log('   G - Open gallery');
+  console.log('   D - Show distance info (debug)');
+  console.log('   S - Show save mode info (debug)');
+  console.log('   ? - Open tutorial');
+});
+
+// Additional styles for notifications (injected dynamically)
+const notificationStyles = document.createElement('style');
+notificationStyles.textContent = `
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+`;
+document.head.appendChild(notificationStyles);

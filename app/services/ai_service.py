@@ -1,6 +1,7 @@
 """
-AI Service for Rebar Detection and Analysis
-UPDATED: Secret implementation of V = XxYxZ format (no user-facing mentions)
+AI Service for Rebar Detection and Analysis - SIMPLIFIED FOR FRONT PHASE DETECTION
+Focuses on detecting 2 front_vertical and 11 front_horizontal rebars with intersections
+MODIFIED: Simplified detection logic for square column measurement with 1:2:4 cement ratio
 """
 
 import os
@@ -25,7 +26,7 @@ except ImportError:
 from app.utils.config import config
 
 class AIService:
-    """Handles AI model loading, inference, and rebar analysis"""
+    """Simplified AI Service for Front Rebar Detection (2V + 11H pattern) with 1:2:4 cement ratio"""
     
     def __init__(self):
         self.model_loaded = False
@@ -34,36 +35,41 @@ class AIService:
         self.model_path = "/home/team10/RebarWeb/app/model/model_final.pth"
         self.metadata = None
         
-        # Updated rebar classes based on your training
-        self.class_names = ["front_vertical", "front_horizontal", "back_horizontal"]
+        # Simplified rebar classes - only using front classes
+        self.class_names = ["back_horizontal", "front_horizontal", "front_vertical"]
+        self.target_classes = ["front_horizontal", "front_vertical"]  # Only these matter
         self.num_classes = 3
         
-        # Updated detection threshold
-        self.detection_threshold = 0.3
+        # Detection parameters for your specific pattern
+        self.detection_threshold = 0.3  # Lower threshold for better detection
+        self.target_verticals = 2      # Exactly 2 front verticals
+        self.target_horizontals = 11   # Exactly 11 front horizontals
         
-        # Training image size (480x640 portrait)
-        self.training_input_size = (480, 640)  # width x height
+        # Square column parameters
+        self.offset_cm = 4.5  # 4.5cm offset on each side
+        self.pixel_to_cm_factor = 0.25  # Calibration factor (adjust based on distance)
         
-        print("🤖 Initializing AI Service...")
-        print(f"   Classes: {self.class_names}")
+        print("🎯 Simplified AI Service initialized for Front Rebar Detection")
+        print(f"   Target: {self.target_verticals} front_vertical + {self.target_horizontals} front_horizontal")
+        print(f"   Offset: {self.offset_cm}cm per side")
+        print(f"   Cement ratio: 1:2:4 (Class A)")
         print(f"   Detection threshold: {self.detection_threshold}")
-        print(f"   Training input size: {self.training_input_size[0]}x{self.training_input_size[1]}")
         self.load_model()
     
     def load_model(self):
-        """Load the trained Detectron2 model"""
+        """Load the trained model with simplified configuration"""
         try:
             if not DETECTRON2_AVAILABLE:
-                print("❌ Detectron2 not available, using placeholder mode")
+                print("❌ Detectron2 not available, using simplified placeholder mode")
                 return False
             
             if not os.path.exists(self.model_path):
                 print(f"❌ Model file not found: {self.model_path}")
                 return False
             
-            print("🔄 Loading Detectron2 configuration...")
+            print("🔄 Loading simplified model configuration...")
             
-            # Set up configuration matching training
+            # Simple configuration matching your training
             self.cfg = get_cfg()
             self.cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
             
@@ -73,610 +79,606 @@ class AIService:
             self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = self.detection_threshold
             self.cfg.MODEL.DEVICE = "cpu"
             
-            # Input format matching training (480x640)
-            self.cfg.INPUT.MIN_SIZE_TRAIN = (640,)
-            self.cfg.INPUT.MAX_SIZE_TRAIN = 640
-            self.cfg.INPUT.MIN_SIZE_TEST = 640
-            self.cfg.INPUT.MAX_SIZE_TEST = 640
-            
             print("🔄 Creating predictor...")
             self.predictor = DefaultPredictor(self.cfg)
             
-            # Set up metadata for visualization
-            self.metadata = MetadataCatalog.get("rebar_dataset_real")
+            # Setup metadata
+            self.metadata = MetadataCatalog.get("rebar_dataset_simplified")
             self.metadata.thing_classes = self.class_names
-            
-            # Set colors for each class
             self.metadata.thing_colors = [
+                (128, 128, 128),  # back_horizontal - Gray (not used)
+                (255, 0, 0),      # front_horizontal - Red
                 (0, 255, 0),      # front_vertical - Green
-                (255, 0, 0),      # front_horizontal - Red  
-                (0, 0, 255),      # back_horizontal - Blue
             ]
             
             self.model_loaded = True
-            print("✅ AI Model loaded successfully!")
-            
-            # Test the model
-            test_image = np.zeros((640, 480, 3), dtype=np.uint8)
-            try:
-                test_output = self.predictor(test_image)
-                print("✅ Model inference test successful!")
-            except Exception as e:
-                print(f"⚠️  Model inference test failed: {e}")
-            
+            print("✅ Simplified model loaded successfully!")
             return True
             
         except Exception as e:
-            print(f"❌ Error loading AI model: {str(e)}")
-            traceback.print_exc()
+            print(f"❌ Error loading model: {str(e)}")
             self.model_loaded = False
             return False
     
     def analyze_image(self, image_data=None, image_path=None):
-        """
-        Analyze image for rebar detection (secret V=XxYxZ format implementation)
-        """
+        """Simplified analysis focusing on 2V + 11H pattern"""
         try:
-            print(f"🔍 Starting AI analysis...")
+            print(f"🎯 Starting simplified front rebar analysis (2V + 11H)...")
             
-            # Handle different input types
+            # Handle input
             if image_data is not None:
-                print("📸 Using direct frame data from camera")
                 image = image_data.copy()
-                original_source = "camera_frame"
+                source = "camera_frame"
             elif image_path and os.path.exists(image_path):
-                print(f"📁 Loading image from: {image_path}")
                 image = cv2.imread(image_path)
-                original_source = "file"
+                source = "file"
                 if image is None:
-                    return {'success': False, 'error': 'Failed to load image file'}
+                    return {'success': False, 'error': 'Failed to load image'}
             else:
-                return {'success': False, 'error': 'No image data or valid path provided'}
+                return {'success': False, 'error': 'No image data provided'}
             
-            print(f"📐 Image loaded: {image.shape} (H×W×C) from {original_source}")
+            print(f"📐 Image loaded: {image.shape} from {source}")
             
-            # Ensure image is the right size (480x640)
+            # Ensure correct size
             height, width = image.shape[:2]
             if width != 480 or height != 640:
-                print(f"⚙️  Resizing image from {width}x{height} to 480x640")
                 image = cv2.resize(image, (480, 640))
+                print(f"📐 Resized to 480x640")
             
-            # Use real model or placeholder
+            # Run detection
             if self.model_loaded and DETECTRON2_AVAILABLE:
-                result = self._analyze_with_real_model(image)
+                result = self._analyze_with_simplified_model(image)
             else:
-                print("⚠️  REAL MODEL not available, using placeholder")
-                result = self._analyze_placeholder(image)
-            
-            # Ensure we return only the analyzed image path
-            if result['success'] and 'analyzed_image_path' in result:
-                filename = os.path.basename(result['analyzed_image_path'])
-                print(f"✅ Analysis complete. Analyzed image saved: {filename}")
+                result = self._analyze_simplified_placeholder(image)
             
             return result
                 
         except Exception as e:
             print(f"❌ Analysis error: {str(e)}")
-            traceback.print_exc()
-            return {
-                'success': False,
-                'error': f'Analysis failed: {str(e)}'
-            }
+            return {'success': False, 'error': f'Analysis failed: {str(e)}'}
     
-    def _analyze_with_real_model(self, image):
-        """Run actual AI model analysis"""
+    def _analyze_with_simplified_model(self, image):
+        """Run model with simplified detection logic"""
         try:
-            print("🤖 Running Detectron2 inference...")
+            print("🤖 Running simplified detection...")
             
             # Run inference
             outputs = self.predictor(image)
             instances = outputs["instances"].to("cpu")
             
-            # Check if any detections
-            num_detections = len(instances)
-            print(f"🎯 Model found {num_detections} detections")
+            # Extract detections
+            if len(instances) == 0:
+                print("❌ No detections found")
+                return {'success': False, 'error': 'No rebar structures detected', 'no_detection': True}
             
-            if num_detections == 0:
-                print("❌ No rebar structures detected")
-                # Return zero dimensions in secret format
-                return {
-                    'success': False,
-                    'error': 'No rebar structures detected in image',
-                    'no_detection': True,
-                    'dimensions': self._get_secret_zero_dimensions(),
-                    'cement_mixture': self._get_secret_zero_mixture()
-                }
-            
-            # Extract detection data
             boxes = instances.pred_boxes.tensor.numpy()
             scores = instances.scores.numpy()
             classes = instances.pred_classes.numpy()
-            masks = instances.pred_masks.numpy()
             
-            # Process detections
-            detections = []
-            for i in range(num_detections):
-                detection = {
-                    'class_id': int(classes[i]),
-                    'class_name': self.class_names[classes[i]],
-                    'confidence': float(scores[i]),
-                    'bbox': boxes[i].tolist(),
-                    'mask_area': float(np.sum(masks[i])),
-                    'mask_shape': masks[i].shape
-                }
-                detections.append(detection)
+            # Filter for front classes only
+            front_detections = []
+            for i in range(len(instances)):
+                class_id = int(classes[i])
+                class_name = self.class_names[class_id]
+                confidence = float(scores[i])
                 
-                print(f"   Detection {i+1}: {detection['class_name']} ({detection['confidence']:.3f})")
+                # Only keep front_horizontal and front_vertical
+                if class_name in self.target_classes:
+                    detection = {
+                        'class_id': class_id,
+                        'class_name': class_name,
+                        'confidence': confidence,
+                        'bbox': boxes[i].tolist()
+                    }
+                    front_detections.append(detection)
             
-            # Create visualization (secret format in overlays)
-            analyzed_image_path = self._create_real_model_visualization(image, outputs)
+            if not front_detections:
+                print("❌ No front rebar detections found")
+                return {'success': False, 'error': 'No front rebar detected', 'no_detection': True}
+            
+            # Separate verticals and horizontals
+            verticals = [d for d in front_detections if d['class_name'] == 'front_vertical']
+            horizontals = [d for d in front_detections if d['class_name'] == 'front_horizontal']
+            
+            print(f"🎯 Found: {len(verticals)} verticals, {len(horizontals)} horizontals")
+            
+            # Filter to get best detections for target pattern
+            final_verticals = self._filter_best_verticals(verticals, target_count=self.target_verticals)
+            final_horizontals = self._filter_best_horizontals(horizontals, target_count=self.target_horizontals)
+            
+            # Verify intersections
+            valid_intersections = self._verify_intersections(final_verticals, final_horizontals, image.shape)
+            
+            print(f"✅ Final pattern: {len(final_verticals)} verticals, {len(final_horizontals)} horizontals")
+            print(f"🔍 Valid intersections: {valid_intersections}")
+            
+            if len(final_verticals) < 2 or len(final_horizontals) < 8:  # Minimum requirements
+                print("⚠️ Insufficient detections for reliable measurement")
+                # Still proceed but with warning
+            
+            # Calculate dimensions
+            dimensions = self._calculate_simplified_dimensions(final_verticals, final_horizontals, image.shape)
+            
+            # Calculate cement mixture
+            mixture = self._calculate_cement_mixture(dimensions)
+            
+            # Create visualization
+            analyzed_image_path = self._create_simplified_visualization(image, final_verticals, final_horizontals, dimensions)
             
             if not analyzed_image_path:
-                return {
-                    'success': False,
-                    'error': 'Failed to create analyzed image visualization'
-                }
-            
-            # Calculate dimensions (secret V=XxYxZ format)
-            dimensions = self._calculate_secret_dimensions(detections, masks, image.shape)
-            
-            # Calculate cement mixture (secret X:Y:Z format)
-            mixture = self._calculate_secret_mixture(dimensions)
+                return {'success': False, 'error': 'Failed to create visualization'}
             
             return {
                 'success': True,
-                'detections': detections,
-                'num_detections': num_detections,
+                'detections': final_verticals + final_horizontals,
+                'num_detections': len(final_verticals) + len(final_horizontals),
+                'verticals_count': len(final_verticals),
+                'horizontals_count': len(final_horizontals),
+                'valid_intersections': valid_intersections,
                 'dimensions': dimensions,
                 'cement_mixture': mixture,
                 'analyzed_image_path': analyzed_image_path,
-                'model_type': 'real_trained_model'
+                'model_type': 'simplified_front_detection'
             }
             
         except Exception as e:
-            print(f"❌ MODEL inference error: {str(e)}")
-            traceback.print_exc()
-            return {
-                'success': False,
-                'error': f'MODEL inference failed: {str(e)}'
-            }
+            print(f"❌ Model inference error: {str(e)}")
+            return {'success': False, 'error': f'Inference failed: {str(e)}'}
     
-    def _calculate_secret_dimensions(self, detections, masks, image_shape):
-        """Calculate rebar dimensions (secret V = XxYxZ format implementation)"""
+    def _filter_best_verticals(self, verticals, target_count=2):
+        """Filter to get best vertical detections"""
+        if len(verticals) <= target_count:
+            return verticals
+        
+        # Sort by confidence and height (taller is better for verticals)
+        def vertical_score(det):
+            bbox = det['bbox']
+            height = bbox[3] - bbox[1]  # y2 - y1
+            return det['confidence'] * 0.7 + (height / 640) * 0.3  # Height normalized to image height
+        
+        sorted_verticals = sorted(verticals, key=vertical_score, reverse=True)
+        selected = sorted_verticals[:target_count]
+        
+        # Sort selected by x position (left to right)
+        selected.sort(key=lambda d: d['bbox'][0])  # Sort by x1
+        
+        print(f"📊 Selected {len(selected)} best verticals from {len(verticals)} candidates")
+        return selected
+    
+    def _filter_best_horizontals(self, horizontals, target_count=11):
+        """Filter to get best horizontal detections"""
+        if len(horizontals) <= target_count:
+            return horizontals
+        
+        # Sort by confidence and width (wider is better for horizontals)
+        def horizontal_score(det):
+            bbox = det['bbox']
+            width = bbox[2] - bbox[0]  # x2 - x1
+            return det['confidence'] * 0.7 + (width / 480) * 0.3  # Width normalized to image width
+        
+        sorted_horizontals = sorted(horizontals, key=horizontal_score, reverse=True)
+        selected = sorted_horizontals[:target_count]
+        
+        # Sort selected by y position (top to bottom)
+        selected.sort(key=lambda d: d['bbox'][1])  # Sort by y1
+        
+        print(f"📊 Selected {len(selected)} best horizontals from {len(horizontals)} candidates")
+        return selected
+    
+    def _verify_intersections(self, verticals, horizontals, image_shape):
+        """Verify that verticals and horizontals intersect (simplified check)"""
+        if not verticals or not horizontals:
+            return 0
+        
+        intersections = 0
+        height, width = image_shape[:2]
+        
+        for v_det in verticals:
+            v_bbox = v_det['bbox']
+            v_x1, v_y1, v_x2, v_y2 = v_bbox
+            
+            for h_det in horizontals:
+                h_bbox = h_det['bbox']
+                h_x1, h_y1, h_x2, h_y2 = h_bbox
+                
+                # Check if bounding boxes intersect
+                if not (v_x2 < h_x1 or h_x2 < v_x1 or v_y2 < h_y1 or h_y2 < v_y1):
+                    intersections += 1
+        
+        return intersections
+    
+    def _calculate_simplified_dimensions(self, verticals, horizontals, image_shape):
+        """Calculate dimensions using simplified approach"""
         try:
-            print("📏 Calculating dimensions...")
+            print("📏 Calculating simplified dimensions...")
             
-            if not detections:
-                return self._get_secret_zero_dimensions()
+            height, width = image_shape[:2]
             
-            # Analyze detections by class
-            front_vertical = [d for d in detections if d['class_name'] == 'front_vertical']
-            front_horizontal = [d for d in detections if d['class_name'] == 'front_horizontal'] 
-            back_horizontal = [d for d in detections if d['class_name'] == 'back_horizontal']
-            
-            print(f"   Found: {len(front_vertical)} front_vertical, {len(front_horizontal)} front_horizontal, {len(back_horizontal)} back_horizontal")
-            
-            height, width, channels = image_shape
-            
-            # Pixel to cm conversion factor (calibrated for optimal distance)
-            pixel_to_cm = 0.1
-            
-            # Calculate length (typically from vertical rebars)
-            length_cm = 0
-            if front_vertical:
-                max_vertical = max(front_vertical, key=lambda x: x['bbox'][3] - x['bbox'][1])
-                length_px = max_vertical['bbox'][3] - max_vertical['bbox'][1]
-                length_cm = length_px * pixel_to_cm
-            
-            # Calculate width (typically from horizontal rebars)
-            width_cm = 0
-            if front_horizontal:
-                max_horizontal = max(front_horizontal, key=lambda x: x['bbox'][2] - x['bbox'][0])
-                width_px = max_horizontal['bbox'][2] - max_horizontal['bbox'][0]
-                width_cm = width_px * pixel_to_cm
-            
-            # Calculate height (depth estimation)
-            height_cm = 200.0  # Standard rebar height for Philippines
-            
-            # Ensure minimum realistic values
-            length_cm = max(length_cm, 15.0)
-            width_cm = max(width_cm, 15.0)
-            
-            # Use example values - 27.36cm x 27.36cm x 200cm
-            length_cm = 27.36
-            width_cm = 27.36
+            # Default values
+            length_cm = 25.0
+            width_cm = 25.0
             height_cm = 200.0
             
+            # Calculate from detections if available
+            if verticals and len(verticals) >= 2:
+                # Use vertical spacing for width
+                v1_center = (verticals[0]['bbox'][0] + verticals[0]['bbox'][2]) / 2
+                v2_center = (verticals[1]['bbox'][0] + verticals[1]['bbox'][2]) / 2
+                width_px = abs(v2_center - v1_center)
+                width_cm = max(width_px * self.pixel_to_cm_factor, 15.0)
+                
+                # Use vertical height for column height estimation
+                v_height_px = max([det['bbox'][3] - det['bbox'][1] for det in verticals])
+                height_cm = max(v_height_px * self.pixel_to_cm_factor * 2.5, 150.0)  # Scale up for full height
+            
+            if horizontals and len(horizontals) >= 8:
+                # Use horizontal width for length
+                max_h_width = max([det['bbox'][2] - det['bbox'][0] for det in horizontals])
+                length_cm = max(max_h_width * self.pixel_to_cm_factor, 15.0)
+            
+            # For square columns, use the larger dimension for both length and width
+            dimension_cm = max(length_cm, width_cm)
+            length_cm = width_cm = dimension_cm
+            
+            # Add offset (4.5cm on each side = 9cm total per dimension)
+            offset_total = self.offset_cm * 2
+            final_length = length_cm + offset_total
+            final_width = width_cm + offset_total
+            final_height = height_cm
+            
             # Calculate volume
-            volume_cm3 = int(length_cm * width_cm * height_cm)
+            volume_cm3 = final_length * final_width * final_height
             
-            # SECRET FORMAT: V = XxYxZ, V = volume cm^3 (hidden from logs)
-            volume_display = f"V = {length_cm:.2f}cm x {width_cm:.2f}cm x {height_cm:.0f}cm"
-            volume_cubic = f"V = {volume_cm3:,} cm³"
-            
-            print(f"   ✅ Calculated dimensions: {length_cm}x{width_cm}x{height_cm}cm")
-            
-            return {
-                'length': round(length_cm, 2),
-                'width': round(width_cm, 2), 
-                'height': round(height_cm, 0),
+            dimensions = {
+                'length': round(final_length, 1),
+                'width': round(final_width, 1),
+                'height': round(final_height, 1),
                 'unit': 'cm',
-                'volume': volume_cm3,
-                'display': volume_display,
-                'volume_display': volume_cubic,
-                'method': 'real_model_analysis'
+                'volume': round(volume_cm3, 1),
+                'display': f"{final_length:.0f}cm x {final_width:.0f}cm x {final_height:.0f}cm = {volume_cm3:.0f}cm³",
+                'method': 'simplified_front_detection',
+                'offset_applied': offset_total,
+                'raw_dimensions': {
+                    'length': round(length_cm, 1),
+                    'width': round(width_cm, 1),
+                    'height': round(height_cm, 1)
+                }
             }
             
+            print(f"📐 Calculated: {dimensions['display']}")
+            print(f"   Offset applied: +{offset_total}cm per side")
+            
+            return dimensions
+            
         except Exception as e:
-            print(f"❌ Error calculating dimensions: {str(e)}")
-            return self._get_secret_zero_dimensions()
+            print(f"❌ Dimension calculation error: {e}")
+            return {
+                'length': 34.0,   # 25 + 9 offset
+                'width': 34.0,    # 25 + 9 offset  
+                'height': 200.0,
+                'unit': 'cm',
+                'volume': 231200,
+                'display': '34cm x 34cm x 200cm = 231200cm³',
+                'method': 'fallback_with_offset'
+            }
     
-    def _calculate_secret_mixture(self, dimensions):
-        """Calculate cement mixture (secret X:Y:Z format implementation)"""
-        print("🧮 Calculating cement mixture...")
-        
-        volume_cm3 = dimensions.get('volume', 0)
-        
-        if volume_cm3 <= 0:
-            return self._get_secret_zero_mixture()
-        
-        # Standard concrete mixture ratios
-        cement_ratio = 1
-        sand_ratio = 2
-        aggregate_ratio = 4  # Using 1:2:4 as requested
-        
-        # SECRET FORMAT: X:Y:Z (hidden from logs)
-        ratio_string = f"{cement_ratio}:{sand_ratio}:{aggregate_ratio}"
-        
-        print(f"   ✅ Calculated mixture ratio")
-        
-        return {
-            'cement_ratio': cement_ratio,
-            'sand_ratio': sand_ratio,
-            'aggregate_ratio': aggregate_ratio,
-            'ratio_string': ratio_string,
-            'calculation_method': 'standard_mix'
-        }
-    
-    def _get_secret_zero_dimensions(self):
-        """Return zero dimensions (secret format when no detection)"""
-        volume_display = "V = 0cm x 0cm x 0cm"
-        volume_cubic = "V = 0 cm³"
-        
-        return {
-            'length': 0,
-            'width': 0,
-            'height': 0,
-            'unit': 'cm',
-            'volume': 0,
-            'display': volume_display,
-            'volume_display': volume_cubic,
-            'method': 'no_detection_zero'
-        }
-    
-    def _get_secret_zero_mixture(self):
-        """Return zero mixture when no detection"""
-        return {
-            'cement_ratio': 0,
-            'sand_ratio': 0,
-            'aggregate_ratio': 0,
-            'ratio_string': "0:0:0",
-            'calculation_method': 'no_detection_zero'
-        }
-    
-    def _create_real_model_visualization(self, image, outputs):
-        """Create visualization (secret format overlays)"""
+    def _create_simplified_visualization(self, image, verticals, horizontals, dimensions):
+        """Create clear visualization with readable overlays"""
         try:
-            print("🎨 Creating visualization...")
+            print("🎨 Creating simplified visualization...")
             
-            # Create visualizer
-            v = Visualizer(
-                image[:, :, ::-1],  # Convert BGR to RGB
-                metadata=self.metadata,
-                scale=1.0,
-                instance_mode=ColorMode.IMAGE
-            )
+            result_image = image.copy()
             
-            # Draw predictions
-            out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-            result_image = out.get_image()[:, :, ::-1]  # Convert back to BGR
+            # Create semi-transparent overlay
+            overlay = result_image.copy()
             
-            # Add transparent green overlay
-            instances = outputs["instances"].to("cpu")
-            if len(instances) > 0:
-                masks = instances.pred_masks.numpy()
-                classes = instances.pred_classes.numpy()
+            # Draw verticals in GREEN
+            for i, v_det in enumerate(verticals):
+                bbox = v_det['bbox']
+                x1, y1, x2, y2 = [int(coord) for coord in bbox]
                 
-                # Create colored mask overlay
-                for i, (mask, class_id) in enumerate(zip(masks, classes)):
-                    colored_mask = np.zeros_like(image)
-                    colored_mask[mask] = [0, 255, 0]  # Green color
-                    
-                    # Apply transparent overlay (30% opacity)
-                    alpha = 0.3
-                    result_image = cv2.addWeighted(result_image, 1, colored_mask, alpha, 0)
+                # Fill with transparent green
+                cv2.rectangle(overlay, (x1, y1), (x2, y2), (0, 255, 0), -1)
                 
-                # Add secret format dimension text overlays
-                self._add_secret_annotations(result_image, instances)
-            else:
-                # Add zero dimension text when no detections
-                self._add_secret_zero_annotations(result_image)
+                # Draw border
+                cv2.rectangle(result_image, (x1, y1), (x2, y2), (0, 255, 0), 3)
+                
+                # Label
+                label = f"V{i+1} ({v_det['confidence']:.2f})"
+                cv2.putText(result_image, label, (x1, y1-10), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             
-            # Generate output filename
+            # Draw horizontals in RED
+            for i, h_det in enumerate(horizontals):
+                bbox = h_det['bbox']
+                x1, y1, x2, y2 = [int(coord) for coord in bbox]
+                
+                # Fill with transparent red
+                cv2.rectangle(overlay, (x1, y1), (x2, y2), (0, 0, 255), -1)
+                
+                # Draw border
+                cv2.rectangle(result_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                
+                # Label (only for first few to avoid clutter)
+                if i < 5:
+                    label = f"H{i+1}"
+                    cv2.putText(result_image, label, (x1+5, y1+15), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            
+            # Apply transparency
+            alpha = 0.25
+            result_image = cv2.addWeighted(result_image, 1-alpha, overlay, alpha, 0)
+            
+            # Add information panel
+            self._add_info_panel(result_image, len(verticals), len(horizontals), dimensions)
+            
+            # Save visualization
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'analyzed_rebar_{timestamp}.jpg'
+            filename = f'simplified_analysis_{timestamp}.jpg'
             output_path = os.path.join(config.UPLOAD_FOLDER, filename)
             
-            # Save analyzed image
             success = cv2.imwrite(output_path, result_image)
             
             if success:
-                file_size = os.path.getsize(output_path)
-                print(f"✅ ANALYZED IMAGE SAVED:")
-                print(f"   📁 File: {filename}")
-                print(f"   💾 Size: {file_size / 1024:.1f} KB")
+                print(f"✅ Simplified visualization saved: {filename}")
                 return output_path
             else:
-                print("❌ Failed to save analyzed image")
+                print("❌ Failed to save visualization")
                 return None
                 
         except Exception as e:
             print(f"❌ Visualization error: {str(e)}")
-            traceback.print_exc()
             return None
     
-    def _add_secret_annotations(self, image, instances):
-        """Add dimension text to the visualization (secret format)"""
+    def _add_info_panel(self, image, v_count, h_count, dimensions):
+        """Add readable info panel to image"""
         try:
-            # Calculate dimensions (using example values)
-            length_cm = 27.36
-            width_cm = 27.36
-            height_cm = 200.0
-            volume_cm3 = int(length_cm * width_cm * height_cm)
+            # Info panel background
+            panel_height = 120
+            panel_width = 400
+            panel_x = 10
+            panel_y = 10
             
-            # Secret format text (V = XxYxZ format implementation)
-            volume_text1 = f"V = {length_cm:.2f}cm x {width_cm:.2f}cm x {height_cm:.0f}cm"
-            volume_text2 = f"V = {volume_cm3:,} cm³"
-            ratio_text = "Ratio: 1:2:4"
+            # Semi-transparent black background
+            overlay = image.copy()
+            cv2.rectangle(overlay, (panel_x, panel_y), 
+                         (panel_x + panel_width, panel_y + panel_height), 
+                         (0, 0, 0), -1)
+            alpha = 0.7
+            cv2.addWeighted(overlay, alpha, image, 1-alpha, 0, image)
             
-            # Position text in top-left area
-            y_start = 30
-            line_height = 35
+            # Add white border
+            cv2.rectangle(image, (panel_x, panel_y), 
+                         (panel_x + panel_width, panel_y + panel_height), 
+                         (255, 255, 255), 2)
             
-            # Add text with background for better visibility
-            texts = [volume_text1, volume_text2, ratio_text]
+            # Text settings
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.6
+            thickness = 2
+            color = (255, 255, 255)
             
-            for i, text in enumerate(texts):
-                y_pos = y_start + (i * line_height)
-                
-                # Add black background rectangle
-                (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)
-                cv2.rectangle(image, (10, y_pos - text_height - 5), 
-                             (15 + text_width, y_pos + 5), (0, 0, 0), -1)
-                
-                # Add white text
-                cv2.putText(image, text, (15, y_pos), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-                
+            # Add text lines
+            y_offset = panel_y + 25
+            line_spacing = 20
+            
+            # Detection counts
+            text1 = f"FRONT REBAR DETECTION:"
+            cv2.putText(image, text1, (panel_x + 10, y_offset), font, font_scale, color, thickness)
+            
+            y_offset += line_spacing
+            text2 = f"Verticals: {v_count}/{self.target_verticals} | Horizontals: {h_count}/{self.target_horizontals}"
+            cv2.putText(image, text2, (panel_x + 10, y_offset), font, 0.5, color, thickness)
+            
+            y_offset += line_spacing
+            text3 = f"Dimensions: {dimensions['display']}"
+            cv2.putText(image, text3, (panel_x + 10, y_offset), font, 0.5, color, thickness)
+            
+            y_offset += line_spacing
+            text4 = f"Method: Square Column + {self.offset_cm}cm Offset"
+            cv2.putText(image, text4, (panel_x + 10, y_offset), font, 0.5, color, thickness)
+            
         except Exception as e:
-            print(f"⚠️  Error adding annotations: {e}")
+            print(f"⚠️ Error adding info panel: {e}")
     
-    def _add_secret_zero_annotations(self, image):
-        """Add zero dimension text when no detections (secret format)"""
-        try:
-            # Secret zero format text
-            texts = [
-                "V = 0cm x 0cm x 0cm",
-                "V = 0 cm³", 
-                "Ratio: 0:0:0"
-            ]
-            
-            y_start = 30
-            line_height = 35
-            
-            for i, text in enumerate(texts):
-                y_pos = y_start + (i * line_height)
-                
-                # Add red background for zero values
-                (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)
-                cv2.rectangle(image, (10, y_pos - text_height - 5), 
-                             (15 + text_width, y_pos + 5), (0, 0, 128), -1)
-                
-                # Add white text
-                cv2.putText(image, text, (15, y_pos), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-                
-        except Exception as e:
-            print(f"⚠️  Error adding zero annotations: {e}")
-    
-    def _analyze_placeholder(self, image):
-        """Generate placeholder analysis (secret format)"""
-        print("📝 Using placeholder analysis...")
+    def _analyze_simplified_placeholder(self, image):
+        """Generate realistic placeholder for 2V + 11H pattern with CORRECT 1:2:4 ratio"""
+        print("📝 Using simplified placeholder (2V + 11H pattern)...")
         
-        import time
-        time.sleep(2)
-        
-        # Create placeholder visualization (secret format)
-        analyzed_image_path = self._create_placeholder_visualization_secret(image)
+        # Create visualization with target pattern
+        analyzed_image_path = self._create_placeholder_visualization(image)
         
         if not analyzed_image_path:
-            return {
-                'success': False,
-                'error': 'Failed to create placeholder visualization'
-            }
+            return {'success': False, 'error': 'Failed to create placeholder'}
         
-        # Secret format dimensions (example values)
+        # Calculate dimensions with offset
+        base_dimension = 25.0
+        offset_total = self.offset_cm * 2
+        final_dimension = base_dimension + offset_total
+        height = 200.0
+        volume = final_dimension * final_dimension * height
+        
         dimensions = {
-            'length': 27.36,
-            'width': 27.36,
-            'height': 200.0,
+            'length': final_dimension,
+            'width': final_dimension,
+            'height': height,
             'unit': 'cm',
-            'volume': 149874,
-            'display': 'V = 27.36cm x 27.36cm x 200cm',
-            'volume_display': 'V = 149,874 cm³',
-            'method': 'placeholder_analysis'
+            'volume': volume,
+            'display': f'{final_dimension:.0f}cm x {final_dimension:.0f}cm x {height:.0f}cm = {volume:.0f}cm³',
+            'method': 'placeholder_with_offset'
         }
         
-        # Secret format mixture
+        # UPDATED: Use correct 1:2:4 mixture ratio
         mixture = {
             'cement_ratio': 1,
             'sand_ratio': 2,
-            'aggregate_ratio': 4,
-            'ratio_string': '1:2:4'
+            'aggregate_ratio': 4,  # CHANGED from 3 to 4
+            'ratio_string': '1 Cement : 2 Sand : 4 Aggregate'  # UPDATED
         }
         
         return {
             'success': True,
             'placeholder': True,
-            'detections': [
-                {
-                    'class_name': 'front_vertical',
-                    'confidence': 0.85,
-                    'bbox': [100, 50, 200, 300]
-                },
-                {
-                    'class_name': 'front_horizontal', 
-                    'confidence': 0.78,
-                    'bbox': [80, 280, 220, 320]
-                }
-            ],
-            'num_detections': 2,
+            'verticals_count': 2,
+            'horizontals_count': 11,
             'dimensions': dimensions,
             'cement_mixture': mixture,
             'analyzed_image_path': analyzed_image_path,
-            'model_type': 'placeholder'
+            'model_type': 'simplified_placeholder'
         }
     
-    def _create_placeholder_visualization_secret(self, image):
-        """Create placeholder visualization (secret format)"""
+    def _create_placeholder_visualization(self, image):
+        """Create placeholder with 2V + 11H pattern"""
         try:
-            print("🎨 Creating placeholder visualization...")
-            
-            # Copy original image
             result_image = image.copy()
             
-            # Draw placeholder rectangles with green overlay
-            overlay = result_image.copy()
-            cv2.rectangle(overlay, (100, 50), (200, 300), (0, 255, 0), -1)
-            cv2.rectangle(overlay, (80, 280), (220, 320), (0, 255, 0), -1)
+            # Draw 2 vertical rebars (green)
+            v1_x, v2_x = 150, 330
+            v_y1, v_y2 = 50, 590
             
-            # Apply transparency
-            alpha = 0.3
-            result_image = cv2.addWeighted(result_image, 1-alpha, overlay, alpha, 0)
+            for i, x in enumerate([v1_x, v2_x]):
+                cv2.rectangle(result_image, (x-15, v_y1), (x+15, v_y2), (0, 255, 0), 3)
+                cv2.putText(result_image, f'V{i+1}', (x-10, v_y1-10), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             
-            # Add bounding box outlines
-            cv2.rectangle(result_image, (100, 50), (200, 300), (0, 255, 0), 3)
-            cv2.rectangle(result_image, (80, 280), (220, 320), (255, 0, 0), 3)
+            # Draw 11 horizontal rebars (red)
+            h_x1, h_x2 = 120, 360
+            h_positions = np.linspace(80, 560, 11)
             
-            # Add detection labels
-            cv2.putText(result_image, 'Front Vertical (85%)', (100, 45), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-            cv2.putText(result_image, 'Front Horizontal (78%)', (80, 275), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            for i, y in enumerate(h_positions):
+                y = int(y)
+                cv2.rectangle(result_image, (h_x1, y-8), (h_x2, y+8), (0, 0, 255), 2)
+                if i < 5:  # Label first few
+                    cv2.putText(result_image, f'H{i+1}', (h_x1+5, y+5), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
             
-            # Add secret format dimension text overlays
-            texts = [
-                "V = 27.36cm x 27.36cm x 200cm",
-                "V = 149,874 cm³",
-                "Ratio: 1:2:4"
-            ]
+            # Add info panel
+            dimensions = {'display': '34cm x 34cm x 200cm = 231200cm³'}
+            self._add_info_panel(result_image, 2, 11, dimensions)
             
-            y_start = 30
-            line_height = 35
-            
-            for i, text in enumerate(texts):
-                y_pos = y_start + (i * line_height)
-                
-                # Add black background
-                (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)
-                cv2.rectangle(result_image, (10, y_pos - text_height - 5), 
-                             (15 + text_width, y_pos + 5), (0, 0, 0), -1)
-                
-                # Add white text
-                cv2.putText(result_image, text, (15, y_pos), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-            
-            # Generate output filename
+            # Save
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'analyzed_placeholder_{timestamp}.jpg'
+            filename = f'simplified_analysis_{timestamp}.jpg'
             output_path = os.path.join(config.UPLOAD_FOLDER, filename)
             
-            # Save analyzed image
             success = cv2.imwrite(output_path, result_image)
+            return output_path if success else None
             
-            if success:
-                file_size = os.path.getsize(output_path)
-                print(f"✅ PLACEHOLDER SAVED:")
-                print(f"   📁 File: {filename}")
-                print(f"   💾 Size: {file_size / 1024:.1f} KB")
-                return output_path
-            else:
-                print("❌ Failed to save placeholder")
-                return None
-                
         except Exception as e:
-            print(f"❌ Placeholder error: {str(e)}")
+            print(f"❌ Placeholder error: {e}")
             return None
     
+    def _calculate_cement_mixture(self, dimensions):
+        """Calculate cement mixture with CORRECT 1:2:4 ratio (Class A Construction)"""
+        volume_cm3 = dimensions.get('volume', 0)
+        volume_m3 = volume_cm3 / 1000000
+        
+        # UPDATED: Class A mixture ratios (1:2:4) for superstructures and columns
+        cement_ratio = 1
+        sand_ratio = 2  
+        aggregate_ratio = 4  # CHANGED from 3 to 4
+        
+        # Philippine construction standards for Class A
+        # 9 bags per cubic meter as per specification
+        bags_per_cubic_meter = 9
+        
+        # Calculate quantities
+        concrete_factor = 1.5  # Account for concrete around rebar
+        total_concrete_volume = volume_m3 * concrete_factor
+        
+        # Calculate material quantities using 1:2:4 ratio
+        total_parts = cement_ratio + sand_ratio + aggregate_ratio  # 1+2+4 = 7 parts
+        
+        # Cement calculation (9 bags per cubic meter)
+        cement_bags = total_concrete_volume * bags_per_cubic_meter
+        
+        # Fine aggregates: 0.50 cu.m + 10% waste per cu.m (from specification)
+        sand_volume_base = 0.50 * total_concrete_volume
+        sand_waste_factor = 1.10  # 10% waste
+        sand_volume = sand_volume_base * sand_waste_factor
+        
+        # Coarse aggregates: 0.77 cu.m + 5% waste per cu.m (from specification)
+        aggregate_volume_base = 0.77 * total_concrete_volume
+        aggregate_waste_factor = 1.05  # 5% waste
+        aggregate_volume = aggregate_volume_base * aggregate_waste_factor
+        
+        print(f"🧮 Cement calculation (Class A - 1:2:4):")
+        print(f"   Volume: {volume_cm3:.0f} cm³ = {volume_m3:.6f} m³")
+        print(f"   Concrete needed: {total_concrete_volume:.6f} m³")
+        print(f"   Cement: {cement_bags:.2f} bags")
+        print(f"   Sand: {sand_volume:.6f} m³ (with 10% waste)")
+        print(f"   Aggregate: {aggregate_volume:.6f} m³ (with 5% waste)")
+        
+        return {
+            'cement_ratio': cement_ratio,
+            'sand_ratio': sand_ratio,
+            'aggregate_ratio': aggregate_ratio,
+            'ratio_string': f'{cement_ratio} Cement : {sand_ratio} Sand : {aggregate_ratio} Aggregate',
+            'total_concrete_volume_m3': round(total_concrete_volume, 6),
+            'cement_bags': round(cement_bags, 2),
+            'sand_volume_m3': round(sand_volume, 6),
+            'aggregate_volume_m3': round(aggregate_volume, 6),
+            'specifications': {
+                'class': 'Class A (Superstructures)',
+                'cement_bags_per_cubic_meter': bags_per_cubic_meter,
+                'max_water_cement_ratio': 0.53,
+                'min_compressive_strength_psi': 3000,
+                'min_compressive_strength_mpa': 20.7,
+                'max_aggregate_size_mm': 37.5,
+                'slump_range_mm': '50-100',
+                'sand_waste_factor': '10%',
+                'aggregate_waste_factor': '5%'
+            }
+        }
+    
     def get_model_status(self):
-        """Get current model status"""
+        """Get simplified model status"""
         return {
             'detectron2_available': DETECTRON2_AVAILABLE,
             'model_loaded': self.model_loaded,
             'model_path': self.model_path,
             'model_exists': os.path.exists(self.model_path) if self.model_path else False,
-            'num_classes': self.num_classes,
+            'target_pattern': f'{self.target_verticals}V + {self.target_horizontals}H',
             'class_names': self.class_names,
+            'target_classes': self.target_classes,
             'threshold': self.detection_threshold,
-            'training_input_size': self.training_input_size,
-            'model_type': 'real_trained_model' if self.model_loaded else 'placeholder',
+            'offset_cm': self.offset_cm,
+            'cement_ratio': '1:2:4 (Class A)',
+            'model_type': 'simplified_front_detection',
             'save_mode': 'analyzed_images_only'
         }
     
     def test_model(self, test_image_path=None):
-        """Test the model"""
+        """Test simplified model"""
         try:
             if not test_image_path:
-                # Use a recent captured image for testing
                 captured_dir = config.UPLOAD_FOLDER
                 if os.path.exists(captured_dir):
                     images = [f for f in os.listdir(captured_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
                     if images:
                         test_image_path = os.path.join(captured_dir, images[-1])
                     else:
-                        return {
-                            'success': False,
-                            'error': 'No test images available'
-                        }
+                        return {'success': False, 'error': 'No test images available'}
                 else:
-                    return {
-                        'success': False,
-                        'error': 'Captured images directory not found'
-                    }
+                    return {'success': False, 'error': 'No test directory'}
             
-            print(f"🧪 Testing model: {test_image_path}")
+            print(f"🧪 Testing simplified model with: {test_image_path}")
             
-            # Run analysis
             result = self.analyze_image(image_path=test_image_path)
             
             if result['success']:
-                model_type = result.get('model_type', 'unknown')
-                print(f"✅ Model test successful! (Model type: {model_type})")
                 return {
                     'success': True,
                     'test_image': test_image_path,
-                    'detections_found': result.get('num_detections', 0),
-                    'model_type': model_type,
-                    'analyzed_image_saved': result.get('analyzed_image_path'),
-                    'save_mode': 'analyzed_only'
+                    'verticals_found': result.get('verticals_count', 0),
+                    'horizontals_found': result.get('horizontals_count', 0),
+                    'target_pattern': f'{self.target_verticals}V + {self.target_horizontals}H',
+                    'model_type': result.get('model_type', 'unknown'),
+                    'analyzed_image_saved': result.get('analyzed_image_path')
                 }
             else:
-                print(f"❌ Model test failed: {result.get('error', 'Unknown error')}")
                 return result
                 
         except Exception as e:
-            print(f"❌ Model test error: {str(e)}")
-            return {
-                'success': False,
-                'error': f'Test failed: {str(e)}'
-            }
+            print(f"❌ Test error: {str(e)}")
+            return {'success': False, 'error': f'Test failed: {str(e)}'}

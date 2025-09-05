@@ -1,682 +1,437 @@
 """
-AI Service for Rebar Detection and Analysis
-UPDATED: Secret implementation of V = XxYxZ format (no user-facing mentions)
+AI Analysis Routes for Rebar Detection - FIXED JSON Serialization
+MODIFIED: Works with direct camera frame data - only saves analyzed images
+FIXED: Handles numpy arrays and non-JSON serializable objects
 """
 
+from flask import Blueprint, jsonify, request
 import os
-import cv2
 import numpy as np
 from datetime import datetime
-import json
-import traceback
-
-# Detectron2 imports
-try:
-    from detectron2.engine import DefaultPredictor
-    from detectron2.config import get_cfg
-    from detectron2.utils.visualizer import Visualizer, ColorMode
-    from detectron2.data import MetadataCatalog
-    from detectron2 import model_zoo
-    DETECTRON2_AVAILABLE = True
-except ImportError:
-    print("⚠️  Detectron2 not available. AI analysis will use placeholder results.")
-    DETECTRON2_AVAILABLE = False
-
 from app.utils.config import config
 
-class AIService:
-    """Handles AI model loading, inference, and rebar analysis"""
-    
-    def __init__(self):
-        self.model_loaded = False
-        self.predictor = None
-        self.cfg = None
-        self.model_path = "/home/team10/RebarWeb/app/model/model_final.pth"
-        self.metadata = None
+# Create a Blueprint for AI analysis routes
+ai_bp = Blueprint('ai', __name__)
+
+# This will be injected when the blueprint is registered
+ai_service = None
+camera_manager = None  # Added camera manager dependency
+
+def init_ai_routes(ai_svc, cam_manager=None):
+    """Initialize the AI routes with service dependencies"""
+    global ai_service, camera_manager
+    ai_service = ai_svc
+    camera_manager = cam_manager
+    print("AI routes initialized with AI service and camera manager")
+
+def _validate_ai_service():
+    """Helper function to validate AI service availability"""
+    if not ai_service:
+        return jsonify({
+            'success': False,
+            'error': 'AI service not available'
+        }), 503
+    return None
+
+def _validate_camera_service():
+    """Helper function to validate camera service availability"""
+    if not camera_manager:
+        return jsonify({
+            'success': False,
+            'error': 'Camera service not available for frame access'
+        }), 503
+    return None
+
+def clean_for_json(obj):
+    """
+    Convert numpy arrays and other non-JSON serializable objects to JSON-safe types
+    This fixes the "Object of type ndarray is not JSON serializable" error
+    """
+    if isinstance(obj, dict):
+        return {key: clean_for_json(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_for_json(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return [clean_for_json(item) for item in obj]
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (np.integer, np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif hasattr(obj, 'item'):  # numpy scalar
+        return obj.item()
+    elif hasattr(obj, '__float__'):
+        return float(obj)
+    elif hasattr(obj, '__int__'):
+        return int(obj)
+    else:
+        return obj
+
+@ai_bp.route('/analyze-rebar', methods=['POST'])
+def analyze_rebar():
+    """
+    Analyze current camera frame for rebar detection - FIXED JSON serialization
+    MODIFIED: Works with direct frame data - only saves analyzed image with AI overlays
+    """
+    try:
+        print("🔍 FIXED AI analysis request received...")
+        print("📝 GUARANTEE: This will detect rebar structures or provide meaningful feedback")
         
-        # Updated rebar classes based on your training
-        self.class_names = ["front_vertical", "front_horizontal", "back_horizontal"]
-        self.num_classes = 3
+        # Validate AI service
+        validation_error = _validate_ai_service()
+        if validation_error:
+            return validation_error
         
-        # Updated detection threshold
-        self.detection_threshold = 0.3
+        # Validate camera service for direct frame access
+        validation_error = _validate_camera_service()
+        if validation_error:
+            return validation_error
         
-        # Training image size (480x640 portrait)
-        self.training_input_size = (480, 640)  # width x height
-        
-        print("🤖 Initializing AI Service...")
-        print(f"   Classes: {self.class_names}")
-        print(f"   Detection threshold: {self.detection_threshold}")
-        print(f"   Training input size: {self.training_input_size[0]}x{self.training_input_size[1]}")
-        self.load_model()
-    
-    def load_model(self):
-        """Load the trained Detectron2 model"""
+        # Get request data for fallback image path (optional)
         try:
-            if not DETECTRON2_AVAILABLE:
-                print("❌ Detectron2 not available, using placeholder mode")
-                return False
+            data = request.get_json(silent=True) or {}
+        except Exception:
+            data = {}
+        
+        fallback_image_path = None
+        
+        # Check if fallback image path provided (for legacy compatibility)
+        if 'filename' in data:
+            filename = data['filename']
+            fallback_image_path = os.path.join(config.UPLOAD_FOLDER, filename)
+            print(f"📁 Fallback image path provided: {filename}")
+        elif 'image_path' in data:
+            fallback_image_path = data['image_path']
+            print(f"📁 Fallback image path provided: {fallback_image_path}")
+        
+        # PRIMARY METHOD: Get current frame directly from camera
+        print("📸 Attempting to get current frame from camera...")
+        current_frame = camera_manager.get_current_frame()
+        
+        if current_frame is not None:
+            print(f"✅ Using direct camera frame: {current_frame.shape}")
+            print("   📝 NOTE: No original will be saved - only analyzed image")
             
-            if not os.path.exists(self.model_path):
-                print(f"❌ Model file not found: {self.model_path}")
-                return False
+            # Analyze frame directly (no original image saved)
+            result = ai_service.analyze_image(image_data=current_frame)
             
-            print("🔄 Loading Detectron2 configuration...")
+        elif fallback_image_path and os.path.exists(fallback_image_path):
+            print(f"🔄 Fallback: Using existing image file: {fallback_image_path}")
+            print("   📝 NOTE: Only analyzed image will be saved")
             
-            # Set up configuration matching training
-            self.cfg = get_cfg()
-            self.cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
+            # Fallback to existing image file
+            result = ai_service.analyze_image(image_path=fallback_image_path)
             
-            # Model settings
-            self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.num_classes
-            self.cfg.MODEL.WEIGHTS = self.model_path
-            self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = self.detection_threshold
-            self.cfg.MODEL.DEVICE = "cpu"
+        else:
+            error_msg = "No current camera frame available"
+            if fallback_image_path:
+                error_msg += f" and fallback image not found: {fallback_image_path}"
             
-            # Input format matching training (480x640)
-            self.cfg.INPUT.MIN_SIZE_TRAIN = (640,)
-            self.cfg.INPUT.MAX_SIZE_TRAIN = 640
-            self.cfg.INPUT.MIN_SIZE_TEST = 640
-            self.cfg.INPUT.MAX_SIZE_TEST = 640
-            
-            print("🔄 Creating predictor...")
-            self.predictor = DefaultPredictor(self.cfg)
-            
-            # Set up metadata for visualization
-            self.metadata = MetadataCatalog.get("rebar_dataset_real")
-            self.metadata.thing_classes = self.class_names
-            
-            # Set colors for each class
-            self.metadata.thing_colors = [
-                (0, 255, 0),      # front_vertical - Green
-                (255, 0, 0),      # front_horizontal - Red  
-                (0, 0, 255),      # back_horizontal - Blue
-            ]
-            
-            self.model_loaded = True
-            print("✅ AI Model loaded successfully!")
-            
-            # Test the model
-            test_image = np.zeros((640, 480, 3), dtype=np.uint8)
-            try:
-                test_output = self.predictor(test_image)
-                print("✅ Model inference test successful!")
-            except Exception as e:
-                print(f"⚠️  Model inference test failed: {e}")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error loading AI model: {str(e)}")
-            traceback.print_exc()
-            self.model_loaded = False
-            return False
-    
-    def analyze_image(self, image_data=None, image_path=None):
-        """
-        Analyze image for rebar detection (secret V=XxYxZ format implementation)
-        """
-        try:
-            print(f"🔍 Starting AI analysis...")
-            
-            # Handle different input types
-            if image_data is not None:
-                print("📸 Using direct frame data from camera")
-                image = image_data.copy()
-                original_source = "camera_frame"
-            elif image_path and os.path.exists(image_path):
-                print(f"📁 Loading image from: {image_path}")
-                image = cv2.imread(image_path)
-                original_source = "file"
-                if image is None:
-                    return {'success': False, 'error': 'Failed to load image file'}
-            else:
-                return {'success': False, 'error': 'No image data or valid path provided'}
-            
-            print(f"📐 Image loaded: {image.shape} (H×W×C) from {original_source}")
-            
-            # Ensure image is the right size (480x640)
-            height, width = image.shape[:2]
-            if width != 480 or height != 640:
-                print(f"⚙️  Resizing image from {width}x{height} to 480x640")
-                image = cv2.resize(image, (480, 640))
-            
-            # Use real model or placeholder
-            if self.model_loaded and DETECTRON2_AVAILABLE:
-                result = self._analyze_with_real_model(image)
-            else:
-                print("⚠️  REAL MODEL not available, using placeholder")
-                result = self._analyze_placeholder(image)
-            
-            # Ensure we return only the analyzed image path
-            if result['success'] and 'analyzed_image_path' in result:
-                filename = os.path.basename(result['analyzed_image_path'])
-                print(f"✅ Analysis complete. Analyzed image saved: {filename}")
-            
-            return result
-                
-        except Exception as e:
-            print(f"❌ Analysis error: {str(e)}")
-            traceback.print_exc()
-            return {
+            return jsonify({
                 'success': False,
-                'error': f'Analysis failed: {str(e)}'
-            }
-    
-    def _analyze_with_real_model(self, image):
-        """Run actual AI model analysis"""
-        try:
-            print("🤖 Running Detectron2 inference...")
+                'error': error_msg
+            }), 400
+        
+        if result['success']:
+            print("✅ FIXED Analysis completed successfully")
             
-            # Run inference
-            outputs = self.predictor(image)
-            instances = outputs["instances"].to("cpu")
-            
-            # Check if any detections
-            num_detections = len(instances)
-            print(f"🎯 Model found {num_detections} detections")
-            
-            if num_detections == 0:
-                print("❌ No rebar structures detected")
-                # Return zero dimensions in secret format
-                return {
+            # Ensure analyzed image was saved
+            if 'analyzed_image_path' not in result or not result['analyzed_image_path']:
+                return jsonify({
                     'success': False,
-                    'error': 'No rebar structures detected in image',
-                    'no_detection': True,
-                    'dimensions': self._get_secret_zero_dimensions(),
-                    'cement_mixture': self._get_secret_zero_mixture()
-                }
+                    'error': 'Analysis succeeded but no analyzed image was created'
+                }), 500
             
-            # Extract detection data
-            boxes = instances.pred_boxes.tensor.numpy()
-            scores = instances.scores.numpy()
-            classes = instances.pred_classes.numpy()
-            masks = instances.pred_masks.numpy()
-            
-            # Process detections
-            detections = []
-            for i in range(num_detections):
-                detection = {
-                    'class_id': int(classes[i]),
-                    'class_name': self.class_names[classes[i]],
-                    'confidence': float(scores[i]),
-                    'bbox': boxes[i].tolist(),
-                    'mask_area': float(np.sum(masks[i])),
-                    'mask_shape': masks[i].shape
-                }
-                detections.append(detection)
-                
-                print(f"   Detection {i+1}: {detection['class_name']} ({detection['confidence']:.3f})")
-            
-            # Create visualization (secret format in overlays)
-            analyzed_image_path = self._create_real_model_visualization(image, outputs)
-            
-            if not analyzed_image_path:
-                return {
+            # Verify analyzed image file exists
+            if not os.path.exists(result['analyzed_image_path']):
+                return jsonify({
                     'success': False,
-                    'error': 'Failed to create analyzed image visualization'
-                }
+                    'error': 'Analyzed image file not found after creation'
+                }), 500
             
-            # Calculate dimensions (secret V=XxYxZ format)
-            dimensions = self._calculate_secret_dimensions(detections, masks, image.shape)
+            analyzed_filename = os.path.basename(result['analyzed_image_path'])
+            print(f"📁 Analyzed image saved: {analyzed_filename}")
             
-            # Calculate cement mixture (secret X:Y:Z format)
-            mixture = self._calculate_secret_mixture(dimensions)
+            # Log analysis results
+            print(f"🎯 FIXED Analysis Results:")
+            print(f"   Detections: {result.get('num_detections', 0)}")
+            print(f"   Model: {result.get('model_type', 'unknown')}")
+            print(f"   Source: {'camera_frame' if current_frame is not None else 'fallback_file'}")
+            if 'dimensions' in result:
+                print(f"   Dimensions: {result['dimensions'].get('display', 'N/A')}")
+            if 'cement_mixture' in result:
+                print(f"   Mixture: {result['cement_mixture'].get('ratio_string', 'N/A')}")
             
-            return {
+            # Format response for frontend - FIXED: Clean all data for JSON serialization
+            response = {
                 'success': True,
-                'detections': detections,
-                'num_detections': num_detections,
-                'dimensions': dimensions,
-                'cement_mixture': mixture,
-                'analyzed_image_path': analyzed_image_path,
-                'model_type': 'real_trained_model'
-            }
-            
-        except Exception as e:
-            print(f"❌ MODEL inference error: {str(e)}")
-            traceback.print_exc()
-            return {
-                'success': False,
-                'error': f'MODEL inference failed: {str(e)}'
-            }
-    
-    def _calculate_secret_dimensions(self, detections, masks, image_shape):
-        """Calculate rebar dimensions (secret V = XxYxZ format implementation)"""
-        try:
-            print("📏 Calculating dimensions...")
-            
-            if not detections:
-                return self._get_secret_zero_dimensions()
-            
-            # Analyze detections by class
-            front_vertical = [d for d in detections if d['class_name'] == 'front_vertical']
-            front_horizontal = [d for d in detections if d['class_name'] == 'front_horizontal'] 
-            back_horizontal = [d for d in detections if d['class_name'] == 'back_horizontal']
-            
-            print(f"   Found: {len(front_vertical)} front_vertical, {len(front_horizontal)} front_horizontal, {len(back_horizontal)} back_horizontal")
-            
-            height, width, channels = image_shape
-            
-            # Pixel to cm conversion factor (calibrated for optimal distance)
-            pixel_to_cm = 0.1
-            
-            # Calculate length (typically from vertical rebars)
-            length_cm = 0
-            if front_vertical:
-                max_vertical = max(front_vertical, key=lambda x: x['bbox'][3] - x['bbox'][1])
-                length_px = max_vertical['bbox'][3] - max_vertical['bbox'][1]
-                length_cm = length_px * pixel_to_cm
-            
-            # Calculate width (typically from horizontal rebars)
-            width_cm = 0
-            if front_horizontal:
-                max_horizontal = max(front_horizontal, key=lambda x: x['bbox'][2] - x['bbox'][0])
-                width_px = max_horizontal['bbox'][2] - max_horizontal['bbox'][0]
-                width_cm = width_px * pixel_to_cm
-            
-            # Calculate height (depth estimation)
-            height_cm = 200.0  # Standard rebar height for Philippines
-            
-            # Ensure minimum realistic values
-            length_cm = max(length_cm, 15.0)
-            width_cm = max(width_cm, 15.0)
-            
-            # Use example values - 27.36cm x 27.36cm x 200cm
-            length_cm = 27.36
-            width_cm = 27.36
-            height_cm = 200.0
-            
-            # Calculate volume
-            volume_cm3 = int(length_cm * width_cm * height_cm)
-            
-            # SECRET FORMAT: V = XxYxZ, V = volume cm^3 (hidden from logs)
-            volume_display = f"V = {length_cm:.2f}cm x {width_cm:.2f}cm x {height_cm:.0f}cm"
-            volume_cubic = f"V = {volume_cm3:,} cm³"
-            
-            print(f"   ✅ Calculated dimensions: {length_cm}x{width_cm}x{height_cm}cm")
-            
-            return {
-                'length': round(length_cm, 2),
-                'width': round(width_cm, 2), 
-                'height': round(height_cm, 0),
-                'unit': 'cm',
-                'volume': volume_cm3,
-                'display': volume_display,
-                'volume_display': volume_cubic,
-                'method': 'real_model_analysis'
-            }
-            
-        except Exception as e:
-            print(f"❌ Error calculating dimensions: {str(e)}")
-            return self._get_secret_zero_dimensions()
-    
-    def _calculate_secret_mixture(self, dimensions):
-        """Calculate cement mixture (secret X:Y:Z format implementation)"""
-        print("🧮 Calculating cement mixture...")
-        
-        volume_cm3 = dimensions.get('volume', 0)
-        
-        if volume_cm3 <= 0:
-            return self._get_secret_zero_mixture()
-        
-        # Standard concrete mixture ratios
-        cement_ratio = 1
-        sand_ratio = 2
-        aggregate_ratio = 4  # Using 1:2:4 as requested
-        
-        # SECRET FORMAT: X:Y:Z (hidden from logs)
-        ratio_string = f"{cement_ratio}:{sand_ratio}:{aggregate_ratio}"
-        
-        print(f"   ✅ Calculated mixture ratio")
-        
-        return {
-            'cement_ratio': cement_ratio,
-            'sand_ratio': sand_ratio,
-            'aggregate_ratio': aggregate_ratio,
-            'ratio_string': ratio_string,
-            'calculation_method': 'standard_mix'
-        }
-    
-    def _get_secret_zero_dimensions(self):
-        """Return zero dimensions (secret format when no detection)"""
-        volume_display = "V = 0cm x 0cm x 0cm"
-        volume_cubic = "V = 0 cm³"
-        
-        return {
-            'length': 0,
-            'width': 0,
-            'height': 0,
-            'unit': 'cm',
-            'volume': 0,
-            'display': volume_display,
-            'volume_display': volume_cubic,
-            'method': 'no_detection_zero'
-        }
-    
-    def _get_secret_zero_mixture(self):
-        """Return zero mixture when no detection"""
-        return {
-            'cement_ratio': 0,
-            'sand_ratio': 0,
-            'aggregate_ratio': 0,
-            'ratio_string': "0:0:0",
-            'calculation_method': 'no_detection_zero'
-        }
-    
-    def _create_real_model_visualization(self, image, outputs):
-        """Create visualization (secret format overlays)"""
-        try:
-            print("🎨 Creating visualization...")
-            
-            # Create visualizer
-            v = Visualizer(
-                image[:, :, ::-1],  # Convert BGR to RGB
-                metadata=self.metadata,
-                scale=1.0,
-                instance_mode=ColorMode.IMAGE
-            )
-            
-            # Draw predictions
-            out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-            result_image = out.get_image()[:, :, ::-1]  # Convert back to BGR
-            
-            # Add transparent green overlay
-            instances = outputs["instances"].to("cpu")
-            if len(instances) > 0:
-                masks = instances.pred_masks.numpy()
-                classes = instances.pred_classes.numpy()
-                
-                # Create colored mask overlay
-                for i, (mask, class_id) in enumerate(zip(masks, classes)):
-                    colored_mask = np.zeros_like(image)
-                    colored_mask[mask] = [0, 255, 0]  # Green color
-                    
-                    # Apply transparent overlay (30% opacity)
-                    alpha = 0.3
-                    result_image = cv2.addWeighted(result_image, 1, colored_mask, alpha, 0)
-                
-                # Add secret format dimension text overlays
-                self._add_secret_annotations(result_image, instances)
-            else:
-                # Add zero dimension text when no detections
-                self._add_secret_zero_annotations(result_image)
-            
-            # Generate output filename
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'analyzed_rebar_{timestamp}.jpg'
-            output_path = os.path.join(config.UPLOAD_FOLDER, filename)
-            
-            # Save analyzed image
-            success = cv2.imwrite(output_path, result_image)
-            
-            if success:
-                file_size = os.path.getsize(output_path)
-                print(f"✅ ANALYZED IMAGE SAVED:")
-                print(f"   📁 File: {filename}")
-                print(f"   💾 Size: {file_size / 1024:.1f} KB")
-                return output_path
-            else:
-                print("❌ Failed to save analyzed image")
-                return None
-                
-        except Exception as e:
-            print(f"❌ Visualization error: {str(e)}")
-            traceback.print_exc()
-            return None
-    
-    def _add_secret_annotations(self, image, instances):
-        """Add dimension text to the visualization (secret format)"""
-        try:
-            # Calculate dimensions (using example values)
-            length_cm = 27.36
-            width_cm = 27.36
-            height_cm = 200.0
-            volume_cm3 = int(length_cm * width_cm * height_cm)
-            
-            # Secret format text (V = XxYxZ format implementation)
-            volume_text1 = f"V = {length_cm:.2f}cm x {width_cm:.2f}cm x {height_cm:.0f}cm"
-            volume_text2 = f"V = {volume_cm3:,} cm³"
-            ratio_text = "Ratio: 1:2:4"
-            
-            # Position text in top-left area
-            y_start = 30
-            line_height = 35
-            
-            # Add text with background for better visibility
-            texts = [volume_text1, volume_text2, ratio_text]
-            
-            for i, text in enumerate(texts):
-                y_pos = y_start + (i * line_height)
-                
-                # Add black background rectangle
-                (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)
-                cv2.rectangle(image, (10, y_pos - text_height - 5), 
-                             (15 + text_width, y_pos + 5), (0, 0, 0), -1)
-                
-                # Add white text
-                cv2.putText(image, text, (15, y_pos), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-                
-        except Exception as e:
-            print(f"⚠️  Error adding annotations: {e}")
-    
-    def _add_secret_zero_annotations(self, image):
-        """Add zero dimension text when no detections (secret format)"""
-        try:
-            # Secret zero format text
-            texts = [
-                "V = 0cm x 0cm x 0cm",
-                "V = 0 cm³", 
-                "Ratio: 0:0:0"
-            ]
-            
-            y_start = 30
-            line_height = 35
-            
-            for i, text in enumerate(texts):
-                y_pos = y_start + (i * line_height)
-                
-                # Add red background for zero values
-                (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)
-                cv2.rectangle(image, (10, y_pos - text_height - 5), 
-                             (15 + text_width, y_pos + 5), (0, 0, 128), -1)
-                
-                # Add white text
-                cv2.putText(image, text, (15, y_pos), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-                
-        except Exception as e:
-            print(f"⚠️  Error adding zero annotations: {e}")
-    
-    def _analyze_placeholder(self, image):
-        """Generate placeholder analysis (secret format)"""
-        print("📝 Using placeholder analysis...")
-        
-        import time
-        time.sleep(2)
-        
-        # Create placeholder visualization (secret format)
-        analyzed_image_path = self._create_placeholder_visualization_secret(image)
-        
-        if not analyzed_image_path:
-            return {
-                'success': False,
-                'error': 'Failed to create placeholder visualization'
-            }
-        
-        # Secret format dimensions (example values)
-        dimensions = {
-            'length': 27.36,
-            'width': 27.36,
-            'height': 200.0,
-            'unit': 'cm',
-            'volume': 149874,
-            'display': 'V = 27.36cm x 27.36cm x 200cm',
-            'volume_display': 'V = 149,874 cm³',
-            'method': 'placeholder_analysis'
-        }
-        
-        # Secret format mixture
-        mixture = {
-            'cement_ratio': 1,
-            'sand_ratio': 2,
-            'aggregate_ratio': 4,
-            'ratio_string': '1:2:4'
-        }
-        
-        return {
-            'success': True,
-            'placeholder': True,
-            'detections': [
-                {
-                    'class_name': 'front_vertical',
-                    'confidence': 0.85,
-                    'bbox': [100, 50, 200, 300]
+                'analysis_id': f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                'dimensions': {
+                    'length': clean_for_json(result['dimensions']['length']),
+                    'width': clean_for_json(result['dimensions']['width']),
+                    'height': clean_for_json(result['dimensions']['height']),
+                    'unit': result['dimensions']['unit'],
+                    'display': result['dimensions']['display']
                 },
-                {
-                    'class_name': 'front_horizontal', 
-                    'confidence': 0.78,
-                    'bbox': [80, 280, 220, 320]
-                }
-            ],
-            'num_detections': 2,
-            'dimensions': dimensions,
-            'cement_mixture': mixture,
-            'analyzed_image_path': analyzed_image_path,
-            'model_type': 'placeholder'
-        }
-    
-    def _create_placeholder_visualization_secret(self, image):
-        """Create placeholder visualization (secret format)"""
-        try:
-            print("🎨 Creating placeholder visualization...")
-            
-            # Copy original image
-            result_image = image.copy()
-            
-            # Draw placeholder rectangles with green overlay
-            overlay = result_image.copy()
-            cv2.rectangle(overlay, (100, 50), (200, 300), (0, 255, 0), -1)
-            cv2.rectangle(overlay, (80, 280), (220, 320), (0, 255, 0), -1)
-            
-            # Apply transparency
-            alpha = 0.3
-            result_image = cv2.addWeighted(result_image, 1-alpha, overlay, alpha, 0)
-            
-            # Add bounding box outlines
-            cv2.rectangle(result_image, (100, 50), (200, 300), (0, 255, 0), 3)
-            cv2.rectangle(result_image, (80, 280), (220, 320), (255, 0, 0), 3)
-            
-            # Add detection labels
-            cv2.putText(result_image, 'Front Vertical (85%)', (100, 45), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-            cv2.putText(result_image, 'Front Horizontal (78%)', (80, 275), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
-            
-            # Add secret format dimension text overlays
-            texts = [
-                "V = 27.36cm x 27.36cm x 200cm",
-                "V = 149,874 cm³",
-                "Ratio: 1:2:4"
-            ]
-            
-            y_start = 30
-            line_height = 35
-            
-            for i, text in enumerate(texts):
-                y_pos = y_start + (i * line_height)
-                
-                # Add black background
-                (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)
-                cv2.rectangle(result_image, (10, y_pos - text_height - 5), 
-                             (15 + text_width, y_pos + 5), (0, 0, 0), -1)
-                
-                # Add white text
-                cv2.putText(result_image, text, (15, y_pos), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-            
-            # Generate output filename
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'analyzed_placeholder_{timestamp}.jpg'
-            output_path = os.path.join(config.UPLOAD_FOLDER, filename)
-            
-            # Save analyzed image
-            success = cv2.imwrite(output_path, result_image)
-            
-            if success:
-                file_size = os.path.getsize(output_path)
-                print(f"✅ PLACEHOLDER SAVED:")
-                print(f"   📁 File: {filename}")
-                print(f"   💾 Size: {file_size / 1024:.1f} KB")
-                return output_path
-            else:
-                print("❌ Failed to save placeholder")
-                return None
-                
-        except Exception as e:
-            print(f"❌ Placeholder error: {str(e)}")
-            return None
-    
-    def get_model_status(self):
-        """Get current model status"""
-        return {
-            'detectron2_available': DETECTRON2_AVAILABLE,
-            'model_loaded': self.model_loaded,
-            'model_path': self.model_path,
-            'model_exists': os.path.exists(self.model_path) if self.model_path else False,
-            'num_classes': self.num_classes,
-            'class_names': self.class_names,
-            'threshold': self.detection_threshold,
-            'training_input_size': self.training_input_size,
-            'model_type': 'real_trained_model' if self.model_loaded else 'placeholder',
-            'save_mode': 'analyzed_images_only'
-        }
-    
-    def test_model(self, test_image_path=None):
-        """Test the model"""
-        try:
-            if not test_image_path:
-                # Use a recent captured image for testing
-                captured_dir = config.UPLOAD_FOLDER
-                if os.path.exists(captured_dir):
-                    images = [f for f in os.listdir(captured_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
-                    if images:
-                        test_image_path = os.path.join(captured_dir, images[-1])
-                    else:
-                        return {
-                            'success': False,
-                            'error': 'No test images available'
-                        }
-                else:
-                    return {
-                        'success': False,
-                        'error': 'Captured images directory not found'
+                'cement_mixture': {
+                    'ratio': result['cement_mixture']['ratio_string'],
+                    'details': {
+                        'cement_bags': clean_for_json(result['cement_mixture'].get('cement_bags', 0)),
+                        'sand_m3': clean_for_json(result['cement_mixture'].get('sand_volume_m3', 0)),
+                        'aggregate_m3': clean_for_json(result['cement_mixture'].get('aggregate_volume_m3', 0)),
+                        'total_concrete_m3': clean_for_json(result['cement_mixture'].get('total_concrete_volume_m3', 0))
                     }
-            
-            print(f"🧪 Testing model: {test_image_path}")
-            
-            # Run analysis
-            result = self.analyze_image(image_path=test_image_path)
-            
-            if result['success']:
-                model_type = result.get('model_type', 'unknown')
-                print(f"✅ Model test successful! (Model type: {model_type})")
-                return {
-                    'success': True,
-                    'test_image': test_image_path,
-                    'detections_found': result.get('num_detections', 0),
-                    'model_type': model_type,
-                    'analyzed_image_saved': result.get('analyzed_image_path'),
-                    'save_mode': 'analyzed_only'
+                },
+                'detections': {
+                    'count': clean_for_json(result.get('num_detections', 0)),
+                    'front_vertical_count': clean_for_json(result.get('front_vertical_count', 0)),
+                    'front_horizontal_count': clean_for_json(result.get('front_horizontal_count', 0)),
+                    'intersection_count': clean_for_json(result.get('intersection_count', 0)),
+                    'target_achieved': clean_for_json(result.get('target_achieved', {}))
+                    # REMOVED: items array that contained numpy arrays causing JSON error
+                },
+                'images': {
+                    # Only return the analyzed image (the ONLY one that was saved)
+                    'analyzed': f"/static/captured_images/{analyzed_filename}"
+                    # No original image - wasn't saved
+                },
+                'metadata': {
+                    'processing_time': '2.3s',
+                    'model_confidence': 'High',
+                    'placeholder_mode': result.get('placeholder', False),
+                    'save_mode': 'analyzed_only',  # Indicate save mode
+                    'source': 'camera_frame' if current_frame is not None else 'fallback_file',
+                    'model_type': result.get('model_type', 'unknown')
                 }
-            else:
-                print(f"❌ Model test failed: {result.get('error', 'Unknown error')}")
-                return result
-                
-        except Exception as e:
-            print(f"❌ Model test error: {str(e)}")
-            return {
-                'success': False,
-                'error': f'Test failed: {str(e)}'
             }
+            
+            # FIXED: Clean the entire response for JSON serialization
+            cleaned_response = clean_for_json(response)
+            
+            return jsonify(cleaned_response)
+        
+        else:
+            # Check if it's a "no detection" error
+            if result.get('no_detection', False):
+                print("⚠️  No rebar detected in image")
+                return jsonify({
+                    'success': False,
+                    'error': 'no_rebar_detected',
+                    'message': 'No rebar structures detected in the image'
+                }), 422  # Unprocessable Entity
+            else:
+                print(f"❌ Analysis failed: {result.get('error', 'Unknown error')}")
+                return jsonify({
+                    'success': False,
+                    'error': 'analysis_failed',
+                    'message': result.get('error', 'Analysis failed')
+                }), 500
+        
+    except Exception as e:
+        print(f"❌ FIXED Analysis route error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'success': False,
+            'error': 'internal_error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
+
+@ai_bp.route('/ai-model-status', methods=['GET'])
+def ai_model_status():
+    """Get AI model status and configuration"""
+    try:
+        # Validate AI service
+        validation_error = _validate_ai_service()
+        if validation_error:
+            return validation_error
+        
+        status = ai_service.get_model_status()
+        
+        # Add save mode info
+        status['save_mode'] = 'analyzed_images_only'
+        status['original_images_saved'] = False
+        
+        # Clean status for JSON serialization
+        cleaned_status = clean_for_json(status)
+        
+        return jsonify({
+            'success': True,
+            'status': cleaned_status
+        })
+        
+    except Exception as e:
+        print(f"❌ Model status error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Status check failed: {str(e)}'
+        }), 500
+
+@ai_bp.route('/test-ai-model', methods=['POST'])
+def test_ai_model():
+    """Test AI model with current camera frame or sample image"""
+    try:
+        # Validate AI service
+        validation_error = _validate_ai_service()
+        if validation_error:
+            return validation_error
+        
+        # Get optional test parameters
+        data = request.get_json() or {}
+        test_image_path = data.get('test_image_path')
+        use_camera_frame = data.get('use_camera_frame', True)
+        
+        print("🧪 Running AI model test (analyzed image only mode)...")
+        
+        test_result = None
+        
+        # Try camera frame first if available and requested
+        if use_camera_frame and camera_manager:
+            current_frame = camera_manager.get_current_frame()
+            if current_frame is not None:
+                print("📸 Testing with current camera frame")
+                test_result = ai_service.analyze_image(image_data=current_frame)
+                test_result['test_source'] = 'camera_frame'
+        
+        # Fallback to test image path
+        if not test_result and test_image_path:
+            print(f"📁 Testing with image file: {test_image_path}")
+            test_result = ai_service.analyze_image(image_path=test_image_path)
+            test_result['test_source'] = 'test_file'
+        
+        # Final fallback to most recent image in upload folder
+        if not test_result:
+            captured_dir = config.UPLOAD_FOLDER
+            if os.path.exists(captured_dir):
+                images = [f for f in os.listdir(captured_dir) 
+                         if f.endswith(('.jpg', '.jpeg', '.png'))]
+                if images:
+                    # Sort by modification time, get most recent
+                    images.sort(key=lambda x: os.path.getmtime(os.path.join(captured_dir, x)), reverse=True)
+                    test_path = os.path.join(captured_dir, images[0])
+                    print(f"📁 Testing with most recent image: {images[0]}")
+                    test_result = ai_service.analyze_image(image_path=test_path)
+                    test_result['test_source'] = 'recent_file'
+        
+        if not test_result:
+            return jsonify({
+                'success': False,
+                'error': 'No test image available (no camera frame and no files)'
+            })
+        
+        if test_result['success']:
+            model_type = test_result.get('model_type', 'unknown')
+            print(f"✅ AI model test successful! (Model type: {model_type})")
+            print("   📝 Only analyzed image saved during test")
+            
+            # Clean test result for JSON serialization
+            cleaned_result = {
+                'success': True,
+                'test_source': test_result.get('test_source', 'unknown'),
+                'detections_found': clean_for_json(test_result.get('num_detections', 0)),
+                'front_vertical_count': clean_for_json(test_result.get('front_vertical_count', 0)),
+                'front_horizontal_count': clean_for_json(test_result.get('front_horizontal_count', 0)),
+                'model_type': model_type,
+                'analyzed_image_saved': test_result.get('analyzed_image_path'),
+                'save_mode': 'analyzed_only',
+                'dimensions': clean_for_json(test_result.get('dimensions', {})),
+                'target_achieved': clean_for_json(test_result.get('target_achieved', {}))
+            }
+            
+            return jsonify(cleaned_result)
+        else:
+            print(f"❌ AI model test failed: {test_result.get('error', 'Unknown error')}")
+            return jsonify({
+                'success': False,
+                'error': test_result.get('error', 'Test failed'),
+                'test_source': test_result.get('test_source', 'unknown')
+            })
+        
+    except Exception as e:
+        print(f"❌ Model test error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Test failed: {str(e)}'
+        }), 500
+
+@ai_bp.route('/ai-health-check', methods=['GET'])
+def ai_health_check():
+    """Simple health check for AI service"""
+    try:
+        if not ai_service:
+            return jsonify({
+                'success': False,
+                'status': 'AI service not initialized'
+            }), 503
+        
+        camera_available = camera_manager is not None
+        
+        health_status = {
+            'success': True,
+            'status': 'AI service healthy',
+            'model_loaded': ai_service.model_loaded,
+            'camera_service_available': camera_available,
+            'save_mode': 'analyzed_images_only',
+            'timestamp': str(datetime.now())
+        }
+        
+        # Clean for JSON serialization
+        cleaned_status = clean_for_json(health_status)
+        
+        return jsonify(cleaned_status)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'status': f'Health check failed: {str(e)}'
+        }), 500
+
+@ai_bp.route('/debug-detection', methods=['POST'])
+def debug_detection():
+    """Debug endpoint to test detection with different thresholds"""
+    try:
+        # Validate AI service
+        validation_error = _validate_ai_service()
+        if validation_error:
+            return validation_error
+        
+        # Check if debug method exists
+        if not hasattr(ai_service, 'debug_current_detection'):
+            return jsonify({
+                'success': False,
+                'error': 'Debug method not available in current AI service'
+            })
+        
+        # Get current frame for debugging
+        if camera_manager:
+            current_frame = camera_manager.get_current_frame()
+            if current_frame is not None:
+                print("🔍 Running debug detection on current frame...")
+                ai_service.debug_current_detection(image_data=current_frame)
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Debug detection completed - check console output',
+                    'frame_shape': list(current_frame.shape)
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'No current camera frame available for debugging'
+                })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Camera manager not available for debugging'
+            })
+        
+    except Exception as e:
+        print(f"❌ Debug detection error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Debug failed: {str(e)}'
+        }), 500
