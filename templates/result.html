@@ -81,7 +81,7 @@
     </section>
   </main>
 
-  <!-- UPDATED: Enhanced Image Modal (matching main page result modal with 1:2:4 ratio) -->
+  <!-- UPDATED: Enhanced Image Modal (matching main page result modal) -->
   <div id="image-modal" class="modal-overlay" onclick="closeModal()">
     <div class="modal-content results-modal-content" onclick="event.stopPropagation()">
       <div class="modal-header results-header">
@@ -95,15 +95,15 @@
           <img id="modal-image" src="" alt="Analysis Result" class="results-image">
         </div>
         
-        <!-- UPDATED: Analysis Data Display (matching main page with 1:2:4 ratio) -->
+        <!-- UPDATED: Analysis Data Display (matching main page) -->
         <div class="results-data">
           <div class="result-card">
             <h3>Rebar Dimensions</h3>
-            <div class="result-value" id="modal-dimensions">32cm × 32cm × 393cm</div>
+            <div class="result-value" id="modal-dimensions">27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters</div>
           </div>
           <div class="result-card">
             <h3>Cement Mixture Ratio</h3>
-            <div class="result-value" id="modal-mixture">1 Cement : 2 Sand : 4 Aggregate</div>
+            <div class="result-value" id="modal-mixture">1 Cement: 2 Sand: 4 Aggregate</div>
           </div>
         </div>
         
@@ -115,11 +115,11 @@
           </div>
           <div class="detail-row">
             <span class="detail-label">Detections Found:</span>
-            <span id="modal-detections" class="detail-value">-</span>
+            <span id="modal-detections" class="detail-value">2 Verticals + 11 Horizontals Pattern</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Model Type:</span>
-            <span id="modal-model-type" class="detail-value">-</span>
+            <span id="modal-model-type" class="detail-value">Simplified Front Detection</span>
           </div>
         </div>
       </div>
