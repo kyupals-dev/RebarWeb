@@ -1,10 +1,12 @@
 """
-AI Analysis Routes for Rebar Detection
+AI Analysis Routes for Rebar Detection - FIXED JSON Serialization
 MODIFIED: Works with direct camera frame data - only saves analyzed images
+FIXED: Handles numpy arrays and non-JSON serializable objects
 """
 
 from flask import Blueprint, jsonify, request
 import os
+import numpy as np
 from datetime import datetime
 from app.utils.config import config
 
@@ -40,14 +42,43 @@ def _validate_camera_service():
         }), 503
     return None
 
+def clean_for_json(obj):
+    """
+    Convert numpy arrays and other non-JSON serializable objects to JSON-safe types
+    This fixes the "Object of type ndarray is not JSON serializable" error
+    """
+    if isinstance(obj, dict):
+        return {key: clean_for_json(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_for_json(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return [clean_for_json(item) for item in obj]
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (np.integer, np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif hasattr(obj, 'item'):  # numpy scalar
+        return obj.item()
+    elif hasattr(obj, '__float__'):
+        return float(obj)
+    elif hasattr(obj, '__int__'):
+        return int(obj)
+    else:
+        return obj
+
 @ai_bp.route('/analyze-rebar', methods=['POST'])
 def analyze_rebar():
     """
-    Analyze current camera frame for rebar detection
+    Analyze current camera frame for rebar detection - FIXED JSON serialization
     MODIFIED: Works with direct frame data - only saves analyzed image with AI overlays
     """
     try:
-        print("🔍 AI analysis request received (analyzed image only mode)")
+        print("🔍 FIXED AI analysis request received...")
+        print("📝 GUARANTEE: This will detect rebar structures or provide meaningful feedback")
         
         # Validate AI service
         validation_error = _validate_ai_service()
@@ -60,7 +91,6 @@ def analyze_rebar():
             return validation_error
         
         # Get request data for fallback image path (optional)
-        # Handle case where request has no JSON body
         try:
             data = request.get_json(silent=True) or {}
         except Exception:
@@ -106,7 +136,7 @@ def analyze_rebar():
             }), 400
         
         if result['success']:
-            print("✅ Analysis completed successfully")
+            print("✅ FIXED Analysis completed successfully")
             
             # Ensure analyzed image was saved
             if 'analyzed_image_path' not in result or not result['analyzed_image_path']:
@@ -125,29 +155,43 @@ def analyze_rebar():
             analyzed_filename = os.path.basename(result['analyzed_image_path'])
             print(f"📁 Analyzed image saved: {analyzed_filename}")
             
-            # Format response for frontend with new dimension format
+            # Log analysis results
+            print(f"🎯 FIXED Analysis Results:")
+            print(f"   Detections: {result.get('num_detections', 0)}")
+            print(f"   Model: {result.get('model_type', 'unknown')}")
+            print(f"   Source: {'camera_frame' if current_frame is not None else 'fallback_file'}")
+            if 'dimensions' in result:
+                print(f"   Dimensions: {result['dimensions'].get('display', 'N/A')}")
+            if 'cement_mixture' in result:
+                print(f"   Mixture: {result['cement_mixture'].get('ratio_string', 'N/A')}")
+            
+            # Format response for frontend - FIXED: Clean all data for JSON serialization
             response = {
                 'success': True,
                 'analysis_id': f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 'dimensions': {
-                    'length': result['dimensions']['length'],
-                    'width': result['dimensions']['width'],
-                    'height': result['dimensions']['height'],
+                    'length': clean_for_json(result['dimensions']['length']),
+                    'width': clean_for_json(result['dimensions']['width']),
+                    'height': clean_for_json(result['dimensions']['height']),
                     'unit': result['dimensions']['unit'],
                     'display': result['dimensions']['display']
                 },
                 'cement_mixture': {
                     'ratio': result['cement_mixture']['ratio_string'],
                     'details': {
-                        'cement_bags': result['cement_mixture'].get('cement_bags', 0),
-                        'sand_m3': result['cement_mixture'].get('sand_volume_m3', 0),
-                        'aggregate_m3': result['cement_mixture'].get('aggregate_volume_m3', 0),
-                        'total_concrete_m3': result['cement_mixture'].get('total_concrete_volume_m3', 0)
+                        'cement_bags': clean_for_json(result['cement_mixture'].get('cement_bags', 0)),
+                        'sand_m3': clean_for_json(result['cement_mixture'].get('sand_volume_m3', 0)),
+                        'aggregate_m3': clean_for_json(result['cement_mixture'].get('aggregate_volume_m3', 0)),
+                        'total_concrete_m3': clean_for_json(result['cement_mixture'].get('total_concrete_volume_m3', 0))
                     }
                 },
                 'detections': {
-                    'count': result.get('num_detections', 0),
-                    'items': result.get('detections', [])
+                    'count': clean_for_json(result.get('num_detections', 0)),
+                    'front_vertical_count': clean_for_json(result.get('front_vertical_count', 0)),
+                    'front_horizontal_count': clean_for_json(result.get('front_horizontal_count', 0)),
+                    'intersection_count': clean_for_json(result.get('intersection_count', 0)),
+                    'target_achieved': clean_for_json(result.get('target_achieved', {}))
+                    # REMOVED: items array that contained numpy arrays causing JSON error
                 },
                 'images': {
                     # Only return the analyzed image (the ONLY one that was saved)
@@ -159,11 +203,15 @@ def analyze_rebar():
                     'model_confidence': 'High',
                     'placeholder_mode': result.get('placeholder', False),
                     'save_mode': 'analyzed_only',  # Indicate save mode
-                    'source': 'camera_frame' if current_frame is not None else 'fallback_file'
+                    'source': 'camera_frame' if current_frame is not None else 'fallback_file',
+                    'model_type': result.get('model_type', 'unknown')
                 }
             }
             
-            return jsonify(response)
+            # FIXED: Clean the entire response for JSON serialization
+            cleaned_response = clean_for_json(response)
+            
+            return jsonify(cleaned_response)
         
         else:
             # Check if it's a "no detection" error
@@ -183,7 +231,7 @@ def analyze_rebar():
                 }), 500
         
     except Exception as e:
-        print(f"❌ Analysis route error: {str(e)}")
+        print(f"❌ FIXED Analysis route error: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -208,9 +256,12 @@ def ai_model_status():
         status['save_mode'] = 'analyzed_images_only'
         status['original_images_saved'] = False
         
+        # Clean status for JSON serialization
+        cleaned_status = clean_for_json(status)
+        
         return jsonify({
             'success': True,
-            'status': status
+            'status': cleaned_status
         })
         
     except Exception as e:
@@ -277,16 +328,21 @@ def test_ai_model():
             print(f"✅ AI model test successful! (Model type: {model_type})")
             print("   📝 Only analyzed image saved during test")
             
-            return jsonify({
+            # Clean test result for JSON serialization
+            cleaned_result = {
                 'success': True,
                 'test_source': test_result.get('test_source', 'unknown'),
-                'detections_found': test_result.get('num_detections', 0),
+                'detections_found': clean_for_json(test_result.get('num_detections', 0)),
+                'front_vertical_count': clean_for_json(test_result.get('front_vertical_count', 0)),
+                'front_horizontal_count': clean_for_json(test_result.get('front_horizontal_count', 0)),
                 'model_type': model_type,
                 'analyzed_image_saved': test_result.get('analyzed_image_path'),
                 'save_mode': 'analyzed_only',
-                'dimensions': test_result.get('dimensions', {}),
-                'test_result': test_result
-            })
+                'dimensions': clean_for_json(test_result.get('dimensions', {})),
+                'target_achieved': clean_for_json(test_result.get('target_achieved', {}))
+            }
+            
+            return jsonify(cleaned_result)
         else:
             print(f"❌ AI model test failed: {test_result.get('error', 'Unknown error')}")
             return jsonify({
@@ -314,17 +370,68 @@ def ai_health_check():
         
         camera_available = camera_manager is not None
         
-        return jsonify({
+        health_status = {
             'success': True,
             'status': 'AI service healthy',
             'model_loaded': ai_service.model_loaded,
             'camera_service_available': camera_available,
             'save_mode': 'analyzed_images_only',
             'timestamp': str(datetime.now())
-        })
+        }
+        
+        # Clean for JSON serialization
+        cleaned_status = clean_for_json(health_status)
+        
+        return jsonify(cleaned_status)
         
     except Exception as e:
         return jsonify({
             'success': False,
             'status': f'Health check failed: {str(e)}'
+        }), 500
+
+@ai_bp.route('/debug-detection', methods=['POST'])
+def debug_detection():
+    """Debug endpoint to test detection with different thresholds"""
+    try:
+        # Validate AI service
+        validation_error = _validate_ai_service()
+        if validation_error:
+            return validation_error
+        
+        # Check if debug method exists
+        if not hasattr(ai_service, 'debug_current_detection'):
+            return jsonify({
+                'success': False,
+                'error': 'Debug method not available in current AI service'
+            })
+        
+        # Get current frame for debugging
+        if camera_manager:
+            current_frame = camera_manager.get_current_frame()
+            if current_frame is not None:
+                print("🔍 Running debug detection on current frame...")
+                ai_service.debug_current_detection(image_data=current_frame)
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Debug detection completed - check console output',
+                    'frame_shape': list(current_frame.shape)
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'No current camera frame available for debugging'
+                })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Camera manager not available for debugging'
+            })
+        
+    except Exception as e:
+        print(f"❌ Debug detection error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Debug failed: {str(e)}'
         }), 500

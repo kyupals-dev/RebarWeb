@@ -459,18 +459,18 @@ class CameraAppManager {
       console.warn('⚠️ No analyzed image found in results');
     }
     
-    // Set dimensions with new format
+    // Set dimensions
     if (results.dimensions && results.dimensions.display && dimensionsResult) {
       dimensionsResult.textContent = results.dimensions.display;
     } else if (dimensionsResult) {
-      dimensionsResult.textContent = '27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters'; // Fallback
+      dimensionsResult.textContent = '25.4cm × 25.4cm × 200cm'; // Fallback
     }
     
-    // Set cement mixture with new format
+    // Set cement mixture
     if (results.cement_mixture && results.cement_mixture.ratio && mixtureResult) {
       mixtureResult.textContent = results.cement_mixture.ratio;
     } else if (mixtureResult) {
-      mixtureResult.textContent = '1 Cement: 2 Sand: 4 Aggregate'; // Fallback
+      mixtureResult.textContent = '1 Cement : 2 Sand : 3 Aggregate'; // Fallback
     }
     
     // Store results for reference
