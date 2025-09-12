@@ -1,4 +1,4 @@
-/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES WITH DISTANCE SENSOR ==================== */
+/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES WITH PIPELINE SUPPORT ==================== */
 
 /* Global Styles with #2d7d47 Theme */
 body {
@@ -533,11 +533,13 @@ body {
   color: #2d7d47;
 }
 
-/* ==================== RESULTS MODAL ==================== */
+/* ==================== UPDATED PIPELINE RESULTS MODAL ==================== */
 
 .results-modal .modal-content {
-  width: 700px;
+  width: 900px;
+  max-width: 95vw;
   padding: 0;
+  max-height: 95vh;
 }
 
 .results-header {
@@ -555,25 +557,28 @@ body {
 
 .results-body {
   padding: 30px;
+  max-height: calc(95vh - 200px);
+  overflow-y: auto;
 }
 
 .results-image {
   width: 100%;
-  max-height: 400px;
+  max-height: 300px;
   object-fit: contain;
   border-radius: 12px;
   margin-bottom: 25px;
   border: 2px solid #f0f0f0;
 }
 
-.results-data {
+/* UPDATED: Pipeline Results Data with Exact Format */
+.pipeline-results-data {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 25px;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
-.result-card {
+.pipeline-result-card {
   background: #f8f9fa;
   padding: 25px;
   border-radius: 12px;
@@ -581,24 +586,115 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.result-card h3 {
+.pipeline-result-card h3 {
   margin: 0 0 15px 0;
   color: #2d7d47;
   font-size: 16px;
   font-weight: 600;
 }
 
-.result-value {
-  font-size: 20px;
+.pipeline-result-value {
+  font-size: 18px;
   font-weight: bold;
   color: #2d7d47;
-  line-height: 1.3;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* UPDATED: Pipeline Details Section */
+.pipeline-details {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  border: 1px solid #e0e0e0;
+}
+
+.pipeline-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.pipeline-detail-row:last-child {
+  border-bottom: none;
+}
+
+.pipeline-detail-label {
+  font-weight: 600;
+  color: #2d7d47;
+  font-size: 14px;
+}
+
+.pipeline-detail-value {
+  color: #333;
+  font-size: 14px;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+/* UPDATED: Pipeline Visualization Steps (4 Images) */
+.pipeline-visualization-steps {
+  margin-top: 25px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.pipeline-visualization-steps h4 {
+  margin: 0 0 20px 0;
+  color: #2d7d47;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pipeline-step-images {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.pipeline-step-image {
+  text-align: center;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.pipeline-step-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.step-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+}
+
+.step-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2d7d47;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* ==================== ERROR MODAL ==================== */
 
 .error-modal .modal-content {
-  width: 450px;
+  width: 500px;
   padding: 40px;
   text-align: center;
 }
@@ -619,7 +715,33 @@ body {
   color: #666;
   font-size: 16px;
   line-height: 1.6;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+}
+
+.error-requirements {
+  text-align: left;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border-left: 4px solid #e74c3c;
+}
+
+.error-requirements h4 {
+  margin: 0 0 10px 0;
+  color: #e74c3c;
+  font-size: 16px;
+}
+
+.error-requirements ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.error-requirements li {
+  margin-bottom: 5px;
+  color: #666;
+  font-size: 14px;
 }
 
 /* ==================== MODAL BUTTONS ==================== */
@@ -631,6 +753,12 @@ body {
   padding: 25px 30px;
   border-top: 1px solid #eee;
   margin: 25px -30px -30px -30px;
+}
+
+.results-footer {
+  padding: 25px 30px;
+  border-top: 1px solid #eee;
+  text-align: center;
 }
 
 .modal-btn {
@@ -684,17 +812,70 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* ==================== PORTRAIT-OPTIMIZED RESPONSIVE DESIGN ==================== */
+/* ==================== RESPONSIVE DESIGN FOR PIPELINE MODAL ==================== */
 
-/* Large portrait screens - maximize space even more */
+/* Tablet adjustments */
+@media (max-width: 1024px) {
+  .results-modal .modal-content {
+    width: 85vw;
+    max-width: 800px;
+  }
+  
+  .pipeline-step-images {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .step-image {
+    height: 100px;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .results-modal .modal-content {
+    width: 95vw;
+    margin: 10px;
+  }
+  
+  .pipeline-results-data {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .pipeline-step-images {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .step-image {
+    height: 150px;
+  }
+  
+  .pipeline-detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .pipeline-detail-value {
+    text-align: left;
+    max-width: 100%;
+  }
+  
+  .results-body {
+    padding: 20px;
+  }
+}
+
+/* Portrait-optimized responsive design */
 @media (orientation: portrait) and (min-height: 800px) {
   .camera-container {
-    height: 85vh; /* Use even more space on tall screens */
+    height: 85vh;
     width: calc(85vh * 0.75);
   }
 }
 
-/* Medium portrait screens */
 @media (orientation: portrait) and (max-height: 800px) and (min-height: 600px) {
   .camera-container {
     height: 80vh;
@@ -733,9 +914,8 @@ body {
     font-size: 22px;
   }
   
-  /* Adjust distance display for medium screens */
   .distance-display {
-    right: 75px; /* Adjust for smaller tutorial button */
+    right: 75px;
     font-size: 10px;
     padding: 6px 10px;
     min-width: 70px;
@@ -750,7 +930,6 @@ body {
   }
 }
 
-/* Small portrait screens */
 @media (orientation: portrait) and (max-height: 600px) {
   .header {
     height: 60px;
@@ -808,9 +987,8 @@ body {
     font-size: 20px;
   }
   
-  /* Compact distance display for small screens */
   .distance-display {
-    right: 70px; /* Adjust for smaller tutorial button */
+    right: 70px;
     font-size: 9px;
     padding: 5px 8px;
     min-width: 60px;
@@ -832,7 +1010,7 @@ body {
   }
 }
 
-/* Landscape fallback (discourage landscape use) */
+/* Landscape fallback */
 @media (orientation: landscape) {
   .camera-container {
     height: 85vh;
@@ -842,7 +1020,7 @@ body {
   }
   
   .camera-interface::before {
-    content: "📱 For best experience, please rotate your device to portrait mode";
+    content: "📱 For best pipeline results, please rotate your device to portrait mode";
     position: absolute;
     top: 10px;
     left: 50%;
@@ -855,7 +1033,6 @@ body {
     z-index: 50;
   }
   
-  /* Adjust distance display for landscape */
   .distance-display {
     right: 80px;
     top: 15px;
@@ -863,14 +1040,14 @@ body {
   }
 }
 
-/* Tablet-specific optimizations - maximize space */
+/* Tablet-specific optimizations */
 @media (min-width: 768px) and (orientation: portrait) {
   .camera-interface {
     padding: 20px;
   }
   
   .camera-container {
-    height: 88vh; /* Use almost full height on tablets */
+    height: 88vh;
     width: calc(88vh * 0.75);
     max-height: 900px;
     max-width: 675px;
@@ -900,9 +1077,8 @@ body {
     font-size: 26px;
   }
   
-  /* Enhanced distance display for tablets */
   .distance-display {
-    right: 85px; /* More space for larger tutorial button */
+    right: 85px;
     font-size: 12px;
     padding: 10px 15px;
     min-width: 90px;
@@ -917,35 +1093,4 @@ body {
   .distance-display .distance-status {
     font-size: 10px;
   }
-  
-  .results-modal .modal-content {
-    width: 600px;
-  }
-  
-  .tutorial-modal .modal-content {
-    width: 550px;
-  }
-}
-
-/* ==================== DISTANCE DISPLAY ANIMATIONS ==================== */
-
-/* Pulse animation for status changes */
-@keyframes distancePulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-.distance-display.pulse {
-  animation: distancePulse 0.3s ease;
-}
-
-/* Fade in animation for initial display */
-@keyframes distanceFadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.distance-display {
-  animation: distanceFadeIn 0.5s ease;
 }

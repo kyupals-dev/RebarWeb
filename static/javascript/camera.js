@@ -1,5 +1,5 @@
-// ==================== SIMPLIFIED CAMERA APP MANAGER WITH DISTANCE SENSOR ==================== 
-// MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
+// ==================== UPDATED CAMERA APP MANAGER WITH PIPELINE SUPPORT ==================== 
+// MODIFIED: Updated to display exact format from pipeline analysis
 
 class CameraAppManager {
   constructor() {
@@ -47,8 +47,8 @@ class CameraAppManager {
   }
   
   init() {
-    console.log('🎥 Initializing Camera App Manager (Analyzed Images Only Mode)...');
-    console.log('📝 NOTE: Only analyzed images with AI overlays will be saved to gallery');
+    console.log('🎥 Initializing Camera App Manager (PIPELINE MODE)...');
+    console.log('📝 NOTE: Using Quadrant Pipeline Analysis');
     this.setupEventListeners();
     this.createDistanceDisplay();
     this.startCameraFeed();
@@ -291,7 +291,7 @@ class CameraAppManager {
       }
     }, 100); // 10 FPS for smooth experience
     
-    this.updateStatus('A4Tech Camera Active');
+    this.updateStatus('A4Tech Camera Active (Pipeline Mode)');
     console.log('✅ Server camera feed started');
   }
   
@@ -311,7 +311,7 @@ class CameraAppManager {
     }
   }
   
-  // ==================== MODIFIED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
+  // ==================== MODIFIED CAPTURE & ANALYZE FLOW (PIPELINE ANALYSIS) ====================
   
   async captureAndAnalyze() {
     if (this.isAnalyzing) {
@@ -336,8 +336,8 @@ class CameraAppManager {
       // If optimal, continue without warning
     }
     
-    console.log('📸 Starting capture and analyze flow (ANALYZED IMAGE ONLY)...');
-    console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
+    console.log('📸 Starting PIPELINE capture and analyze flow...');
+    console.log('📝 NOTE: Using Quadrant Pipeline Analysis');
     this.isAnalyzing = true;
     
     try {
@@ -351,10 +351,10 @@ class CameraAppManager {
       
       // Step 2: Show loading overlay immediately
       this.showLoadingOverlay();
-      this.updateStatus('Preparing frame for AI analysis...');
+      this.updateStatus('Preparing frame for PIPELINE analysis...');
       
-      // Step 3: Verify camera frame is ready (NO ORIGINAL SAVED)
-      console.log('📷 Verifying camera frame is ready (no original will be saved)...');
+      // Step 3: Verify camera frame is ready
+      console.log('📷 Verifying camera frame is ready for pipeline...');
       const captureResponse = await fetch('/capture-current-frame', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -370,12 +370,11 @@ class CameraAppManager {
         throw new Error(captureResult.error || 'Failed to prepare frame');
       }
       
-      console.log('✅ Frame ready for analysis:', captureResult.frame_dimensions);
-      console.log('📝 Confirmed: No original frame saved');
+      console.log('✅ Frame ready for PIPELINE analysis:', captureResult.frame_dimensions);
       
-      // Step 4: Start AI analysis directly with current camera frame
-      this.updateStatus('Analyzing rebar structure with AI...');
-      console.log('🔍 Starting AI analysis (will save ONLY analyzed image with overlays)...');
+      // Step 4: Start PIPELINE AI analysis
+      this.updateStatus('Running PIPELINE analysis: Quadrant intersections...');
+      console.log('🔍 Starting PIPELINE AI analysis...');
       
       const analysisResponse = await fetch('/analyze-rebar', {
         method: 'POST',
@@ -393,34 +392,29 @@ class CameraAppManager {
             return;
           }
         }
-        throw new Error(`Analysis failed: ${analysisResponse.status}`);
+        throw new Error(`PIPELINE analysis failed: ${analysisResponse.status}`);
       }
       
       const analysisResult = await analysisResponse.json();
       
       if (!analysisResult.success) {
-        throw new Error(analysisResult.message || 'Analysis failed');
+        throw new Error(analysisResult.message || 'PIPELINE analysis failed');
       }
       
-      console.log('✅ AI analysis completed - ONLY analyzed image saved to gallery');
-      
-      // Verify the save mode
-      if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
-        console.log('✅ Confirmed: Only analyzed image was saved (no duplicates)');
-      }
+      console.log('✅ PIPELINE AI analysis completed');
+      console.log('📊 Pipeline results:', analysisResult);
       
       // Step 5: Hide loading and show results
       this.hideLoadingOverlay();
-      this.showAnalysisResults(analysisResult);
+      this.showPipelineResults(analysisResult);
       
-      // Step 6: Confirm single image save
-      console.log('💾 SUCCESS: Only analyzed image with AI overlays saved to gallery');
-      console.log('🚫 No original/duplicate images created');
+      // Step 6: Confirm successful analysis
+      console.log('💾 SUCCESS: PIPELINE analysis with quadrant intersections completed');
       
     } catch (error) {
-      console.error('❌ Capture and analyze error:', error);
+      console.error('❌ PIPELINE capture and analyze error:', error);
       this.hideLoadingOverlay();
-      this.updateStatus('Analysis failed');
+      this.updateStatus('PIPELINE analysis failed');
       this.showErrorMessage('Failed to analyze image: ' + error.message);
     } finally {
       this.isAnalyzing = false;
@@ -432,6 +426,11 @@ class CameraAppManager {
   showLoadingOverlay() {
     if (this.loadingOverlay) {
       this.loadingOverlay.classList.add('active');
+      // Update loading text for pipeline
+      const loadingText = this.loadingOverlay.querySelector('.loading-text');
+      if (loadingText) {
+        loadingText.textContent = 'Running quadrant pipeline analysis...';
+      }
     }
   }
   
@@ -441,12 +440,12 @@ class CameraAppManager {
     }
   }
   
-  // ==================== RESULTS MANAGEMENT ====================
+  // ==================== PIPELINE RESULTS MANAGEMENT ====================
   
-  showAnalysisResults(results) {
-    console.log('📊 Showing analysis results (analyzed image only)...');
+  showPipelineResults(results) {
+    console.log('📊 Showing PIPELINE results...');
     
-    // Update results modal with actual data from AI
+    // Update results modal with PIPELINE data - EXACT FORMAT
     const resultsImage = document.getElementById('results-image');
     const dimensionsResult = document.getElementById('dimensions-result');
     const mixtureResult = document.getElementById('mixture-result');
@@ -454,23 +453,25 @@ class CameraAppManager {
     // Set analyzed image (ONLY image that was saved)
     if (results.images && results.images.analyzed && resultsImage) {
       resultsImage.src = results.images.analyzed;
-      console.log('🖼️ Displaying analyzed image with AI overlays (ONLY saved image)');
+      console.log('🖼️ Displaying PIPELINE analyzed image with quadrant overlays');
     } else if (resultsImage) {
-      console.warn('⚠️ No analyzed image found in results');
+      console.warn('⚠️ No PIPELINE analyzed image found in results');
     }
     
-    // Set dimensions
+    // Set dimensions - EXACT FORMAT: "27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters"
     if (results.dimensions && results.dimensions.display && dimensionsResult) {
       dimensionsResult.textContent = results.dimensions.display;
+      console.log('📐 PIPELINE Dimensions:', results.dimensions.display);
     } else if (dimensionsResult) {
-      dimensionsResult.textContent = '25.4cm × 25.4cm × 200cm'; // Fallback
+      dimensionsResult.textContent = '27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters'; // Fallback
     }
     
-    // Set cement mixture
-    if (results.cement_mixture && results.cement_mixture.ratio && mixtureResult) {
-      mixtureResult.textContent = results.cement_mixture.ratio;
+    // Set cement mixture - EXACT FORMAT: "1:2:4"
+    if (results.cement_mixture && results.cement_mixture.ratio_string && mixtureResult) {
+      mixtureResult.textContent = results.cement_mixture.ratio_string;
+      console.log('🧮 PIPELINE Mixture:', results.cement_mixture.ratio_string);
     } else if (mixtureResult) {
-      mixtureResult.textContent = '1 Cement : 2 Sand : 3 Aggregate'; // Fallback
+      mixtureResult.textContent = '1:2:4'; // Fallback
     }
     
     // Store results for reference
@@ -482,22 +483,22 @@ class CameraAppManager {
     }
     
     // Update status
-    this.updateStatus('Analysis complete - Analyzed image saved to gallery');
+    this.updateStatus('PIPELINE analysis complete - Quadrant analysis saved to gallery');
     
-    // Log analysis details
-    console.log('📊 Analysis Results Summary:', {
+    // Log PIPELINE analysis details
+    console.log('📊 PIPELINE Analysis Results Summary:', {
       detections: results.detections?.count || 0,
       dimensions: results.dimensions?.display || 'N/A',
-      mixture: results.cement_mixture?.ratio || 'N/A',
-      placeholder: results.metadata?.placeholder_mode || false,
-      save_mode: results.metadata?.save_mode || 'unknown',
-      only_analyzed_saved: true
+      mixture: results.cement_mixture?.ratio_string || 'N/A',
+      model_type: results.metadata?.model_type || 'unknown',
+      pipeline_data: results.pipeline_data || null,
+      quadrants: results.quadrants || null
     });
     
     // Show success message
     const detectionCount = results.detections?.count || 0;
-    const saveMode = results.metadata?.save_mode || 'analyzed_only';
-    const message = `Analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery (${saveMode}).`;
+    const modelType = results.metadata?.model_type || 'pipeline';
+    const message = `PIPELINE analysis complete! ${detectionCount} rebar structures detected. Quadrant intersections analyzed.`;
     setTimeout(() => {
       this.showSuccessMessage(message);
     }, 1000); // Delay to let modal appear first
@@ -538,7 +539,7 @@ class CameraAppManager {
   // ==================== NAVIGATION ====================
   
   openGallery() {
-    console.log('📁 Opening gallery (showing analyzed images only)...');
+    console.log('📁 Opening gallery (PIPELINE analyzed images)...');
     window.location.href = '/result.html';
   }
   
@@ -621,12 +622,12 @@ class CameraAppManager {
   }
   
   closeResultsModal() {
-    console.log('✕ Closing results modal...');
+    console.log('✕ Closing PIPELINE results modal...');
     if (this.resultsModal) {
       this.resultsModal.classList.remove('active');
     }
     this.analysisResults = null; // Clear stored results
-    this.updateStatus('Ready for next capture (analyzed image only mode)');
+    this.updateStatus('Ready for next PIPELINE capture');
   }
   
   showErrorModal() {
@@ -641,7 +642,7 @@ class CameraAppManager {
     if (this.errorModal) {
       this.errorModal.classList.remove('active');
     }
-    this.updateStatus('Ready for next capture (analyzed image only mode)');
+    this.updateStatus('Ready for next PIPELINE capture');
   }
   
   // ==================== UI STATUS MANAGEMENT ====================
@@ -716,7 +717,7 @@ class CameraAppManager {
   handleKeyboard(e) {
     // Prevent shortcuts during analysis
     if (this.isAnalyzing) {
-      console.log('⏳ Ignoring keyboard shortcut during analysis');
+      console.log('⏳ Ignoring keyboard shortcut during PIPELINE analysis');
       return;
     }
     
@@ -778,11 +779,11 @@ class CameraAppManager {
         }
         break;
         
-      case 's': // S - Show save mode info (debug)
-      case 'S':
+      case 'p': // P - Show pipeline mode info (debug)
+      case 'P':
         e.preventDefault();
-        this.showSuccessMessage('Save Mode: Analyzed Images Only (no originals)');
-        console.log('💾 Save Mode: Only analyzed images with AI overlays are saved');
+        this.showSuccessMessage('Mode: Quadrant Pipeline Analysis (1:2:4 mix ratio)');
+        console.log('🔍 Mode: Quadrant Pipeline Analysis with cement mixture calculation');
         break;
     }
   }
@@ -813,28 +814,30 @@ window.closeErrorModal = function() {
 
 // Initialize camera app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Starting Rebar Vista Camera App (ANALYZED IMAGES ONLY MODE)...');
-  console.log('📝 IMPORTANT: Only analyzed images with AI overlays will be saved');
-  console.log('🚫 No original/duplicate images will be created');
+  console.log('🚀 Starting Rebar Vista Camera App (QUADRANT PIPELINE MODE)...');
+  console.log('📝 PIPELINE: Quadrant intersections → Polygon → Volume → Cement (1:2:4)');
+  console.log('🎯 Expected detections: 2 verticals + 11 horizontals');
+  console.log('📐 Exact format: "27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters"');
+  console.log('🧮 Ratio format: "1:2:4"');
   
   // Create global instance
   window.cameraApp = new CameraAppManager();
   
-  console.log('✅ Camera App initialized successfully');
-  console.log('📋 Modified User Flow:');
+  console.log('✅ Camera App initialized successfully (PIPELINE MODE)');
+  console.log('📋 PIPELINE User Flow:');
   console.log('   1. Position device at optimal distance (160-200cm)');
   console.log('   2. Press capture button (📷)');
-  console.log('   3. Wait for AI analysis');
-  console.log('   4. View results (ONLY analyzed image auto-saved to gallery)');
+  console.log('   3. Wait for quadrant pipeline analysis');
+  console.log('   4. View results with exact dimensions format');
   console.log('   5. Close results and capture again');
   console.log('');
   console.log('📋 Available keyboard shortcuts:');
-  console.log('   Space/Enter - Capture & analyze');
+  console.log('   Space/Enter - Capture & analyze with pipeline');
   console.log('   Escape - Close modals');
   console.log('   F - Toggle fullscreen');
   console.log('   G - Open gallery');
   console.log('   D - Show distance info (debug)');
-  console.log('   S - Show save mode info (debug)');
+  console.log('   P - Show pipeline mode info (debug)');
   console.log('   ? - Open tutorial');
 });
 

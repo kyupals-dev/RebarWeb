@@ -31,7 +31,10 @@ def get_local_ip():
     return "127.0.0.1"
 
 class Config:
-    """Application configuration settings with enhanced SSL certificate management for IP changes"""
+    """
+    Application configuration settings for PIPELINE MODE
+    UPDATED: Enhanced SSL certificate management for IP changes + Pipeline Constants
+    """
     
     def __init__(self):
         # Server settings
@@ -43,10 +46,51 @@ class Config:
         self.UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'static/captured_images')
         self.ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
         
-        # Camera settings
-        self.CAMERA_WIDTH = int(os.getenv('CAMERA_WIDTH', 640))
-        self.CAMERA_HEIGHT = int(os.getenv('CAMERA_HEIGHT', 480))
+        # Camera settings - EXACT MATCH TO TRAINING
+        self.CAMERA_WIDTH = int(os.getenv('CAMERA_WIDTH', 480))  # Training width
+        self.CAMERA_HEIGHT = int(os.getenv('CAMERA_HEIGHT', 640))  # Training height
         self.CAMERA_FPS = float(os.getenv('CAMERA_FPS', 30.0))
+        
+        # PIPELINE CONSTANTS - EXACT MATCH TO YOUR TRAINING CODE
+        self.PIPELINE_MODE = True
+        self.PX_TO_CM = 1 / 3.54  # conversion factor (3.54 px = 1 cm)
+        self.OFFSET_CM = 4.5      # allowance for formworks per side
+        
+        # Cement mixture constants - EXACT FROM PIPELINE
+        self.CEMENT_BAG_WEIGHT = 40      # kg
+        self.MIX_RATIO = (1, 2, 4)       # cement : sand : gravel
+        self.WATER_CEMENT_RATIO = 0.53
+        self.DRY_VOLUME_FACTOR = 1.54
+        
+        # Material Densities (kg/m³) - EXACT FROM PIPELINE
+        self.CEMENT_DENSITY = 1440
+        self.SAND_DENSITY = 1600
+        self.GRAVEL_DENSITY = 1500
+        
+        # Model configuration - EXACT MATCH TO YOUR TRAINING CONFIG
+        self.MODEL_CONFIG = {
+            'config_file': "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml",
+            'num_classes': 2,  # front_horizontal, front_vertical
+            'class_names': ["front_horizontal", "front_vertical"],
+            'score_thresh_test': 0.3,
+            'device': 'cpu',  # Raspberry Pi 5
+            'input_format': 'BGR',
+            'expected_detections': {
+                'front_vertical': 2,
+                'front_horizontal': 11
+            }
+        }
+        
+        # Distance sensor optimal range
+        self.DISTANCE_OPTIMAL_MIN = 160  # cm
+        self.DISTANCE_OPTIMAL_MAX = 200  # cm
+        
+        print("🔧 PIPELINE Config initialized:")
+        print(f"   Camera: {self.CAMERA_WIDTH}x{self.CAMERA_HEIGHT}")
+        print(f"   Classes: {self.MODEL_CONFIG['class_names']}")
+        print(f"   PX_TO_CM: {self.PX_TO_CM}")
+        print(f"   Mix ratio: {self.MIX_RATIO}")
+        print(f"   Expected detections: {self.MODEL_CONFIG['expected_detections']}")
         
         # Setup SSL paths
         self._setup_ssl_paths()
@@ -195,7 +239,7 @@ req_extensions = v3_req
 
 [dn]
 CN = {current_ip}
-O = Rebar Vista
+O = Rebar Vista Pipeline
 OU = Development
 C = PH
 L = Quezon City
@@ -370,6 +414,29 @@ IP.3 = ::1
         # Fallback: regenerate certificates
         return self.generate_ssl_certificates()
     
+    def get_pipeline_config(self):
+        """Get pipeline-specific configuration"""
+        return {
+            'pipeline_mode': self.PIPELINE_MODE,
+            'px_to_cm': self.PX_TO_CM,
+            'offset_cm': self.OFFSET_CM,
+            'mix_ratio': self.MIX_RATIO,
+            'cement_bag_weight': self.CEMENT_BAG_WEIGHT,
+            'water_cement_ratio': self.WATER_CEMENT_RATIO,
+            'dry_volume_factor': self.DRY_VOLUME_FACTOR,
+            'material_densities': {
+                'cement': self.CEMENT_DENSITY,
+                'sand': self.SAND_DENSITY,
+                'gravel': self.GRAVEL_DENSITY
+            },
+            'model_config': self.MODEL_CONFIG,
+            'distance_range': {
+                'min': self.DISTANCE_OPTIMAL_MIN,
+                'max': self.DISTANCE_OPTIMAL_MAX,
+                'unit': 'cm'
+            }
+        }
+    
     def get_status(self):
         """Get current configuration status"""
         return {
@@ -379,16 +446,27 @@ IP.3 = ::1
             'upload_folder_exists': os.path.exists(self.UPLOAD_FOLDER),
             'openssl_available': self._check_openssl_available(),
             'ssl_cert_path': self.SSL_CERT_PATH,
-            'ssl_key_path': self.SSL_KEY_PATH
+            'ssl_key_path': self.SSL_KEY_PATH,
+            'pipeline_mode': self.PIPELINE_MODE,
+            'camera_resolution': f"{self.CAMERA_WIDTH}x{self.CAMERA_HEIGHT}",
+            'expected_classes': self.MODEL_CONFIG['class_names'],
+            'mix_ratio': f"{self.MIX_RATIO[0]}:{self.MIX_RATIO[1]}:{self.MIX_RATIO[2]}"
         }
     
     def print_status(self):
         """Print current configuration status"""
         status = self.get_status()
-        print("\n=== Rebar Vista Configuration Status ===")
+        print("\n=== Rebar Vista PIPELINE Configuration Status ===")
+        print(f"Mode: PIPELINE ANALYSIS (Quadrant Intersections)")
         print(f"IP Address: {status['ip_address']}")
         print(f"Server Host: {self.HOST}")
         print(f"Server Port: {self.PORT}")
+        print(f"Camera Resolution: {status['camera_resolution']} (Training Match)")
+        print(f"Expected Classes: {status['expected_classes']}")
+        print(f"Mix Ratio: {status['mix_ratio']}")
+        print(f"PX_TO_CM Factor: {self.PX_TO_CM}")
+        print(f"Offset per side: {self.OFFSET_CM}cm")
+        print(f"Distance Range: {self.DISTANCE_OPTIMAL_MIN}-{self.DISTANCE_OPTIMAL_MAX}cm")
         print(f"OpenSSL Available: {'✅' if status['openssl_available'] else '❌'}")
         print(f"SSL Certificate: {'✅' if status['ssl_cert_exists'] else '❌'}")
         print(f"  Path: {status['ssl_cert_path']}")
@@ -429,4 +507,5 @@ if __name__ == "__main__":
     config.print_status()
 else:
     # Only print brief status when imported
-    print(f"Config loaded - IP: {config.current_ip}")
+    print(f"PIPELINE Config loaded - IP: {config.current_ip}")
+    print(f"Camera: {config.CAMERA_WIDTH}x{config.CAMERA_HEIGHT}, Mix: {config.MIX_RATIO}")
