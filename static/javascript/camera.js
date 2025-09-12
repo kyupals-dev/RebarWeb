@@ -1,5 +1,4 @@
-// ==================== CORRECTED CAMERA APP MANAGER WITH PIPELINE SUPPORT ==================== 
-// FIXED: JavaScript syntax error in distance checking logic
+// ==================== SIMPLIFIED CAMERA APP MANAGER WITH DISTANCE SENSOR ==================== 
 // MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
 
 class CameraAppManager {
@@ -8,7 +7,6 @@ class CameraAppManager {
     this.isAnalyzing = false;
     this.isFullscreen = false;
     this.analysisResults = null;
-    this.analysisMode = 'pipeline'; // FIXED: Default to pipeline mode
     
     // Distance sensor management
     this.distanceInterval = null;
@@ -49,9 +47,8 @@ class CameraAppManager {
   }
   
   init() {
-    console.log('🎥 Initializing Camera App Manager (PIPELINE Mode, Analyzed Images Only)...');
+    console.log('🎥 Initializing Camera App Manager (Analyzed Images Only Mode)...');
     console.log('📝 NOTE: Only analyzed images with AI overlays will be saved to gallery');
-    console.log(`📊 Analysis Mode: ${this.analysisMode}`);
     this.setupEventListeners();
     this.createDistanceDisplay();
     this.startCameraFeed();
@@ -294,7 +291,7 @@ class CameraAppManager {
       }
     }, 100); // 10 FPS for smooth experience
     
-    this.updateStatus('A4Tech Camera Active (PIPELINE Mode)');
+    this.updateStatus('A4Tech Camera Active');
     console.log('✅ Server camera feed started');
   }
   
@@ -314,7 +311,7 @@ class CameraAppManager {
     }
   }
   
-  // ==================== FIXED CAPTURE & ANALYZE FLOW WITH PIPELINE MODE ==================== 
+  // ==================== MODIFIED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
   
   async captureAndAnalyze() {
     if (this.isAnalyzing) {
@@ -322,7 +319,7 @@ class CameraAppManager {
       return;
     }
     
-    // FIXED: Check distance for optimal positioning warning with proper syntax
+    // Check distance for optimal positioning warning
     if (this.lastDistanceReading && this.lastDistanceReading.success) {
       const status = this.lastDistanceReading.status;
       if (status === 'too_close') {
@@ -339,7 +336,7 @@ class CameraAppManager {
       // If optimal, continue without warning
     }
     
-    console.log(`📸 Starting FIXED capture and analyze flow (${this.analysisMode.toUpperCase()} MODE)...`);
+    console.log('📸 Starting capture and analyze flow (ANALYZED IMAGE ONLY)...');
     console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
     this.isAnalyzing = true;
     
@@ -354,7 +351,7 @@ class CameraAppManager {
       
       // Step 2: Show loading overlay immediately
       this.showLoadingOverlay();
-      this.updateStatus(`Preparing frame for ${this.analysisMode.toUpperCase()} AI analysis...`);
+      this.updateStatus('Preparing frame for AI analysis...');
       
       // Step 3: Verify camera frame is ready (NO ORIGINAL SAVED)
       console.log('📷 Verifying camera frame is ready (no original will be saved)...');
@@ -376,32 +373,15 @@ class CameraAppManager {
       console.log('✅ Frame ready for analysis:', captureResult.frame_dimensions);
       console.log('📝 Confirmed: No original frame saved');
       
-      // Step 4: Start AI analysis with specified mode
-      this.updateStatus(`Analyzing rebar structure with ${this.analysisMode.toUpperCase()} AI...`);
-      console.log(`🔍 Starting ${this.analysisMode.toUpperCase()} AI analysis (will save ONLY analyzed image with overlays)...`);
+      // Step 4: Start AI analysis directly with current camera frame
+      this.updateStatus('Analyzing rebar structure with AI...');
+      console.log('🔍 Starting AI analysis (will save ONLY analyzed image with overlays)...');
       
-      // FIXED: Use proper endpoint and mode selection
-      let analysisEndpoint;
-      let requestBody = {};
-      
-      if (this.analysisMode === 'pipeline') {
-        // Use dedicated pipeline endpoint for better compatibility
-        analysisEndpoint = '/analyze-rebar-pipeline';
-        console.log('🔄 Using dedicated PIPELINE analysis endpoint');
-      } else {
-        // Use general endpoint with mode specification
-        analysisEndpoint = '/analyze-rebar';
-        requestBody.mode = this.analysisMode;
-        console.log(`🔄 Using general analysis endpoint with mode: ${this.analysisMode}`);
-      }
-      
-      const analysisResponse = await fetch(analysisEndpoint, {
+      const analysisResponse = await fetch('/analyze-rebar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        headers: { 'Content-Type': 'application/json' }
+        // No body needed - analysis works with current camera frame
       });
-      
-      console.log(`📡 Analysis response status: ${analysisResponse.status}`);
       
       if (!analysisResponse.ok) {
         if (analysisResponse.status === 422) {
@@ -413,18 +393,7 @@ class CameraAppManager {
             return;
           }
         }
-        
-        // FIXED: Better error handling for 500 errors
-        let errorMessage = `Analysis failed with status ${analysisResponse.status}`;
-        try {
-          const errorResult = await analysisResponse.json();
-          errorMessage = errorResult.message || errorResult.error || errorMessage;
-          console.error('❌ Detailed error:', errorResult);
-        } catch (parseError) {
-          console.error('❌ Could not parse error response:', parseError);
-        }
-        
-        throw new Error(errorMessage);
+        throw new Error(`Analysis failed: ${analysisResponse.status}`);
       }
       
       const analysisResult = await analysisResponse.json();
@@ -433,19 +402,11 @@ class CameraAppManager {
         throw new Error(analysisResult.message || 'Analysis failed');
       }
       
-      console.log(`✅ ${this.analysisMode.toUpperCase()} AI analysis completed - ONLY analyzed image saved to gallery`);
+      console.log('✅ AI analysis completed - ONLY analyzed image saved to gallery');
       
       // Verify the save mode
       if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
         console.log('✅ Confirmed: Only analyzed image was saved (no duplicates)');
-      }
-      
-      // FIXED: Log analysis mode and results
-      console.log(`📊 Analysis Mode: ${analysisResult.metadata?.analysis_mode || this.analysisMode}`);
-      console.log(`🤖 Model Type: ${analysisResult.metadata?.model_type || 'unknown'}`);
-      
-      if (analysisResult.metadata?.quadrant_info) {
-        console.log('🔍 PIPELINE Quadrant Info:', analysisResult.metadata.quadrant_info);
       }
       
       // Step 5: Hide loading and show results
@@ -453,63 +414,16 @@ class CameraAppManager {
       this.showAnalysisResults(analysisResult);
       
       // Step 6: Confirm single image save
-      console.log(`💾 SUCCESS: Only ${this.analysisMode.toUpperCase()} analyzed image with AI overlays saved to gallery`);
+      console.log('💾 SUCCESS: Only analyzed image with AI overlays saved to gallery');
       console.log('🚫 No original/duplicate images created');
       
     } catch (error) {
-      console.error(`❌ ${this.analysisMode.toUpperCase()} capture and analyze error:`, error);
+      console.error('❌ Capture and analyze error:', error);
       this.hideLoadingOverlay();
-      this.updateStatus(`${this.analysisMode.toUpperCase()} analysis failed`);
-      
-      // FIXED: Enhanced error messaging
-      let errorMessage = error.message;
-      if (errorMessage.includes('500')) {
-        errorMessage = `${this.analysisMode.toUpperCase()} analysis failed: Internal server error. Please check the AI service logs.`;
-      } else if (errorMessage.includes('422')) {
-        errorMessage = 'No rebar structures detected in the image.';
-      }
-      
-      this.showErrorMessage(`Failed to analyze image: ${errorMessage}`);
+      this.updateStatus('Analysis failed');
+      this.showErrorMessage('Failed to analyze image: ' + error.message);
     } finally {
       this.isAnalyzing = false;
-    }
-  }
-  
-  // ==================== ANALYSIS MODE SWITCHING ==================== 
-  
-  async switchAnalysisMode(newMode) {
-    if (newMode !== 'pipeline' && newMode !== 'phased') {
-      console.error('❌ Invalid analysis mode:', newMode);
-      return false;
-    }
-    
-    console.log(`🔄 Switching analysis mode from ${this.analysisMode} to ${newMode}...`);
-    
-    try {
-      const response = await fetch('/switch-analysis-mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: newMode })
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          this.analysisMode = newMode;
-          this.updateStatus(`Analysis mode switched to ${newMode.toUpperCase()}`);
-          console.log(`✅ Analysis mode switched to ${newMode}:`, result);
-          this.showSuccessMessage(`Analysis mode switched to ${newMode.toUpperCase()}`);
-          return true;
-        } else {
-          throw new Error(result.error || 'Mode switch failed');
-        }
-      } else {
-        throw new Error(`HTTP ${response.status}`);
-      }
-    } catch (error) {
-      console.error('❌ Error switching analysis mode:', error);
-      this.showErrorMessage(`Failed to switch to ${newMode} mode: ${error.message}`);
-      return false;
     }
   }
   
@@ -518,12 +432,6 @@ class CameraAppManager {
   showLoadingOverlay() {
     if (this.loadingOverlay) {
       this.loadingOverlay.classList.add('active');
-      
-      // FIXED: Update loading text based on analysis mode
-      const loadingText = this.loadingOverlay.querySelector('.loading-text');
-      if (loadingText) {
-        loadingText.textContent = `Analyzing rebar structure with ${this.analysisMode.toUpperCase()} AI...`;
-      }
     }
   }
   
@@ -536,7 +444,7 @@ class CameraAppManager {
   // ==================== RESULTS MANAGEMENT ====================
   
   showAnalysisResults(results) {
-    console.log(`📊 Showing ${this.analysisMode.toUpperCase()} analysis results (analyzed image only)...`);
+    console.log('📊 Showing analysis results (analyzed image only)...');
     
     // Update results modal with actual data from AI
     const resultsImage = document.getElementById('results-image');
@@ -546,7 +454,7 @@ class CameraAppManager {
     // Set analyzed image (ONLY image that was saved)
     if (results.images && results.images.analyzed && resultsImage) {
       resultsImage.src = results.images.analyzed;
-      console.log(`🖼️ Displaying ${this.analysisMode.toUpperCase()} analyzed image with AI overlays (ONLY saved image)`);
+      console.log('🖼️ Displaying analyzed image with AI overlays (ONLY saved image)');
     } else if (resultsImage) {
       console.warn('⚠️ No analyzed image found in results');
     }
@@ -573,28 +481,23 @@ class CameraAppManager {
       this.resultsModal.classList.add('active');
     }
     
-    // Update status with mode info
-    this.updateStatus(`${this.analysisMode.toUpperCase()} analysis complete - Analyzed image saved to gallery`);
+    // Update status
+    this.updateStatus('Analysis complete - Analyzed image saved to gallery');
     
-    // FIXED: Log analysis details with mode info
-    console.log(`📊 ${this.analysisMode.toUpperCase()} Analysis Results Summary:`, {
-      mode: results.metadata?.analysis_mode || this.analysisMode,
-      model_type: results.metadata?.model_type || 'unknown',
+    // Log analysis details
+    console.log('📊 Analysis Results Summary:', {
       detections: results.detections?.count || 0,
       dimensions: results.dimensions?.display || 'N/A',
       mixture: results.cement_mixture?.ratio || 'N/A',
       placeholder: results.metadata?.placeholder_mode || false,
       save_mode: results.metadata?.save_mode || 'unknown',
-      only_analyzed_saved: true,
-      quadrant_info: results.metadata?.quadrant_info || null
+      only_analyzed_saved: true
     });
     
-    // Show success message with mode info
+    // Show success message
     const detectionCount = results.detections?.count || 0;
     const saveMode = results.metadata?.save_mode || 'analyzed_only';
-    const analysisMode = results.metadata?.analysis_mode || this.analysisMode;
-    const message = `${analysisMode.toUpperCase()} analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery (${saveMode}).`;
-    
+    const message = `Analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery (${saveMode}).`;
     setTimeout(() => {
       this.showSuccessMessage(message);
     }, 1000); // Delay to let modal appear first
@@ -723,7 +626,7 @@ class CameraAppManager {
       this.resultsModal.classList.remove('active');
     }
     this.analysisResults = null; // Clear stored results
-    this.updateStatus(`Ready for next ${this.analysisMode.toUpperCase()} capture (analyzed image only mode)`);
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   
   showErrorModal() {
@@ -738,7 +641,7 @@ class CameraAppManager {
     if (this.errorModal) {
       this.errorModal.classList.remove('active');
     }
-    this.updateStatus(`Ready for next ${this.analysisMode.toUpperCase()} capture (analyzed image only mode)`);
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   
   // ==================== UI STATUS MANAGEMENT ====================
@@ -766,6 +669,35 @@ class CameraAppManager {
       z-index: 400;
       font-weight: 600;
       box-shadow: 0 6px 25px rgba(45, 125, 71, 0.3);
+      animation: slideInRight 0.3s ease;
+      max-width: 400px;
+      word-wrap: break-word;
+      border: 2px solid white;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 5000);
+  }
+  
+  showErrorMessage(message) {
+    // Create temporary error notification
+    const notification = document.createElement('div');
+    notification.className = 'error-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: #e74c3c;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      z-index: 400;
+      font-weight: 600;
+      box-shadow: 0 6px 25px rgba(231, 76, 60, 0.3);
       animation: slideInRight 0.3s ease;
       max-width: 400px;
       word-wrap: break-word;
@@ -849,25 +781,8 @@ class CameraAppManager {
       case 's': // S - Show save mode info (debug)
       case 'S':
         e.preventDefault();
-        this.showSuccessMessage(`Save Mode: Analyzed Images Only (${this.analysisMode.toUpperCase()} mode)`);
-        console.log(`💾 Save Mode: Only ${this.analysisMode.toUpperCase()} analyzed images with AI overlays are saved`);
-        break;
-        
-      case 'm': // M - Switch analysis mode
-      case 'M':
-        e.preventDefault();
-        const newMode = this.analysisMode === 'pipeline' ? 'phased' : 'pipeline';
-        this.switchAnalysisMode(newMode);
-        break;
-        
-      case '1': // 1 - Switch to pipeline mode
-        e.preventDefault();
-        this.switchAnalysisMode('pipeline');
-        break;
-        
-      case '2': // 2 - Switch to phased mode
-        e.preventDefault();
-        this.switchAnalysisMode('phased');
+        this.showSuccessMessage('Save Mode: Analyzed Images Only (no originals)');
+        console.log('💾 Save Mode: Only analyzed images with AI overlays are saved');
         break;
     }
   }
@@ -894,36 +809,22 @@ window.closeErrorModal = function() {
   }
 };
 
-// FIXED: Global analysis mode switching functions
-window.switchToPipelineMode = function() {
-  if (window.cameraApp) {
-    window.cameraApp.switchAnalysisMode('pipeline');
-  }
-};
-
-window.switchToPhasedMode = function() {
-  if (window.cameraApp) {
-    window.cameraApp.switchAnalysisMode('phased');
-  }
-};
-
 // ==================== INITIALIZATION ====================
 
 // Initialize camera app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Starting CORRECTED Rebar Vista Camera App (PIPELINE MODE, ANALYZED IMAGES ONLY)...');
+  console.log('🚀 Starting Rebar Vista Camera App (ANALYZED IMAGES ONLY MODE)...');
   console.log('📝 IMPORTANT: Only analyzed images with AI overlays will be saved');
   console.log('🚫 No original/duplicate images will be created');
-  console.log('🔧 FIXED: JavaScript syntax error and proper pipeline mode support');
   
   // Create global instance
   window.cameraApp = new CameraAppManager();
   
   console.log('✅ Camera App initialized successfully');
-  console.log('📋 CORRECTED User Flow:');
+  console.log('📋 Modified User Flow:');
   console.log('   1. Position device at optimal distance (160-200cm)');
   console.log('   2. Press capture button (📷)');
-  console.log('   3. Wait for PIPELINE AI analysis');
+  console.log('   3. Wait for AI analysis');
   console.log('   4. View results (ONLY analyzed image auto-saved to gallery)');
   console.log('   5. Close results and capture again');
   console.log('');
@@ -934,9 +835,6 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('   G - Open gallery');
   console.log('   D - Show distance info (debug)');
   console.log('   S - Show save mode info (debug)');
-  console.log('   M - Switch analysis mode');
-  console.log('   1 - Switch to PIPELINE mode');
-  console.log('   2 - Switch to PHASED mode');
   console.log('   ? - Open tutorial');
 });
 
@@ -948,33 +846,4 @@ notificationStyles.textContent = `
     to { transform: translateX(0); opacity: 1; }
   }
 `;
-document.head.appendChild(notificationStyles); ease;
-      max-width: 400px;
-      word-wrap: break-word;
-      border: 2px solid white;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.remove();
-    }, 5000);
-  }
-  
-  showErrorMessage(message) {
-    // Create temporary error notification
-    const notification = document.createElement('div');
-    notification.className = 'error-notification';
-    notification.textContent = message;
-    notification.style.cssText = `
-      position: fixed;
-      top: 100px;
-      right: 20px;
-      background: #e74c3c;
-      color: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      z-index: 400;
-      font-weight: 600;
-      box-shadow: 0 6px 25px rgba(231, 76, 60, 0.3);
-      animation: slideInRight 0.3s
+document.head.appendChild(notificationStyles);

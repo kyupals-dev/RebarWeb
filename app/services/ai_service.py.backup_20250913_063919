@@ -21,7 +21,7 @@ try:
     from detectron2 import model_zoo
     DETECTRON2_AVAILABLE = True
 except ImportError:
-    print("⚠️  Detectron2 not available. AI analysis will use placeholder_2_classes results.")
+    print("⚠️  Detectron2 not available. AI analysis will use placeholder results.")
     DETECTRON2_AVAILABLE = False
 
 from app.utils.config import config
@@ -58,7 +58,7 @@ class AIService:
         """Load the trained Detectron2 model with REAL CONFIGURATION (2 classes)"""
         try:
             if not DETECTRON2_AVAILABLE:
-                print("❌ Detectron2 not available, using placeholder_2_classes mode")
+                print("❌ Detectron2 not available, using placeholder mode")
                 return False
             
             if not os.path.exists(self.model_path):
@@ -159,12 +159,12 @@ class AIService:
                 print(f"⚙️  Resizing image from {width}x{height} to 480x640 for model input")
                 image = cv2.resize(image, (480, 640))
             
-            # Use real model or placeholder_2_classes
+            # Use real model or placeholder
             if self.model_loaded and DETECTRON2_AVAILABLE:
                 result = self._analyze_with_real_model(image)
             else:
-                print("⚠️  REAL MODEL not available, using placeholder_2_classes")
-                result = self._analyze_placeholder_2_classes(image)
+                print("⚠️  REAL MODEL not available, using placeholder")
+                result = self._analyze_placeholder(image)
             
             # Ensure we return only the analyzed image path
             if result['success'] and 'analyzed_image_path' in result:
@@ -252,7 +252,7 @@ class AIService:
                 'dimensions': dimensions,
                 'cement_mixture': mixture,
                 'analyzed_image_path': analyzed_image_path,  # ONLY image saved
-                'model_type': 'real_trained_model_2_classes_2_classes'
+                'model_type': 'real_trained_model_2_classes'
             }
             
         except Exception as e:
@@ -463,21 +463,21 @@ class AIService:
                 'method': 'fallback_calculation'
             }
     
-    def _analyze_placeholder_2_classes(self, image):
-        """Generate placeholder_2_classes analysis results (fallback only, 2 classes)"""
-        print("📝 Using placeholder_2_classes AI analysis (REAL MODEL not available, 2 classes)...")
+    def _analyze_placeholder(self, image):
+        """Generate placeholder analysis results (fallback only, 2 classes)"""
+        print("📝 Using placeholder AI analysis (REAL MODEL not available, 2 classes)...")
         
         # Simulate some processing time
         import time
         time.sleep(2)
         
-        # Create simple placeholder_2_classes visualization (ONLY FILE SAVED)
-        analyzed_image_path = self._create_placeholder_2_classes_visualization(image)
+        # Create simple placeholder visualization (ONLY FILE SAVED)
+        analyzed_image_path = self._create_placeholder_visualization(image)
         
         if not analyzed_image_path:
             return {
                 'success': False,
-                'error': 'Failed to create placeholder_2_classes visualization'
+                'error': 'Failed to create placeholder visualization'
             }
         
         # Placeholder dimensions in requested format
@@ -488,7 +488,7 @@ class AIService:
             'unit': 'cm',
             'volume': 101600,
             'display': '25cm x 25cm x 200cm = 101600cm³',
-            'method': 'placeholder_2_classes_fallback_2_classes'
+            'method': 'placeholder_fallback_2_classes'
         }
         
         mixture = {
@@ -501,7 +501,7 @@ class AIService:
         # FIXED: Placeholder detections for 2 classes only
         return {
             'success': True,
-            'placeholder_2_classes': True,
+            'placeholder': True,
             'detections': [
                 {
                     'class_name': 'front_horizontal',
@@ -518,18 +518,18 @@ class AIService:
             'dimensions': dimensions,
             'cement_mixture': mixture,
             'analyzed_image_path': analyzed_image_path,  # ONLY saved image
-            'model_type': 'placeholder_2_classes_2_classes'
+            'model_type': 'placeholder_2_classes'
         }
     
-    def _create_placeholder_2_classes_visualization(self, image):
-        """Create placeholder_2_classes visualization (2 classes) - ONLY method that saves placeholder_2_classes images"""
+    def _create_placeholder_visualization(self, image):
+        """Create placeholder visualization (2 classes) - ONLY method that saves placeholder images"""
         try:
-            print("🎨 Creating placeholder_2_classes visualization (2 classes, ONLY FILE SAVED)...")
+            print("🎨 Creating placeholder visualization (2 classes, ONLY FILE SAVED)...")
             
             # Copy original image
             result_image = image.copy()
             
-            # Draw simple bounding boxes as placeholder_2_classes with transparent overlay (2 classes)
+            # Draw simple bounding boxes as placeholder with transparent overlay (2 classes)
             overlay = result_image.copy()
             cv2.rectangle(overlay, (100, 50), (200, 300), (0, 0, 255), -1)  # Red - front_horizontal
             cv2.rectangle(overlay, (80, 280), (220, 320), (0, 255, 0), -1)  # Green - front_vertical
@@ -548,9 +548,9 @@ class AIService:
             cv2.putText(result_image, 'Front Vertical (78%)', (80, 275), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             
-            # Generate output filename for placeholder_2_classes (2 classes)
+            # Generate output filename for placeholder (2 classes)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'analyzed_placeholder_2_classes_2class_{timestamp}.jpg'
+            filename = f'analyzed_placeholder_2class_{timestamp}.jpg'
             output_path = os.path.join(config.UPLOAD_FOLDER, filename)
             
             # Save analyzed image (THIS IS THE ONLY FILE SAVED)
@@ -564,7 +564,7 @@ class AIService:
                 print(f"   🎯 Contains: Placeholder overlays (2 classes)")
                 return output_path
             else:
-                print("❌ Failed to save placeholder_2_classes analyzed image")
+                print("❌ Failed to save placeholder analyzed image")
                 return None
                 
         except Exception as e:
@@ -619,7 +619,7 @@ class AIService:
             'class_names': self.class_names,
             'threshold': self.detection_threshold,
             'training_input_size': self.training_input_size,
-            'model_type': 'real_trained_model_2_classes_2_classes' if self.model_loaded else 'placeholder_2_classes_2_classes',
+            'model_type': 'real_trained_model_2_classes' if self.model_loaded else 'placeholder_2_classes',
             'save_mode': 'analyzed_images_only'  # Status indicator
         }
     
