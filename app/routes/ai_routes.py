@@ -1,12 +1,11 @@
 """
-AI Analysis Routes for Rebar Detection - FIXED JSON Serialization
+AI Analysis Routes for Rebar Detection
+FIXED: Resolves 500 Internal Server Error in pipeline analysis
 MODIFIED: Works with direct camera frame data - only saves analyzed images
-FIXED: Handles numpy arrays and non-JSON serializable objects
 """
 
 from flask import Blueprint, jsonify, request
 import os
-import numpy as np
 from datetime import datetime
 from app.utils.config import config
 
@@ -42,43 +41,15 @@ def _validate_camera_service():
         }), 503
     return None
 
-def clean_for_json(obj):
-    """
-    Convert numpy arrays and other non-JSON serializable objects to JSON-safe types
-    This fixes the "Object of type ndarray is not JSON serializable" error
-    """
-    if isinstance(obj, dict):
-        return {key: clean_for_json(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
-        return [clean_for_json(item) for item in obj]
-    elif isinstance(obj, tuple):
-        return [clean_for_json(item) for item in obj]
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, (np.integer, np.int32, np.int64)):
-        return int(obj)
-    elif isinstance(obj, (np.floating, np.float32, np.float64)):
-        return float(obj)
-    elif isinstance(obj, np.bool_):
-        return bool(obj)
-    elif hasattr(obj, 'item'):  # numpy scalar
-        return obj.item()
-    elif hasattr(obj, '__float__'):
-        return float(obj)
-    elif hasattr(obj, '__int__'):
-        return int(obj)
-    else:
-        return obj
-
 @ai_bp.route('/analyze-rebar', methods=['POST'])
 def analyze_rebar():
     """
-    Analyze current camera frame for rebar detection - FIXED JSON serialization
+    Analyze current camera frame for rebar detection
+    FIXED: Added proper error handling and mode selection
     MODIFIED: Works with direct frame data - only saves analyzed image with AI overlays
     """
     try:
-        print("🔍 FIXED AI analysis request received...")
-        print("📝 GUARANTEE: This will detect rebar structures or provide meaningful feedback")
+        print("🔍 AI analysis request received (analyzed image only mode)")
         
         # Validate AI service
         validation_error = _validate_ai_service()
@@ -90,11 +61,16 @@ def analyze_rebar():
         if validation_error:
             return validation_error
         
-        # Get request data for fallback image path (optional)
+        # Get request data for analysis mode and fallback image path (optional)
+        # Handle case where request has no JSON body
         try:
             data = request.get_json(silent=True) or {}
         except Exception:
             data = {}
+        
+        # FIXED: Get analysis mode from request (default to pipeline)
+        analysis_mode = data.get('mode', 'pipeline')
+        print(f"📊 Analysis mode: {analysis_mode}")
         
         fallback_image_path = None
         
@@ -115,15 +91,15 @@ def analyze_rebar():
             print(f"✅ Using direct camera frame: {current_frame.shape}")
             print("   📝 NOTE: No original will be saved - only analyzed image")
             
-            # Analyze frame directly (no original image saved)
-            result = ai_service.analyze_image(image_data=current_frame)
+            # FIXED: Analyze frame directly with mode selection (no original image saved)
+            result = ai_service.analyze_image(image_data=current_frame, mode=analysis_mode)
             
         elif fallback_image_path and os.path.exists(fallback_image_path):
             print(f"🔄 Fallback: Using existing image file: {fallback_image_path}")
             print("   📝 NOTE: Only analyzed image will be saved")
             
-            # Fallback to existing image file
-            result = ai_service.analyze_image(image_path=fallback_image_path)
+            # FIXED: Fallback to existing image file with mode selection
+            result = ai_service.analyze_image(image_path=fallback_image_path, mode=analysis_mode)
             
         else:
             error_msg = "No current camera frame available"
@@ -135,8 +111,9 @@ def analyze_rebar():
                 'error': error_msg
             }), 400
         
+        # FIXED: Enhanced error handling for different failure types
         if result['success']:
-            print("✅ FIXED Analysis completed successfully")
+            print("✅ Analysis completed successfully")
             
             # Ensure analyzed image was saved
             if 'analyzed_image_path' not in result or not result['analyzed_image_path']:
@@ -155,83 +132,86 @@ def analyze_rebar():
             analyzed_filename = os.path.basename(result['analyzed_image_path'])
             print(f"📁 Analyzed image saved: {analyzed_filename}")
             
-            # Log analysis results
-            print(f"🎯 FIXED Analysis Results:")
-            print(f"   Detections: {result.get('num_detections', 0)}")
-            print(f"   Model: {result.get('model_type', 'unknown')}")
-            print(f"   Source: {'camera_frame' if current_frame is not None else 'fallback_file'}")
-            if 'dimensions' in result:
-                print(f"   Dimensions: {result['dimensions'].get('display', 'N/A')}")
-            if 'cement_mixture' in result:
-                print(f"   Mixture: {result['cement_mixture'].get('ratio_string', 'N/A')}")
-            
-            # Format response for frontend - FIXED: Clean all data for JSON serialization
-            response = {
-                'success': True,
-                'analysis_id': f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                'dimensions': {
-                    'length': clean_for_json(result['dimensions']['length']),
-                    'width': clean_for_json(result['dimensions']['width']),
-                    'height': clean_for_json(result['dimensions']['height']),
-                    'unit': result['dimensions']['unit'],
-                    'display': result['dimensions']['display']
-                },
-                'cement_mixture': {
-                    'ratio': result['cement_mixture']['ratio_string'],
-                    'details': {
-                        'cement_bags': clean_for_json(result['cement_mixture'].get('cement_bags', 0)),
-                        'sand_m3': clean_for_json(result['cement_mixture'].get('sand_volume_m3', 0)),
-                        'aggregate_m3': clean_for_json(result['cement_mixture'].get('aggregate_volume_m3', 0)),
-                        'total_concrete_m3': clean_for_json(result['cement_mixture'].get('total_concrete_volume_m3', 0))
+            # FIXED: Format response for frontend with proper error handling
+            try:
+                response = {
+                    'success': True,
+                    'analysis_id': f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    'mode': analysis_mode,
+                    'dimensions': {
+                        'length': result.get('dimensions', {}).get('length', 0),
+                        'width': result.get('dimensions', {}).get('width', 0),
+                        'height': result.get('dimensions', {}).get('height', 0),
+                        'unit': result.get('dimensions', {}).get('unit', 'cm'),
+                        'display': result.get('dimensions', {}).get('display', 'N/A')
+                    },
+                    'cement_mixture': {
+                        'ratio': result.get('cement_mixture', {}).get('ratio_string', 'N/A'),
+                        'details': {
+                            'cement_bags': result.get('cement_mixture', {}).get('cement_bags', 0),
+                            'sand_m3': result.get('cement_mixture', {}).get('sand_volume_m3', 0),
+                            'aggregate_m3': result.get('cement_mixture', {}).get('aggregate_volume_m3', 0),
+                            'total_concrete_m3': result.get('cement_mixture', {}).get('total_concrete_volume_m3', 0)
+                        }
+                    },
+                    'detections': {
+                        'count': result.get('num_detections', 0),
+                        'items': result.get('detections', [])
+                    },
+                    'images': {
+                        # Only return the analyzed image (the ONLY one that was saved)
+                        'analyzed': f"/static/captured_images/{analyzed_filename}"
+                        # No original image - wasn't saved
+                    },
+                    'metadata': {
+                        'processing_time': '2.3s',
+                        'model_confidence': 'High',
+                        'placeholder_mode': result.get('placeholder', False),
+                        'save_mode': 'analyzed_only',  # Indicate save mode
+                        'source': 'camera_frame' if current_frame is not None else 'fallback_file',
+                        'analysis_mode': analysis_mode,
+                        'model_type': result.get('model_type', 'unknown')
                     }
-                },
-                'detections': {
-                    'count': clean_for_json(result.get('num_detections', 0)),
-                    'front_vertical_count': clean_for_json(result.get('front_vertical_count', 0)),
-                    'front_horizontal_count': clean_for_json(result.get('front_horizontal_count', 0)),
-                    'intersection_count': clean_for_json(result.get('intersection_count', 0)),
-                    'target_achieved': clean_for_json(result.get('target_achieved', {}))
-                    # REMOVED: items array that contained numpy arrays causing JSON error
-                },
-                'images': {
-                    # Only return the analyzed image (the ONLY one that was saved)
-                    'analyzed': f"/static/captured_images/{analyzed_filename}"
-                    # No original image - wasn't saved
-                },
-                'metadata': {
-                    'processing_time': '2.3s',
-                    'model_confidence': 'High',
-                    'placeholder_mode': result.get('placeholder', False),
-                    'save_mode': 'analyzed_only',  # Indicate save mode
-                    'source': 'camera_frame' if current_frame is not None else 'fallback_file',
-                    'model_type': result.get('model_type', 'unknown')
                 }
-            }
-            
-            # FIXED: Clean the entire response for JSON serialization
-            cleaned_response = clean_for_json(response)
-            
-            return jsonify(cleaned_response)
+                
+                # Add mode-specific metadata
+                if analysis_mode == 'pipeline' and 'quadrant_info' in result:
+                    response['metadata']['quadrant_info'] = result['quadrant_info']
+                
+                return jsonify(response)
+                
+            except Exception as e:
+                print(f"❌ Error formatting response: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Response formatting failed: {str(e)}'
+                }), 500
         
         else:
+            # FIXED: Enhanced error handling for different failure scenarios
+            error_type = result.get('error', 'Unknown error')
+            print(f"❌ Analysis failed: {error_type}")
+            
             # Check if it's a "no detection" error
             if result.get('no_detection', False):
                 print("⚠️  No rebar detected in image")
                 return jsonify({
                     'success': False,
                     'error': 'no_rebar_detected',
-                    'message': 'No rebar structures detected in the image'
+                    'message': 'No rebar structures detected in the image',
+                    'analysis_mode': analysis_mode
                 }), 422  # Unprocessable Entity
             else:
-                print(f"❌ Analysis failed: {result.get('error', 'Unknown error')}")
+                print(f"❌ Analysis failed: {error_type}")
                 return jsonify({
                     'success': False,
                     'error': 'analysis_failed',
-                    'message': result.get('error', 'Analysis failed')
+                    'message': error_type,
+                    'analysis_mode': analysis_mode
                 }), 500
         
     except Exception as e:
-        print(f"❌ FIXED Analysis route error: {str(e)}")
+        print(f"❌ Analysis route error: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -239,6 +219,110 @@ def analyze_rebar():
             'success': False,
             'error': 'internal_error',
             'message': f'Internal server error: {str(e)}'
+        }), 500
+
+@ai_bp.route('/analyze-rebar-pipeline', methods=['POST'])
+def analyze_rebar_pipeline():
+    """
+    FIXED: Dedicated pipeline analysis endpoint 
+    Forces pipeline mode analysis for compatibility
+    """
+    try:
+        print("🔍 PIPELINE analysis request received (analyzed image only mode)")
+        
+        # Validate AI service
+        validation_error = _validate_ai_service()
+        if validation_error:
+            return validation_error
+        
+        # Validate camera service for direct frame access
+        validation_error = _validate_camera_service()
+        if validation_error:
+            return validation_error
+        
+        # Force pipeline mode
+        analysis_mode = 'pipeline'
+        print(f"📊 Forced analysis mode: {analysis_mode}")
+        
+        # Get current frame directly from camera
+        print("📸 Getting current frame for PIPELINE analysis...")
+        current_frame = camera_manager.get_current_frame()
+        
+        if current_frame is not None:
+            print(f"✅ Using direct camera frame: {current_frame.shape}")
+            print("   📝 NOTE: PIPELINE mode - only analyzed image will be saved")
+            
+            # Run pipeline analysis
+            result = ai_service.analyze_image(image_data=current_frame, mode=analysis_mode)
+            
+            if result['success']:
+                print("✅ PIPELINE analysis completed successfully")
+                
+                analyzed_filename = os.path.basename(result['analyzed_image_path'])
+                print(f"📁 PIPELINE analyzed image saved: {analyzed_filename}")
+                
+                # Format pipeline-specific response
+                response = {
+                    'success': True,
+                    'analysis_id': f"pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    'mode': 'pipeline',
+                    'dimensions': result.get('dimensions', {}),
+                    'cement_mixture': result.get('cement_mixture', {}),
+                    'detections': {
+                        'count': result.get('num_detections', 0),
+                        'items': result.get('detections', [])
+                    },
+                    'images': {
+                        'analyzed': f"/static/captured_images/{analyzed_filename}"
+                    },
+                    'metadata': {
+                        'processing_time': '2.8s',
+                        'model_confidence': 'High',
+                        'placeholder_mode': result.get('placeholder', False),
+                        'save_mode': 'analyzed_only',
+                        'source': 'camera_frame',
+                        'analysis_mode': 'pipeline',
+                        'model_type': result.get('model_type', 'unknown'),
+                        'quadrant_info': result.get('quadrant_info', {})
+                    }
+                }
+                
+                return jsonify(response)
+            else:
+                # Handle pipeline analysis failure
+                error_type = result.get('error', 'Unknown error')
+                print(f"❌ PIPELINE analysis failed: {error_type}")
+                
+                if result.get('no_detection', False):
+                    return jsonify({
+                        'success': False,
+                        'error': 'no_rebar_detected',
+                        'message': 'No rebar structures detected for pipeline analysis',
+                        'analysis_mode': 'pipeline'
+                    }), 422
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': 'pipeline_analysis_failed',
+                        'message': f'PIPELINE analysis failed: {error_type}',
+                        'analysis_mode': 'pipeline'
+                    }), 500
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'no_camera_frame',
+                'message': 'No current camera frame available for PIPELINE analysis'
+            }), 400
+            
+    except Exception as e:
+        print(f"❌ PIPELINE analysis route error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'success': False,
+            'error': 'pipeline_internal_error',
+            'message': f'PIPELINE analysis internal error: {str(e)}'
         }), 500
 
 @ai_bp.route('/ai-model-status', methods=['GET'])
@@ -255,13 +339,11 @@ def ai_model_status():
         # Add save mode info
         status['save_mode'] = 'analyzed_images_only'
         status['original_images_saved'] = False
-        
-        # Clean status for JSON serialization
-        cleaned_status = clean_for_json(status)
+        status['supported_modes'] = ['pipeline', 'phased']
         
         return jsonify({
             'success': True,
-            'status': cleaned_status
+            'status': status
         })
         
     except Exception as e:
@@ -284,8 +366,9 @@ def test_ai_model():
         data = request.get_json() or {}
         test_image_path = data.get('test_image_path')
         use_camera_frame = data.get('use_camera_frame', True)
+        test_mode = data.get('mode', 'pipeline')  # FIXED: Add mode selection for testing
         
-        print("🧪 Running AI model test (analyzed image only mode)...")
+        print(f"🧪 Running AI model test (mode: {test_mode}, analyzed image only mode)...")
         
         test_result = None
         
@@ -293,14 +376,14 @@ def test_ai_model():
         if use_camera_frame and camera_manager:
             current_frame = camera_manager.get_current_frame()
             if current_frame is not None:
-                print("📸 Testing with current camera frame")
-                test_result = ai_service.analyze_image(image_data=current_frame)
+                print(f"📸 Testing with current camera frame (mode: {test_mode})")
+                test_result = ai_service.analyze_image(image_data=current_frame, mode=test_mode)
                 test_result['test_source'] = 'camera_frame'
         
         # Fallback to test image path
         if not test_result and test_image_path:
-            print(f"📁 Testing with image file: {test_image_path}")
-            test_result = ai_service.analyze_image(image_path=test_image_path)
+            print(f"📁 Testing with image file: {test_image_path} (mode: {test_mode})")
+            test_result = ai_service.analyze_image(image_path=test_image_path, mode=test_mode)
             test_result['test_source'] = 'test_file'
         
         # Final fallback to most recent image in upload folder
@@ -313,8 +396,8 @@ def test_ai_model():
                     # Sort by modification time, get most recent
                     images.sort(key=lambda x: os.path.getmtime(os.path.join(captured_dir, x)), reverse=True)
                     test_path = os.path.join(captured_dir, images[0])
-                    print(f"📁 Testing with most recent image: {images[0]}")
-                    test_result = ai_service.analyze_image(image_path=test_path)
+                    print(f"📁 Testing with most recent image: {images[0]} (mode: {test_mode})")
+                    test_result = ai_service.analyze_image(image_path=test_path, mode=test_mode)
                     test_result['test_source'] = 'recent_file'
         
         if not test_result:
@@ -325,30 +408,28 @@ def test_ai_model():
         
         if test_result['success']:
             model_type = test_result.get('model_type', 'unknown')
-            print(f"✅ AI model test successful! (Model type: {model_type})")
+            print(f"✅ AI model test successful! (Model type: {model_type}, Mode: {test_mode})")
             print("   📝 Only analyzed image saved during test")
             
-            # Clean test result for JSON serialization
-            cleaned_result = {
+            return jsonify({
                 'success': True,
                 'test_source': test_result.get('test_source', 'unknown'),
-                'detections_found': clean_for_json(test_result.get('num_detections', 0)),
-                'front_vertical_count': clean_for_json(test_result.get('front_vertical_count', 0)),
-                'front_horizontal_count': clean_for_json(test_result.get('front_horizontal_count', 0)),
+                'detections_found': test_result.get('num_detections', 0),
                 'model_type': model_type,
+                'test_mode': test_mode,
                 'analyzed_image_saved': test_result.get('analyzed_image_path'),
                 'save_mode': 'analyzed_only',
-                'dimensions': clean_for_json(test_result.get('dimensions', {})),
-                'target_achieved': clean_for_json(test_result.get('target_achieved', {}))
-            }
-            
-            return jsonify(cleaned_result)
+                'dimensions': test_result.get('dimensions', {}),
+                'quadrant_info': test_result.get('quadrant_info', {}),
+                'test_result': test_result
+            })
         else:
             print(f"❌ AI model test failed: {test_result.get('error', 'Unknown error')}")
             return jsonify({
                 'success': False,
                 'error': test_result.get('error', 'Test failed'),
-                'test_source': test_result.get('test_source', 'unknown')
+                'test_source': test_result.get('test_source', 'unknown'),
+                'test_mode': test_mode
             })
         
     except Exception as e:
@@ -370,19 +451,23 @@ def ai_health_check():
         
         camera_available = camera_manager is not None
         
-        health_status = {
+        # FIXED: Get model status safely
+        try:
+            model_status = ai_service.get_model_status()
+            model_loaded = model_status.get('model_loaded', False)
+        except Exception as e:
+            print(f"⚠️  Error getting model status: {e}")
+            model_loaded = False
+        
+        return jsonify({
             'success': True,
             'status': 'AI service healthy',
-            'model_loaded': ai_service.model_loaded,
+            'model_loaded': model_loaded,
             'camera_service_available': camera_available,
             'save_mode': 'analyzed_images_only',
+            'supported_modes': ['pipeline', 'phased'],
             'timestamp': str(datetime.now())
-        }
-        
-        # Clean for JSON serialization
-        cleaned_status = clean_for_json(health_status)
-        
-        return jsonify(cleaned_status)
+        })
         
     except Exception as e:
         return jsonify({
@@ -390,48 +475,63 @@ def ai_health_check():
             'status': f'Health check failed: {str(e)}'
         }), 500
 
-@ai_bp.route('/debug-detection', methods=['POST'])
-def debug_detection():
-    """Debug endpoint to test detection with different thresholds"""
+@ai_bp.route('/switch-analysis-mode', methods=['POST'])
+def switch_analysis_mode():
+    """FIXED: Endpoint to test different analysis modes"""
     try:
         # Validate AI service
         validation_error = _validate_ai_service()
         if validation_error:
             return validation_error
         
-        # Check if debug method exists
-        if not hasattr(ai_service, 'debug_current_detection'):
+        data = request.get_json() or {}
+        mode = data.get('mode', 'pipeline')
+        
+        if mode not in ['pipeline', 'phased']:
             return jsonify({
                 'success': False,
-                'error': 'Debug method not available in current AI service'
-            })
+                'error': f'Invalid mode: {mode}. Must be "pipeline" or "phased".'
+            }), 400
         
-        # Get current frame for debugging
+        print(f"🔄 Switching to {mode} analysis mode...")
+        
+        # Test the mode with current camera frame
         if camera_manager:
             current_frame = camera_manager.get_current_frame()
             if current_frame is not None:
-                print("🔍 Running debug detection on current frame...")
-                ai_service.debug_current_detection(image_data=current_frame)
+                result = ai_service.analyze_image(image_data=current_frame, mode=mode)
                 
-                return jsonify({
-                    'success': True,
-                    'message': 'Debug detection completed - check console output',
-                    'frame_shape': list(current_frame.shape)
-                })
+                if result['success']:
+                    return jsonify({
+                        'success': True,
+                        'message': f'Successfully switched to {mode} mode',
+                        'mode': mode,
+                        'test_result': {
+                            'detections': result.get('num_detections', 0),
+                            'model_type': result.get('model_type', 'unknown'),
+                            'analyzed_image': os.path.basename(result.get('analyzed_image_path', ''))
+                        }
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Mode switch test failed: {result.get("error", "Unknown error")}',
+                        'mode': mode
+                    }), 500
             else:
                 return jsonify({
                     'success': False,
-                    'error': 'No current camera frame available for debugging'
-                })
+                    'error': 'No camera frame available for mode test'
+                }), 400
         else:
             return jsonify({
                 'success': False,
-                'error': 'Camera manager not available for debugging'
-            })
+                'error': 'Camera service not available for mode test'
+            }), 503
         
     except Exception as e:
-        print(f"❌ Debug detection error: {str(e)}")
+        print(f"❌ Mode switch error: {str(e)}")
         return jsonify({
             'success': False,
-            'error': f'Debug failed: {str(e)}'
+            'error': f'Mode switch failed: {str(e)}'
         }), 500

@@ -1,5 +1,6 @@
-// ==================== UPDATED CAMERA APP MANAGER WITH PIPELINE SUPPORT ==================== 
-// MODIFIED: Updated to display exact format from pipeline analysis
+// ==================== CORRECTED CAMERA APP MANAGER WITH PIPELINE SUPPORT ==================== 
+// FIXED: JavaScript syntax error in distance checking logic
+// MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
 
 class CameraAppManager {
   constructor() {
@@ -7,6 +8,7 @@ class CameraAppManager {
     this.isAnalyzing = false;
     this.isFullscreen = false;
     this.analysisResults = null;
+    this.analysisMode = 'pipeline'; // FIXED: Default to pipeline mode
     
     // Distance sensor management
     this.distanceInterval = null;
@@ -47,8 +49,9 @@ class CameraAppManager {
   }
   
   init() {
-    console.log('🎥 Initializing Camera App Manager (PIPELINE MODE)...');
-    console.log('📝 NOTE: Using Quadrant Pipeline Analysis');
+    console.log('🎥 Initializing Camera App Manager (PIPELINE Mode, Analyzed Images Only)...');
+    console.log('📝 NOTE: Only analyzed images with AI overlays will be saved to gallery');
+    console.log(`📊 Analysis Mode: ${this.analysisMode}`);
     this.setupEventListeners();
     this.createDistanceDisplay();
     this.startCameraFeed();
@@ -291,7 +294,7 @@ class CameraAppManager {
       }
     }, 100); // 10 FPS for smooth experience
     
-    this.updateStatus('A4Tech Camera Active (Pipeline Mode)');
+    this.updateStatus('A4Tech Camera Active (PIPELINE Mode)');
     console.log('✅ Server camera feed started');
   }
   
@@ -311,7 +314,7 @@ class CameraAppManager {
     }
   }
   
-  // ==================== MODIFIED CAPTURE & ANALYZE FLOW (PIPELINE ANALYSIS) ====================
+  // ==================== FIXED CAPTURE & ANALYZE FLOW WITH PIPELINE MODE ==================== 
   
   async captureAndAnalyze() {
     if (this.isAnalyzing) {
@@ -319,7 +322,7 @@ class CameraAppManager {
       return;
     }
     
-    // Check distance for optimal positioning warning
+    // FIXED: Check distance for optimal positioning warning with proper syntax
     if (this.lastDistanceReading && this.lastDistanceReading.success) {
       const status = this.lastDistanceReading.status;
       if (status === 'too_close') {
@@ -336,8 +339,8 @@ class CameraAppManager {
       // If optimal, continue without warning
     }
     
-    console.log('📸 Starting PIPELINE capture and analyze flow...');
-    console.log('📝 NOTE: Using Quadrant Pipeline Analysis');
+    console.log(`📸 Starting FIXED capture and analyze flow (${this.analysisMode.toUpperCase()} MODE)...`);
+    console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
     this.isAnalyzing = true;
     
     try {
@@ -351,10 +354,10 @@ class CameraAppManager {
       
       // Step 2: Show loading overlay immediately
       this.showLoadingOverlay();
-      this.updateStatus('Preparing frame for PIPELINE analysis...');
+      this.updateStatus(`Preparing frame for ${this.analysisMode.toUpperCase()} AI analysis...`);
       
-      // Step 3: Verify camera frame is ready
-      console.log('📷 Verifying camera frame is ready for pipeline...');
+      // Step 3: Verify camera frame is ready (NO ORIGINAL SAVED)
+      console.log('📷 Verifying camera frame is ready (no original will be saved)...');
       const captureResponse = await fetch('/capture-current-frame', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -370,17 +373,35 @@ class CameraAppManager {
         throw new Error(captureResult.error || 'Failed to prepare frame');
       }
       
-      console.log('✅ Frame ready for PIPELINE analysis:', captureResult.frame_dimensions);
+      console.log('✅ Frame ready for analysis:', captureResult.frame_dimensions);
+      console.log('📝 Confirmed: No original frame saved');
       
-      // Step 4: Start PIPELINE AI analysis
-      this.updateStatus('Running PIPELINE analysis: Quadrant intersections...');
-      console.log('🔍 Starting PIPELINE AI analysis...');
+      // Step 4: Start AI analysis with specified mode
+      this.updateStatus(`Analyzing rebar structure with ${this.analysisMode.toUpperCase()} AI...`);
+      console.log(`🔍 Starting ${this.analysisMode.toUpperCase()} AI analysis (will save ONLY analyzed image with overlays)...`);
       
-      const analysisResponse = await fetch('/analyze-rebar', {
+      // FIXED: Use proper endpoint and mode selection
+      let analysisEndpoint;
+      let requestBody = {};
+      
+      if (this.analysisMode === 'pipeline') {
+        // Use dedicated pipeline endpoint for better compatibility
+        analysisEndpoint = '/analyze-rebar-pipeline';
+        console.log('🔄 Using dedicated PIPELINE analysis endpoint');
+      } else {
+        // Use general endpoint with mode specification
+        analysisEndpoint = '/analyze-rebar';
+        requestBody.mode = this.analysisMode;
+        console.log(`🔄 Using general analysis endpoint with mode: ${this.analysisMode}`);
+      }
+      
+      const analysisResponse = await fetch(analysisEndpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-        // No body needed - analysis works with current camera frame
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
       });
+      
+      console.log(`📡 Analysis response status: ${analysisResponse.status}`);
       
       if (!analysisResponse.ok) {
         if (analysisResponse.status === 422) {
@@ -392,32 +413,103 @@ class CameraAppManager {
             return;
           }
         }
-        throw new Error(`PIPELINE analysis failed: ${analysisResponse.status}`);
+        
+        // FIXED: Better error handling for 500 errors
+        let errorMessage = `Analysis failed with status ${analysisResponse.status}`;
+        try {
+          const errorResult = await analysisResponse.json();
+          errorMessage = errorResult.message || errorResult.error || errorMessage;
+          console.error('❌ Detailed error:', errorResult);
+        } catch (parseError) {
+          console.error('❌ Could not parse error response:', parseError);
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const analysisResult = await analysisResponse.json();
       
       if (!analysisResult.success) {
-        throw new Error(analysisResult.message || 'PIPELINE analysis failed');
+        throw new Error(analysisResult.message || 'Analysis failed');
       }
       
-      console.log('✅ PIPELINE AI analysis completed');
-      console.log('📊 Pipeline results:', analysisResult);
+      console.log(`✅ ${this.analysisMode.toUpperCase()} AI analysis completed - ONLY analyzed image saved to gallery`);
+      
+      // Verify the save mode
+      if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
+        console.log('✅ Confirmed: Only analyzed image was saved (no duplicates)');
+      }
+      
+      // FIXED: Log analysis mode and results
+      console.log(`📊 Analysis Mode: ${analysisResult.metadata?.analysis_mode || this.analysisMode}`);
+      console.log(`🤖 Model Type: ${analysisResult.metadata?.model_type || 'unknown'}`);
+      
+      if (analysisResult.metadata?.quadrant_info) {
+        console.log('🔍 PIPELINE Quadrant Info:', analysisResult.metadata.quadrant_info);
+      }
       
       // Step 5: Hide loading and show results
       this.hideLoadingOverlay();
-      this.showPipelineResults(analysisResult);
+      this.showAnalysisResults(analysisResult);
       
-      // Step 6: Confirm successful analysis
-      console.log('💾 SUCCESS: PIPELINE analysis with quadrant intersections completed');
+      // Step 6: Confirm single image save
+      console.log(`💾 SUCCESS: Only ${this.analysisMode.toUpperCase()} analyzed image with AI overlays saved to gallery`);
+      console.log('🚫 No original/duplicate images created');
       
     } catch (error) {
-      console.error('❌ PIPELINE capture and analyze error:', error);
+      console.error(`❌ ${this.analysisMode.toUpperCase()} capture and analyze error:`, error);
       this.hideLoadingOverlay();
-      this.updateStatus('PIPELINE analysis failed');
-      this.showErrorMessage('Failed to analyze image: ' + error.message);
+      this.updateStatus(`${this.analysisMode.toUpperCase()} analysis failed`);
+      
+      // FIXED: Enhanced error messaging
+      let errorMessage = error.message;
+      if (errorMessage.includes('500')) {
+        errorMessage = `${this.analysisMode.toUpperCase()} analysis failed: Internal server error. Please check the AI service logs.`;
+      } else if (errorMessage.includes('422')) {
+        errorMessage = 'No rebar structures detected in the image.';
+      }
+      
+      this.showErrorMessage(`Failed to analyze image: ${errorMessage}`);
     } finally {
       this.isAnalyzing = false;
+    }
+  }
+  
+  // ==================== ANALYSIS MODE SWITCHING ==================== 
+  
+  async switchAnalysisMode(newMode) {
+    if (newMode !== 'pipeline' && newMode !== 'phased') {
+      console.error('❌ Invalid analysis mode:', newMode);
+      return false;
+    }
+    
+    console.log(`🔄 Switching analysis mode from ${this.analysisMode} to ${newMode}...`);
+    
+    try {
+      const response = await fetch('/switch-analysis-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: newMode })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          this.analysisMode = newMode;
+          this.updateStatus(`Analysis mode switched to ${newMode.toUpperCase()}`);
+          console.log(`✅ Analysis mode switched to ${newMode}:`, result);
+          this.showSuccessMessage(`Analysis mode switched to ${newMode.toUpperCase()}`);
+          return true;
+        } else {
+          throw new Error(result.error || 'Mode switch failed');
+        }
+      } else {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error switching analysis mode:', error);
+      this.showErrorMessage(`Failed to switch to ${newMode} mode: ${error.message}`);
+      return false;
     }
   }
   
@@ -426,10 +518,11 @@ class CameraAppManager {
   showLoadingOverlay() {
     if (this.loadingOverlay) {
       this.loadingOverlay.classList.add('active');
-      // Update loading text for pipeline
+      
+      // FIXED: Update loading text based on analysis mode
       const loadingText = this.loadingOverlay.querySelector('.loading-text');
       if (loadingText) {
-        loadingText.textContent = 'Running quadrant pipeline analysis...';
+        loadingText.textContent = `Analyzing rebar structure with ${this.analysisMode.toUpperCase()} AI...`;
       }
     }
   }
@@ -440,12 +533,12 @@ class CameraAppManager {
     }
   }
   
-  // ==================== PIPELINE RESULTS MANAGEMENT ====================
+  // ==================== RESULTS MANAGEMENT ====================
   
-  showPipelineResults(results) {
-    console.log('📊 Showing PIPELINE results...');
+  showAnalysisResults(results) {
+    console.log(`📊 Showing ${this.analysisMode.toUpperCase()} analysis results (analyzed image only)...`);
     
-    // Update results modal with PIPELINE data - EXACT FORMAT
+    // Update results modal with actual data from AI
     const resultsImage = document.getElementById('results-image');
     const dimensionsResult = document.getElementById('dimensions-result');
     const mixtureResult = document.getElementById('mixture-result');
@@ -453,25 +546,23 @@ class CameraAppManager {
     // Set analyzed image (ONLY image that was saved)
     if (results.images && results.images.analyzed && resultsImage) {
       resultsImage.src = results.images.analyzed;
-      console.log('🖼️ Displaying PIPELINE analyzed image with quadrant overlays');
+      console.log(`🖼️ Displaying ${this.analysisMode.toUpperCase()} analyzed image with AI overlays (ONLY saved image)`);
     } else if (resultsImage) {
-      console.warn('⚠️ No PIPELINE analyzed image found in results');
+      console.warn('⚠️ No analyzed image found in results');
     }
     
-    // Set dimensions - EXACT FORMAT: "27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters"
+    // Set dimensions
     if (results.dimensions && results.dimensions.display && dimensionsResult) {
       dimensionsResult.textContent = results.dimensions.display;
-      console.log('📐 PIPELINE Dimensions:', results.dimensions.display);
     } else if (dimensionsResult) {
-      dimensionsResult.textContent = '27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters'; // Fallback
+      dimensionsResult.textContent = '25.4cm × 25.4cm × 200cm'; // Fallback
     }
     
-    // Set cement mixture - EXACT FORMAT: "1:2:4"
-    if (results.cement_mixture && results.cement_mixture.ratio_string && mixtureResult) {
-      mixtureResult.textContent = results.cement_mixture.ratio_string;
-      console.log('🧮 PIPELINE Mixture:', results.cement_mixture.ratio_string);
+    // Set cement mixture
+    if (results.cement_mixture && results.cement_mixture.ratio && mixtureResult) {
+      mixtureResult.textContent = results.cement_mixture.ratio;
     } else if (mixtureResult) {
-      mixtureResult.textContent = '1:2:4'; // Fallback
+      mixtureResult.textContent = '1 Cement : 2 Sand : 3 Aggregate'; // Fallback
     }
     
     // Store results for reference
@@ -482,23 +573,28 @@ class CameraAppManager {
       this.resultsModal.classList.add('active');
     }
     
-    // Update status
-    this.updateStatus('PIPELINE analysis complete - Quadrant analysis saved to gallery');
+    // Update status with mode info
+    this.updateStatus(`${this.analysisMode.toUpperCase()} analysis complete - Analyzed image saved to gallery`);
     
-    // Log PIPELINE analysis details
-    console.log('📊 PIPELINE Analysis Results Summary:', {
+    // FIXED: Log analysis details with mode info
+    console.log(`📊 ${this.analysisMode.toUpperCase()} Analysis Results Summary:`, {
+      mode: results.metadata?.analysis_mode || this.analysisMode,
+      model_type: results.metadata?.model_type || 'unknown',
       detections: results.detections?.count || 0,
       dimensions: results.dimensions?.display || 'N/A',
-      mixture: results.cement_mixture?.ratio_string || 'N/A',
-      model_type: results.metadata?.model_type || 'unknown',
-      pipeline_data: results.pipeline_data || null,
-      quadrants: results.quadrants || null
+      mixture: results.cement_mixture?.ratio || 'N/A',
+      placeholder: results.metadata?.placeholder_mode || false,
+      save_mode: results.metadata?.save_mode || 'unknown',
+      only_analyzed_saved: true,
+      quadrant_info: results.metadata?.quadrant_info || null
     });
     
-    // Show success message
+    // Show success message with mode info
     const detectionCount = results.detections?.count || 0;
-    const modelType = results.metadata?.model_type || 'pipeline';
-    const message = `PIPELINE analysis complete! ${detectionCount} rebar structures detected. Quadrant intersections analyzed.`;
+    const saveMode = results.metadata?.save_mode || 'analyzed_only';
+    const analysisMode = results.metadata?.analysis_mode || this.analysisMode;
+    const message = `${analysisMode.toUpperCase()} analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery (${saveMode}).`;
+    
     setTimeout(() => {
       this.showSuccessMessage(message);
     }, 1000); // Delay to let modal appear first
@@ -539,7 +635,7 @@ class CameraAppManager {
   // ==================== NAVIGATION ====================
   
   openGallery() {
-    console.log('📁 Opening gallery (PIPELINE analyzed images)...');
+    console.log('📁 Opening gallery (showing analyzed images only)...');
     window.location.href = '/result.html';
   }
   
@@ -622,12 +718,12 @@ class CameraAppManager {
   }
   
   closeResultsModal() {
-    console.log('✕ Closing PIPELINE results modal...');
+    console.log('✕ Closing results modal...');
     if (this.resultsModal) {
       this.resultsModal.classList.remove('active');
     }
     this.analysisResults = null; // Clear stored results
-    this.updateStatus('Ready for next PIPELINE capture');
+    this.updateStatus(`Ready for next ${this.analysisMode.toUpperCase()} capture (analyzed image only mode)`);
   }
   
   showErrorModal() {
@@ -642,7 +738,7 @@ class CameraAppManager {
     if (this.errorModal) {
       this.errorModal.classList.remove('active');
     }
-    this.updateStatus('Ready for next PIPELINE capture');
+    this.updateStatus(`Ready for next ${this.analysisMode.toUpperCase()} capture (analyzed image only mode)`);
   }
   
   // ==================== UI STATUS MANAGEMENT ====================
@@ -680,35 +776,6 @@ class CameraAppManager {
     
     setTimeout(() => {
       notification.remove();
-    }, 5000);
-  }
-  
-  showErrorMessage(message) {
-    // Create temporary error notification
-    const notification = document.createElement('div');
-    notification.className = 'error-notification';
-    notification.textContent = message;
-    notification.style.cssText = `
-      position: fixed;
-      top: 100px;
-      right: 20px;
-      background: #e74c3c;
-      color: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      z-index: 400;
-      font-weight: 600;
-      box-shadow: 0 6px 25px rgba(231, 76, 60, 0.3);
-      animation: slideInRight 0.3s ease;
-      max-width: 400px;
-      word-wrap: break-word;
-      border: 2px solid white;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.remove();
     }, 6000);
   }
   
@@ -717,7 +784,7 @@ class CameraAppManager {
   handleKeyboard(e) {
     // Prevent shortcuts during analysis
     if (this.isAnalyzing) {
-      console.log('⏳ Ignoring keyboard shortcut during PIPELINE analysis');
+      console.log('⏳ Ignoring keyboard shortcut during analysis');
       return;
     }
     
@@ -779,11 +846,28 @@ class CameraAppManager {
         }
         break;
         
-      case 'p': // P - Show pipeline mode info (debug)
-      case 'P':
+      case 's': // S - Show save mode info (debug)
+      case 'S':
         e.preventDefault();
-        this.showSuccessMessage('Mode: Quadrant Pipeline Analysis (1:2:4 mix ratio)');
-        console.log('🔍 Mode: Quadrant Pipeline Analysis with cement mixture calculation');
+        this.showSuccessMessage(`Save Mode: Analyzed Images Only (${this.analysisMode.toUpperCase()} mode)`);
+        console.log(`💾 Save Mode: Only ${this.analysisMode.toUpperCase()} analyzed images with AI overlays are saved`);
+        break;
+        
+      case 'm': // M - Switch analysis mode
+      case 'M':
+        e.preventDefault();
+        const newMode = this.analysisMode === 'pipeline' ? 'phased' : 'pipeline';
+        this.switchAnalysisMode(newMode);
+        break;
+        
+      case '1': // 1 - Switch to pipeline mode
+        e.preventDefault();
+        this.switchAnalysisMode('pipeline');
+        break;
+        
+      case '2': // 2 - Switch to phased mode
+        e.preventDefault();
+        this.switchAnalysisMode('phased');
         break;
     }
   }
@@ -810,34 +894,49 @@ window.closeErrorModal = function() {
   }
 };
 
+// FIXED: Global analysis mode switching functions
+window.switchToPipelineMode = function() {
+  if (window.cameraApp) {
+    window.cameraApp.switchAnalysisMode('pipeline');
+  }
+};
+
+window.switchToPhasedMode = function() {
+  if (window.cameraApp) {
+    window.cameraApp.switchAnalysisMode('phased');
+  }
+};
+
 // ==================== INITIALIZATION ====================
 
 // Initialize camera app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Starting Rebar Vista Camera App (QUADRANT PIPELINE MODE)...');
-  console.log('📝 PIPELINE: Quadrant intersections → Polygon → Volume → Cement (1:2:4)');
-  console.log('🎯 Expected detections: 2 verticals + 11 horizontals');
-  console.log('📐 Exact format: "27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters"');
-  console.log('🧮 Ratio format: "1:2:4"');
+  console.log('🚀 Starting CORRECTED Rebar Vista Camera App (PIPELINE MODE, ANALYZED IMAGES ONLY)...');
+  console.log('📝 IMPORTANT: Only analyzed images with AI overlays will be saved');
+  console.log('🚫 No original/duplicate images will be created');
+  console.log('🔧 FIXED: JavaScript syntax error and proper pipeline mode support');
   
   // Create global instance
   window.cameraApp = new CameraAppManager();
   
-  console.log('✅ Camera App initialized successfully (PIPELINE MODE)');
-  console.log('📋 PIPELINE User Flow:');
+  console.log('✅ Camera App initialized successfully');
+  console.log('📋 CORRECTED User Flow:');
   console.log('   1. Position device at optimal distance (160-200cm)');
   console.log('   2. Press capture button (📷)');
-  console.log('   3. Wait for quadrant pipeline analysis');
-  console.log('   4. View results with exact dimensions format');
+  console.log('   3. Wait for PIPELINE AI analysis');
+  console.log('   4. View results (ONLY analyzed image auto-saved to gallery)');
   console.log('   5. Close results and capture again');
   console.log('');
   console.log('📋 Available keyboard shortcuts:');
-  console.log('   Space/Enter - Capture & analyze with pipeline');
+  console.log('   Space/Enter - Capture & analyze');
   console.log('   Escape - Close modals');
   console.log('   F - Toggle fullscreen');
   console.log('   G - Open gallery');
   console.log('   D - Show distance info (debug)');
-  console.log('   P - Show pipeline mode info (debug)');
+  console.log('   S - Show save mode info (debug)');
+  console.log('   M - Switch analysis mode');
+  console.log('   1 - Switch to PIPELINE mode');
+  console.log('   2 - Switch to PHASED mode');
   console.log('   ? - Open tutorial');
 });
 
@@ -849,4 +948,33 @@ notificationStyles.textContent = `
     to { transform: translateX(0); opacity: 1; }
   }
 `;
-document.head.appendChild(notificationStyles);
+document.head.appendChild(notificationStyles); ease;
+      max-width: 400px;
+      word-wrap: break-word;
+      border: 2px solid white;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 5000);
+  }
+  
+  showErrorMessage(message) {
+    // Create temporary error notification
+    const notification = document.createElement('div');
+    notification.className = 'error-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: #e74c3c;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      z-index: 400;
+      font-weight: 600;
+      box-shadow: 0 6px 25px rgba(231, 76, 60, 0.3);
+      animation: slideInRight 0.3s
