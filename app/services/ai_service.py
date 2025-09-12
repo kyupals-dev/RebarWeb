@@ -36,9 +36,9 @@ class AIService:
         self.metadata = None
         
         # Simplified rebar classes - only using front classes
-        self.class_names = ["back_horizontal", "front_horizontal", "front_vertical"]
+        self.class_names = ["front_horizontal", "front_vertical"]
         self.target_classes = ["front_horizontal", "front_vertical"]  # Only these matter
-        self.num_classes = 3
+        self.num_classes = 2
         
         # Detection parameters for your specific pattern
         self.detection_threshold = 0.3  # Lower threshold for better detection
