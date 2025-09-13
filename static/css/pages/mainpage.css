@@ -1,4 +1,4 @@
-/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES WITH DISTANCE SENSOR ==================== */
+/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES WITH BRIGHTNESS ENHANCEMENT ==================== */
 
 /* Global Styles with #2d7d47 Theme */
 body {
@@ -120,7 +120,7 @@ body {
   z-index: 200;
 }
 
-/* ==================== CAMERA FEEDS ==================== */
+/* ==================== ENHANCED CAMERA FEEDS WITH BRIGHTNESS OPTIMIZATION ==================== */
 
 #camera-feed, 
 #server-feed {
@@ -128,7 +128,36 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: opacity 0.3s ease;
+  transition: all 0.3s ease;
+  
+  /* Enhanced brightness and contrast for better visibility */
+  filter: brightness(1.2) contrast(1.1) saturate(1.05);
+  
+  /* Smooth image rendering */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Enhanced brightness mode */
+#camera-feed.enhanced-brightness, 
+#server-feed.enhanced-brightness {
+  filter: brightness(1.4) contrast(1.3) saturate(1.1) hue-rotate(0deg);
+  transition: filter 0.5s ease;
+}
+
+/* High brightness mode for very dark environments */
+#camera-feed.high-brightness, 
+#server-feed.high-brightness {
+  filter: brightness(1.6) contrast(1.4) saturate(1.15) gamma(0.8);
+  transition: filter 0.5s ease;
+}
+
+/* Dark mode detection and auto-enhancement */
+@media (prefers-color-scheme: dark) {
+  #camera-feed, 
+  #server-feed {
+    filter: brightness(1.3) contrast(1.2) saturate(1.08);
+  }
 }
 
 /* ==================== RULE OF THIRDS GRID OVERLAY ==================== */
@@ -150,9 +179,10 @@ body {
 
 .grid-line {
   position: absolute;
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.8);
   opacity: 0.6;
   transition: opacity 0.3s ease;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 .grid-vertical {
@@ -183,7 +213,7 @@ body {
   pointer-events: all;
 }
 
-/* Camera Status - positioned on left side */
+/* Camera Status - positioned on left side with enhanced visibility */
 .camera-status {
   position: absolute;
   top: 20px;
@@ -195,13 +225,17 @@ body {
   font-size: 12px;
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(45, 125, 71, 0.2);
 }
+
+/* ==================== DISTANCE SENSOR DISPLAY WITH ENHANCED STYLING ==================== */
 
 /* Distance Display - positioned on right side of camera status */
 .distance-display {
   position: absolute;
   top: 20px;
-  right: 80px; /* Leave space for tutorial button */
+  right: 270px; /* Adjusted for brightness controls */
   background: rgba(0, 0, 0, 0.8);
   color: white;
   padding: 8px 12px;
@@ -254,6 +288,11 @@ body {
   border-color: rgba(127, 140, 141, 0.6);
   box-shadow: 0 4px 15px rgba(127, 140, 141, 0.3);
 }
+
+/* ==================== BRIGHTNESS CONTROLS (ALREADY DEFINED IN JAVASCRIPT) ==================== */
+
+/* These styles are injected by the JavaScript brightness control system */
+/* See camera.js for the complete brightness control styling */
 
 /* Tutorial Button - White ? symbol with #49A166 background */
 .tutorial-btn {
@@ -340,7 +379,7 @@ body {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
-/* Capture Button - Custom capture.png icon (NO emoji) */
+/* Capture Button - Custom capture.png icon (NO emoji) with enhanced glow */
 .capture-btn {
   width: 80px;
   height: 80px;
@@ -349,6 +388,12 @@ body {
   background-repeat: no-repeat;
   background-position: center;
   background-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.capture-btn:hover {
+  background-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2), 0 0 30px rgba(255, 255, 255, 0.2);
 }
 
 /* Grid Toggle Button - Custom withgrid.png and nogrid.png icons */
@@ -406,7 +451,7 @@ body {
   background-image: url('/static/assets/button/minimize.png');
 }
 
-/* ==================== LOADING OVERLAY ==================== */
+/* ==================== LOADING OVERLAY WITH ENHANCED STYLING ==================== */
 
 .loading-overlay {
   position: absolute;
@@ -421,6 +466,7 @@ body {
   flex-direction: column;
   z-index: 20;
   border-radius: 20px;
+  backdrop-filter: blur(10px);
 }
 
 .loading-overlay.active {
@@ -450,7 +496,7 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* ==================== MODAL STYLES ==================== */
+/* ==================== MODAL STYLES WITH ENHANCED BRIGHTNESS ==================== */
 
 .modal-overlay {
   position: fixed;
@@ -482,180 +528,11 @@ body {
   color: #333;
   transform: scale(0.9);
   transition: transform 0.3s ease;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 .modal-overlay.active .modal-content {
   transform: scale(1);
-}
-
-/* ==================== ENHANCED RESULTS MODAL WITH 4-STEP ANALYSIS ==================== */
-
-.results-modal-large {
-  width: 95vw;
-  max-width: 1200px;
-  max-height: 95vh;
-}
-
-.results-header {
-  background: linear-gradient(135deg, #2d7d47, #245a37);
-  color: white;
-  padding: 20px 30px;
-  border-radius: 20px 20px 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.results-header h2 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 30px;
-  cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background 0.3s ease;
-}
-
-.modal-close:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.results-body {
-  padding: 30px;
-}
-
-/* 4-Step Analysis Grid */
-.analysis-steps-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.analysis-step {
-  background: #f8f9fa;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 2px solid #e9ecef;
-  transition: all 0.3s ease;
-}
-
-.analysis-step:hover {
-  border-color: #2d7d47;
-  box-shadow: 0 4px 15px rgba(45, 125, 71, 0.1);
-}
-
-.step-header {
-  background: linear-gradient(135deg, #2d7d47, #245a37);
-  color: white;
-  padding: 12px 15px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.step-number {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.step-title {
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-}
-
-.step-image {
-  width: 100%;
-  height: 200px;
-  object-fit: contain;
-  background: #fff;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.step-image:hover {
-  transform: scale(1.02);
-}
-
-/* Results Data Cards */
-.results-data {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-  margin-bottom: 25px;
-}
-
-.result-card {
-  background: #f8f9fa;
-  padding: 25px;
-  border-radius: 12px;
-  border-left: 5px solid #2d7d47;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.result-card h3 {
-  margin: 0 0 15px 0;
-  color: #2d7d47;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.result-value {
-  font-size: 20px;
-  font-weight: bold;
-  color: #2d7d47;
-  line-height: 1.3;
-}
-
-/* Detection Summary */
-.detection-summary {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 12px;
-  border: 1px solid #dee2e6;
-  margin-bottom: 20px;
-}
-
-.detection-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.detection-item:last-child {
-  border-bottom: none;
-}
-
-.detection-label {
-  font-weight: 600;
-  color: #495057;
-}
-
-.detection-value {
-  font-weight: bold;
-  color: #2d7d47;
 }
 
 /* ==================== TUTORIAL MODAL ==================== */
@@ -701,6 +578,82 @@ body {
   color: #2d7d47;
 }
 
+/* ==================== RESULTS MODAL WITH ENHANCED IMAGE DISPLAY ==================== */
+
+.results-modal .modal-content {
+  width: 700px;
+  padding: 0;
+}
+
+.results-header {
+  background: linear-gradient(135deg, #2d7d47, #245a37);
+  color: white;
+  padding: 25px 30px;
+  border-radius: 20px 20px 0 0;
+}
+
+.results-header h2 {
+  margin: 0;
+  text-align: center;
+  font-size: 24px;
+}
+
+.results-body {
+  padding: 30px;
+}
+
+.results-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  border: 2px solid #f0f0f0;
+  
+  /* Enhanced display for analyzed images */
+  filter: brightness(1.05) contrast(1.02);
+  transition: filter 0.3s ease;
+}
+
+.results-image:hover {
+  filter: brightness(1.1) contrast(1.05);
+}
+
+.results-data {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-bottom: 20px;
+}
+
+.result-card {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 12px;
+  border-left: 5px solid #2d7d47;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.result-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.result-card h3 {
+  margin: 0 0 15px 0;
+  color: #2d7d47;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.result-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2d7d47;
+  line-height: 1.3;
+}
+
 /* ==================== ERROR MODAL ==================== */
 
 .error-modal .modal-content {
@@ -713,6 +666,7 @@ body {
   font-size: 80px;
   color: #e74c3c;
   margin-bottom: 20px;
+  text-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
 }
 
 .error-modal h2 {
@@ -753,67 +707,28 @@ body {
 .modal-btn.primary {
   background: #2d7d47;
   color: white;
+  box-shadow: 0 4px 15px rgba(45, 125, 71, 0.3);
 }
 
 .modal-btn.primary:hover {
   background: #245a37;
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(45, 125, 71, 0.4);
 }
 
 .modal-btn.secondary {
   background: #6c757d;
   color: white;
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
 }
 
 .modal-btn.secondary:hover {
   background: #5a6268;
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
 }
 
-/* ==================== RESPONSIVE DESIGN FOR MODALS ==================== */
-
-@media (max-width: 1024px) {
-  .results-modal-large {
-    width: 98vw;
-    max-height: 98vh;
-  }
-  
-  .analysis-steps-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-  
-  .step-image {
-    height: 250px;
-  }
-  
-  .results-data {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-}
-
-@media (max-width: 768px) {
-  .results-body {
-    padding: 20px;
-  }
-  
-  .step-image {
-    height: 200px;
-  }
-  
-  .tutorial-modal .modal-content {
-    width: 95vw;
-    padding: 20px;
-  }
-  
-  .error-modal .modal-content {
-    width: 95vw;
-    padding: 30px 20px;
-  }
-}
-
-/* ==================== ANIMATIONS ==================== */
+/* ==================== ANIMATIONS WITH ENHANCED EFFECTS ==================== */
 
 .fade-in {
   animation: fadeIn 0.4s ease;
@@ -824,11 +739,324 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes slideUp {
   from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* Brightness pulse animation for controls */
+@keyframes brightnessPulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+  100% { filter: brightness(1); }
+}
+
+.brightness-active {
+  animation: brightnessPulse 2s infinite;
+}
+
+/* ==================== PORTRAIT-OPTIMIZED RESPONSIVE DESIGN ==================== */
+
+/* Large portrait screens - maximize space even more */
+@media (orientation: portrait) and (min-height: 800px) {
+  .camera-container {
+    height: 85vh; /* Use even more space on tall screens */
+    width: calc(85vh * 0.75);
+  }
+  
+  .distance-display {
+    right: 280px; /* Adjust for brightness controls on larger screens */
+  }
+}
+
+/* Medium portrait screens */
+@media (orientation: portrait) and (max-height: 800px) and (min-height: 600px) {
+  .camera-container {
+    height: 80vh;
+    width: calc(80vh * 0.75);
+  }
+  
+  .bottom-controls {
+    gap: 35px;
+    bottom: 25px;
+  }
+  
+  .capture-btn {
+    width: 75px;
+    height: 75px;
+    background-size: 45px 45px;
+  }
+  
+  .gallery-btn,
+  .grid-btn {
+    width: 60px;
+    height: 60px;
+    background-size: 35px 35px;
+  }
+  
+  .fullscreen-btn {
+    width: 35px;
+    height: 35px;
+    background-size: 22px 22px;
+    bottom: 12px;
+    right: 12px;
+  }
+  
+  .tutorial-btn {
+    width: 45px;
+    height: 45px;
+    font-size: 22px;
+  }
+  
+  /* Adjust distance display for medium screens */
+  .distance-display {
+    right: 260px; /* Adjust for brightness controls */
+    font-size: 10px;
+    padding: 6px 10px;
+    min-width: 70px;
+  }
+  
+  .distance-display .distance-value {
+    font-size: 11px;
+  }
+  
+  .distance-display .distance-status {
+    font-size: 8px;
+  }
+}
+
+/* Small portrait screens */
+@media (orientation: portrait) and (max-height: 600px) {
+  .header {
+    height: 60px;
+  }
+  
+  .nav-logo {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .brand-name-top,
+  .brand-name-bottom {
+    font-size: 16px;
+  }
+  
+  .header-title h1 {
+    font-size: 18px;
+  }
+  
+  .camera-container {
+    height: 75vh;
+    width: calc(75vh * 0.75);
+    border-radius: 15px;
+  }
+  
+  .bottom-controls {
+    gap: 30px;
+    bottom: 20px;
+  }
+  
+  .capture-btn {
+    width: 70px;
+    height: 70px;
+    background-size: 40px 40px;
+  }
+  
+  .gallery-btn,
+  .grid-btn {
+    width: 55px;
+    height: 55px;
+    background-size: 30px 30px;
+  }
+  
+  .fullscreen-btn {
+    width: 32px;
+    height: 32px;
+    background-size: 20px 20px;
+    bottom: 10px;
+    right: 10px;
+  }
+  
+  .tutorial-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  
+  /* Compact distance display for small screens */
+  .distance-display {
+    right: 240px; /* Adjust for brightness controls */
+    font-size: 9px;
+    padding: 5px 8px;
+    min-width: 60px;
+    border-radius: 12px;
+  }
+  
+  .distance-display .distance-value {
+    font-size: 10px;
+    margin-bottom: 1px;
+  }
+  
+  .distance-display .distance-status {
+    font-size: 7px;
+  }
+  
+  .camera-status {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}
+
+/* Landscape fallback (discourage landscape use) */
+@media (orientation: landscape) {
+  .camera-container {
+    height: 85vh;
+    width: calc(85vh * 0.75);
+    max-height: 600px;
+    max-width: 450px;
+  }
+  
+  .camera-interface::before {
+    content: "📱 For best experience, please rotate your device to portrait mode";
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(45, 125, 71, 0.9);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Adjust distance display for landscape */
+  .distance-display {
+    right: 250px;
+    top: 15px;
+    font-size: 10px;
+  }
+}
+
+/* Tablet-specific optimizations - maximize space */
+@media (min-width: 768px) and (orientation: portrait) {
+  .camera-interface {
+    padding: 20px;
+  }
+  
+  .camera-container {
+    height: 88vh; /* Use almost full height on tablets */
+    width: calc(88vh * 0.75);
+    max-height: 900px;
+    max-width: 675px;
+  }
+  
+  .capture-btn {
+    width: 85px;
+    height: 85px;
+    background-size: 55px 55px;
+  }
+  
+  .gallery-btn {
+    width: 70px;
+    height: 70px;
+    background-size: 45px 45px;
+  }
+  
+  .grid-btn {
+    width: 70px;
+    height: 70px;
+    background-size: 45px 45px;
+  }
+  
+  .fullscreen-btn {
+    width: 45px;
+    height: 45px;
+    background-size: 30px 30px;
+  }
+  
+  .tutorial-btn {
+    width: 55px;
+    height: 55px;
+    font-size: 26px;
+  }
+  
+  /* Enhanced distance display for tablets */
+  .distance-display {
+    right: 290px; /* More space for larger brightness controls */
+    font-size: 12px;
+    padding: 10px 15px;
+    min-width: 90px;
+    border-radius: 18px;
+  }
+  
+  .distance-display .distance-value {
+    font-size: 14px;
+    margin-bottom: 3px;
+  }
+  
+  .distance-display .distance-status {
+    font-size: 10px;
+  }
+  
+  .results-modal .modal-content {
+    width: 600px;
+  }
+  
+  .tutorial-modal .modal-content {
+    width: 550px;
+  }
+}
+
+/* ==================== HIGH CONTRAST MODE FOR ACCESSIBILITY ==================== */
+
+@media (prefers-contrast: high) {
+  #camera-feed, 
+  #server-feed {
+    filter: brightness(1.3) contrast(1.5) saturate(1.2);
+  }
+  
+  .camera-status,
+  .distance-display {
+    border-width: 2px;
+    border-style: solid;
+  }
+  
+  .grid-line {
+    background-color: rgba(255, 255, 255, 1);
+    opacity: 0.8;
+  }
+}
+
+/* ==================== REDUCED MOTION SUPPORT ==================== */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+}
+
+/* ==================== PRINT STYLES ==================== */
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  .camera-interface,
+  .camera-container {
+    display: none;
+  }
 }
