@@ -1,4 +1,4 @@
-/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES WITH PIPELINE SUPPORT ==================== */
+/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES WITH DISTANCE SENSOR ==================== */
 
 /* Global Styles with #2d7d47 Theme */
 body {
@@ -196,8 +196,6 @@ body {
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
-
-/* ==================== DISTANCE SENSOR DISPLAY ==================== */
 
 /* Distance Display - positioned on right side of camera status */
 .distance-display {
@@ -490,6 +488,176 @@ body {
   transform: scale(1);
 }
 
+/* ==================== ENHANCED RESULTS MODAL WITH 4-STEP ANALYSIS ==================== */
+
+.results-modal-large {
+  width: 95vw;
+  max-width: 1200px;
+  max-height: 95vh;
+}
+
+.results-header {
+  background: linear-gradient(135deg, #2d7d47, #245a37);
+  color: white;
+  padding: 20px 30px;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.results-header h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.results-body {
+  padding: 30px;
+}
+
+/* 4-Step Analysis Grid */
+.analysis-steps-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.analysis-step {
+  background: #f8f9fa;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.analysis-step:hover {
+  border-color: #2d7d47;
+  box-shadow: 0 4px 15px rgba(45, 125, 71, 0.1);
+}
+
+.step-header {
+  background: linear-gradient(135deg, #2d7d47, #245a37);
+  color: white;
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.step-number {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.step-title {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.step-image {
+  width: 100%;
+  height: 200px;
+  object-fit: contain;
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.step-image:hover {
+  transform: scale(1.02);
+}
+
+/* Results Data Cards */
+.results-data {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-bottom: 25px;
+}
+
+.result-card {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 12px;
+  border-left: 5px solid #2d7d47;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.result-card h3 {
+  margin: 0 0 15px 0;
+  color: #2d7d47;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.result-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2d7d47;
+  line-height: 1.3;
+}
+
+/* Detection Summary */
+.detection-summary {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #dee2e6;
+  margin-bottom: 20px;
+}
+
+.detection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.detection-item:last-child {
+  border-bottom: none;
+}
+
+.detection-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.detection-value {
+  font-weight: bold;
+  color: #2d7d47;
+}
+
 /* ==================== TUTORIAL MODAL ==================== */
 
 .tutorial-modal .modal-content {
@@ -533,168 +701,10 @@ body {
   color: #2d7d47;
 }
 
-/* ==================== UPDATED PIPELINE RESULTS MODAL ==================== */
-
-.results-modal .modal-content {
-  width: 900px;
-  max-width: 95vw;
-  padding: 0;
-  max-height: 95vh;
-}
-
-.results-header {
-  background: linear-gradient(135deg, #2d7d47, #245a37);
-  color: white;
-  padding: 25px 30px;
-  border-radius: 20px 20px 0 0;
-}
-
-.results-header h2 {
-  margin: 0;
-  text-align: center;
-  font-size: 24px;
-}
-
-.results-body {
-  padding: 30px;
-  max-height: calc(95vh - 200px);
-  overflow-y: auto;
-}
-
-.results-image {
-  width: 100%;
-  max-height: 300px;
-  object-fit: contain;
-  border-radius: 12px;
-  margin-bottom: 25px;
-  border: 2px solid #f0f0f0;
-}
-
-/* UPDATED: Pipeline Results Data with Exact Format */
-.pipeline-results-data {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-  margin-bottom: 25px;
-}
-
-.pipeline-result-card {
-  background: #f8f9fa;
-  padding: 25px;
-  border-radius: 12px;
-  border-left: 5px solid #2d7d47;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.pipeline-result-card h3 {
-  margin: 0 0 15px 0;
-  color: #2d7d47;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.pipeline-result-value {
-  font-size: 18px;
-  font-weight: bold;
-  color: #2d7d47;
-  line-height: 1.4;
-  word-break: break-word;
-}
-
-/* UPDATED: Pipeline Details Section */
-.pipeline-details {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 25px;
-  border: 1px solid #e0e0e0;
-}
-
-.pipeline-detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.pipeline-detail-row:last-child {
-  border-bottom: none;
-}
-
-.pipeline-detail-label {
-  font-weight: 600;
-  color: #2d7d47;
-  font-size: 14px;
-}
-
-.pipeline-detail-value {
-  color: #333;
-  font-size: 14px;
-  text-align: right;
-  max-width: 60%;
-  word-break: break-word;
-}
-
-/* UPDATED: Pipeline Visualization Steps (4 Images) */
-.pipeline-visualization-steps {
-  margin-top: 25px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 1px solid #e0e0e0;
-}
-
-.pipeline-visualization-steps h4 {
-  margin: 0 0 20px 0;
-  color: #2d7d47;
-  font-size: 18px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.pipeline-step-images {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-}
-
-.pipeline-step-image {
-  text-align: center;
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  transition: all 0.3s ease;
-}
-
-.pipeline-step-image:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.step-image {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 6px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-}
-
-.step-label {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #2d7d47;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 /* ==================== ERROR MODAL ==================== */
 
 .error-modal .modal-content {
-  width: 500px;
+  width: 450px;
   padding: 40px;
   text-align: center;
 }
@@ -715,33 +725,7 @@ body {
   color: #666;
   font-size: 16px;
   line-height: 1.6;
-  margin-bottom: 20px;
-}
-
-.error-requirements {
-  text-align: left;
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  margin: 20px 0;
-  border-left: 4px solid #e74c3c;
-}
-
-.error-requirements h4 {
-  margin: 0 0 10px 0;
-  color: #e74c3c;
-  font-size: 16px;
-}
-
-.error-requirements ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.error-requirements li {
-  margin-bottom: 5px;
-  color: #666;
-  font-size: 14px;
+  margin-bottom: 30px;
 }
 
 /* ==================== MODAL BUTTONS ==================== */
@@ -753,12 +737,6 @@ body {
   padding: 25px 30px;
   border-top: 1px solid #eee;
   margin: 25px -30px -30px -30px;
-}
-
-.results-footer {
-  padding: 25px 30px;
-  border-top: 1px solid #eee;
-  text-align: center;
 }
 
 .modal-btn {
@@ -792,6 +770,49 @@ body {
   transform: translateY(-1px);
 }
 
+/* ==================== RESPONSIVE DESIGN FOR MODALS ==================== */
+
+@media (max-width: 1024px) {
+  .results-modal-large {
+    width: 98vw;
+    max-height: 98vh;
+  }
+  
+  .analysis-steps-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .step-image {
+    height: 250px;
+  }
+  
+  .results-data {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .results-body {
+    padding: 20px;
+  }
+  
+  .step-image {
+    height: 200px;
+  }
+  
+  .tutorial-modal .modal-content {
+    width: 95vw;
+    padding: 20px;
+  }
+  
+  .error-modal .modal-content {
+    width: 95vw;
+    padding: 30px 20px;
+  }
+}
+
 /* ==================== ANIMATIONS ==================== */
 
 .fade-in {
@@ -810,287 +831,4 @@ body {
 @keyframes slideUp {
   from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
-}
-
-/* ==================== RESPONSIVE DESIGN FOR PIPELINE MODAL ==================== */
-
-/* Tablet adjustments */
-@media (max-width: 1024px) {
-  .results-modal .modal-content {
-    width: 85vw;
-    max-width: 800px;
-  }
-  
-  .pipeline-step-images {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  
-  .step-image {
-    height: 100px;
-  }
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .results-modal .modal-content {
-    width: 95vw;
-    margin: 10px;
-  }
-  
-  .pipeline-results-data {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-  
-  .pipeline-step-images {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  
-  .step-image {
-    height: 150px;
-  }
-  
-  .pipeline-detail-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
-  }
-  
-  .pipeline-detail-value {
-    text-align: left;
-    max-width: 100%;
-  }
-  
-  .results-body {
-    padding: 20px;
-  }
-}
-
-/* Portrait-optimized responsive design */
-@media (orientation: portrait) and (min-height: 800px) {
-  .camera-container {
-    height: 85vh;
-    width: calc(85vh * 0.75);
-  }
-}
-
-@media (orientation: portrait) and (max-height: 800px) and (min-height: 600px) {
-  .camera-container {
-    height: 80vh;
-    width: calc(80vh * 0.75);
-  }
-  
-  .bottom-controls {
-    gap: 35px;
-    bottom: 25px;
-  }
-  
-  .capture-btn {
-    width: 75px;
-    height: 75px;
-    background-size: 45px 45px;
-  }
-  
-  .gallery-btn,
-  .grid-btn {
-    width: 60px;
-    height: 60px;
-    background-size: 35px 35px;
-  }
-  
-  .fullscreen-btn {
-    width: 35px;
-    height: 35px;
-    background-size: 22px 22px;
-    bottom: 12px;
-    right: 12px;
-  }
-  
-  .tutorial-btn {
-    width: 45px;
-    height: 45px;
-    font-size: 22px;
-  }
-  
-  .distance-display {
-    right: 75px;
-    font-size: 10px;
-    padding: 6px 10px;
-    min-width: 70px;
-  }
-  
-  .distance-display .distance-value {
-    font-size: 11px;
-  }
-  
-  .distance-display .distance-status {
-    font-size: 8px;
-  }
-}
-
-@media (orientation: portrait) and (max-height: 600px) {
-  .header {
-    height: 60px;
-  }
-  
-  .nav-logo {
-    width: 40px;
-    height: 40px;
-  }
-  
-  .brand-name-top,
-  .brand-name-bottom {
-    font-size: 16px;
-  }
-  
-  .header-title h1 {
-    font-size: 18px;
-  }
-  
-  .camera-container {
-    height: 75vh;
-    width: calc(75vh * 0.75);
-    border-radius: 15px;
-  }
-  
-  .bottom-controls {
-    gap: 30px;
-    bottom: 20px;
-  }
-  
-  .capture-btn {
-    width: 70px;
-    height: 70px;
-    background-size: 40px 40px;
-  }
-  
-  .gallery-btn,
-  .grid-btn {
-    width: 55px;
-    height: 55px;
-    background-size: 30px 30px;
-  }
-  
-  .fullscreen-btn {
-    width: 32px;
-    height: 32px;
-    background-size: 20px 20px;
-    bottom: 10px;
-    right: 10px;
-  }
-  
-  .tutorial-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-  }
-  
-  .distance-display {
-    right: 70px;
-    font-size: 9px;
-    padding: 5px 8px;
-    min-width: 60px;
-    border-radius: 12px;
-  }
-  
-  .distance-display .distance-value {
-    font-size: 10px;
-    margin-bottom: 1px;
-  }
-  
-  .distance-display .distance-status {
-    font-size: 7px;
-  }
-  
-  .camera-status {
-    font-size: 11px;
-    padding: 6px 10px;
-  }
-}
-
-/* Landscape fallback */
-@media (orientation: landscape) {
-  .camera-container {
-    height: 85vh;
-    width: calc(85vh * 0.75);
-    max-height: 600px;
-    max-width: 450px;
-  }
-  
-  .camera-interface::before {
-    content: "📱 For best pipeline results, please rotate your device to portrait mode";
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(45, 125, 71, 0.9);
-    color: white;
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 12px;
-    z-index: 50;
-  }
-  
-  .distance-display {
-    right: 80px;
-    top: 15px;
-    font-size: 10px;
-  }
-}
-
-/* Tablet-specific optimizations */
-@media (min-width: 768px) and (orientation: portrait) {
-  .camera-interface {
-    padding: 20px;
-  }
-  
-  .camera-container {
-    height: 88vh;
-    width: calc(88vh * 0.75);
-    max-height: 900px;
-    max-width: 675px;
-  }
-  
-  .capture-btn {
-    width: 85px;
-    height: 85px;
-    background-size: 55px 55px;
-  }
-  
-  .gallery-btn {
-    width: 70px;
-    height: 70px;
-    background-size: 45px 45px;
-  }
-  
-  .fullscreen-btn {
-    width: 65px;
-    height: 65px;
-    background-size: 40px 40px;
-  }
-  
-  .tutorial-btn {
-    width: 55px;
-    height: 55px;
-    font-size: 26px;
-  }
-  
-  .distance-display {
-    right: 85px;
-    font-size: 12px;
-    padding: 10px 15px;
-    min-width: 90px;
-    border-radius: 18px;
-  }
-  
-  .distance-display .distance-value {
-    font-size: 14px;
-    margin-bottom: 3px;
-  }
-  
-  .distance-display .distance-status {
-    font-size: 10px;
-  }
 }

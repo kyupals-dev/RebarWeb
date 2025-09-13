@@ -1,15 +1,15 @@
-# main.py - Complete implementation with AI service and Distance Sensor integration
-# MODIFIED: AI routes now receive camera manager for direct frame access
+# main.py - Complete implementation with 4-Step AI Pipeline and Distance Sensor integration
+# FIXED: Complete integration of ImageService, AIService with metadata support
 
 from app import create_app
 from app.services.camera_service import CameraManager, camera_thread_worker
 from app.services.image_service import ImageService
 from app.services.ai_service import AIService
-from app.services.distance_service import DistanceService  # Import Distance Service
+from app.services.distance_service import DistanceService
 from app.routes.camera_routes import init_camera_routes
 from app.routes.image_routes import init_image_routes
 from app.routes.ai_routes import init_ai_routes
-from app.routes.sensor_routes import init_sensor_routes  # Import Sensor Routes
+from app.routes.sensor_routes import init_sensor_routes
 from app.utils.config import config
 import threading
 import tkinter as tk
@@ -25,7 +25,7 @@ class TkinterCameraFrame:
         self.camera_manager = camera_manager
         self.distance_service = distance_service
         self.root = tk.Tk()
-        self.root.title("Rebar Vista Camera Feed - 480x640 (Analyzed Images Only)")
+        self.root.title("Rebar Vista 4-Step Analysis - 480x640 (Analyzed Images Only)")
         self.root.geometry("520x780")  # Slightly taller for distance display
         self.root.configure(bg='#2c3e50')
         
@@ -33,10 +33,10 @@ class TkinterCameraFrame:
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Title label with save mode indicator
+        # Title label with 4-step pipeline indicator
         title_label = tk.Label(main_frame, 
-                              text="Rebar Vista Camera (480x640) + Distance\nSave Mode: Analyzed Images Only", 
-                              font=('Arial', 14, 'bold'), 
+                              text="Rebar Vista 4-Step AI Pipeline (480x640)\nDetection → Intersections → Polygon → Cement\nSave Mode: Analyzed Images Only", 
+                              font=('Arial', 12, 'bold'), 
                               bg='#2c3e50', fg='white')
         title_label.pack(pady=(0, 5))
         
@@ -61,9 +61,9 @@ class TkinterCameraFrame:
                                    width=480, height=640)
         self.camera_label.pack(pady=5)
         
-        # Status label with save mode info
+        # Status label with 4-step pipeline info
         self.status_label = tk.Label(main_frame, 
-                                   text="Initializing camera and distance sensor (analyzed images only)...", 
+                                   text="Initializing 4-step AI pipeline and distance sensor...", 
                                    font=('Arial', 10), 
                                    bg='#2c3e50', fg='#ecf0f1')
         self.status_label.pack(pady=5)
@@ -71,9 +71,6 @@ class TkinterCameraFrame:
         # Button frame
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(pady=10)
-        
-        # Note: Capture button removed since we don't save originals via Tkinter
-        # The web interface handles capture + AI analysis
         
         # Toggle camera button
         self.toggle_btn = tk.Button(button_frame, text="Stop Camera", 
@@ -92,16 +89,16 @@ class TkinterCameraFrame:
         self.distance_btn.pack(side=tk.LEFT, padx=5)
         
         # AI test button
-        self.ai_test_btn = tk.Button(button_frame, text="Test AI", 
+        self.ai_test_btn = tk.Button(button_frame, text="Test 4-Step AI", 
                                    command=self.test_ai,
                                    bg='#9b59b6', fg='white', 
                                    font=('Arial', 12, 'bold'),
-                                   padx=20, pady=5)
+                                   padx=15, pady=5)
         self.ai_test_btn.pack(side=tk.LEFT, padx=5)
         
-        # Info display with save mode
+        # Info display with 4-step pipeline
         self.info_label = tk.Label(main_frame, 
-                                 text="Format: 480x640 Portrait | Distance: Checking | Save: Analyzed Only", 
+                                 text="Format: 480x640 | Distance: Checking | Pipeline: 4-Step | Save: Analyzed Only", 
                                  font=('Arial', 9), 
                                  bg='#2c3e50', fg='#bdc3c7')
         self.info_label.pack(pady=(5, 0))
@@ -142,16 +139,13 @@ class TkinterCameraFrame:
                     # Update info label
                     optimal_range = reading.get('optimal_range', '160-200cm')
                     self.info_label.configure(
-                        text=f"Format: 480x640 | Distance: {reading['distance_text']} | Range: {optimal_range} | Save: Analyzed Only"
+                        text=f"480x640 | Distance: {reading['distance_text']} | Range: {optimal_range} | Pipeline: 4-Step | Save: Analyzed Only"
                     )
                     
                 else:
                     # Error case
                     self.distance_label.configure(text="Distance: ERROR")
                     self.distance_status_label.configure(text="ERROR", bg='#e74c3c', fg='white')
-                    self.info_label.configure(
-                        text="Format: 480x640 | Distance: ERROR | Save: Analyzed Only"
-                    )
                     
             except Exception as e:
                 print(f"Tkinter distance update error: {e}")
@@ -187,18 +181,18 @@ class TkinterCameraFrame:
             self.status_label.configure(text="Distance service not available")
     
     def test_ai(self):
-        """Test AI service with current camera frame"""
+        """Test 4-step AI pipeline with current camera frame"""
         if self.camera_manager:
             current_frame = self.camera_manager.get_current_frame()
             
             if current_frame is not None:
-                self.status_label.configure(text="Testing AI with current frame (analyzed image only)...")
-                print("🧪 Testing AI service with current camera frame")
-                print("📝 NOTE: AI test will save only analyzed image if successful")
+                self.status_label.configure(text="Testing 4-step AI pipeline with current frame...")
+                print("🧪 Testing 4-step AI pipeline with current camera frame")
+                print("📝 NOTE: 4-step AI test will save visualization images if successful")
             else:
-                self.status_label.configure(text="No camera frame available for AI test")
+                self.status_label.configure(text="No camera frame available for 4-step AI test")
         else:
-            self.status_label.configure(text="Camera manager not available for AI test")
+            self.status_label.configure(text="Camera manager not available for 4-step AI test")
     
     def update_frame(self):
         if self.is_running and self.camera_manager:
@@ -231,13 +225,13 @@ class TkinterCameraFrame:
                     self.camera_label.image = photo
                     
                     # Update status
-                    self.status_label.configure(text="Rebar Vista Active - 480x640 (Analyzed Images Only Mode)")
+                    self.status_label.configure(text="4-Step AI Pipeline Ready - 480x640 (Analyzed Images Only)")
                     
                 except Exception as e:
                     print(f"Tkinter display error: {e}")
                     self.status_label.configure(text="Display error - check camera")
             else:
-                self.status_label.configure(text="No Rebar Vista camera feed available")
+                self.status_label.configure(text="No camera feed available for 4-step analysis")
         
         if self.is_running:
             # Schedule next update - 30ms for smooth display
@@ -247,13 +241,13 @@ class TkinterCameraFrame:
         if self.camera_manager.is_running:
             self.camera_manager.stop_camera()
             self.toggle_btn.configure(text="Start Camera", bg='#27ae60')
-            self.status_label.configure(text="Rebar Vista camera stopped")
+            self.status_label.configure(text="Camera stopped - 4-step AI pipeline unavailable")
         else:
             if self.camera_manager.start_camera():
                 self.toggle_btn.configure(text="Stop Camera", bg='#e74c3c')
-                self.status_label.configure(text="Rebar Vista camera started (480x640, analyzed images only)")
+                self.status_label.configure(text="Camera started - 4-step AI pipeline ready (480x640)")
             else:
-                self.status_label.configure(text="Failed to start Rebar Vista camera")
+                self.status_label.configure(text="Failed to start camera - 4-step AI pipeline unavailable")
     
     def on_closing(self):
         print("Closing Tkinter camera window...")
@@ -265,22 +259,60 @@ class TkinterCameraFrame:
     
     def start(self):
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        print("Starting Tkinter 480x640 camera window (analyzed images only mode)...")
+        print("Starting Tkinter 480x640 camera window with 4-step AI pipeline...")
         self.root.mainloop()
 
 def start_tkinter_window(camera_manager, distance_service):
     """Start the tkinter camera window for 480x640 display with distance sensor"""
     try:
-        print("Initializing Tkinter 480x640 camera interface (analyzed images only)...")
+        print("Initializing Tkinter 480x640 camera interface with 4-step pipeline...")
         tk_camera = TkinterCameraFrame(camera_manager, distance_service)
         tk_camera.start()
     except Exception as e:
         print(f"Error starting Tkinter window: {e}")
 
+def integrate_services(camera_manager, image_service, ai_service, distance_service):
+    """Integrate all services with proper dependencies for 4-step pipeline"""
+    try:
+        print("🔗 Integrating services for 4-step AI pipeline...")
+        
+        # CRITICAL: Integrate AI service with image service for metadata
+        ai_service.image_service = image_service
+        print("✅ AI service integrated with image service for metadata")
+        
+        # Test service integrations
+        ai_status = ai_service.get_model_status()
+        print(f"✅ AI service status: {ai_status['model_type']}")
+        
+        try:
+            image_stats = image_service.get_storage_stats()
+            if image_stats['success']:
+                print(f"✅ Image service ready: {image_stats['stats']['total_files']} files")
+            else:
+                print(f"⚠️  Image service warning: {image_stats['error']}")
+        except Exception as e:
+            print(f"⚠️  Image service integration warning: {e}")
+        
+        distance_status = distance_service.get_sensor_status()
+        print(f"✅ Distance service ready: {'active' if distance_status['is_running'] else 'inactive'}")
+        
+        print("✅ All services integrated successfully for 4-step pipeline")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error integrating services: {e}")
+        import traceback
+        traceback.print_exc()
+        print("⚠️  Continuing with limited service integration...")
+        return False
+
 def main():
     try:
-        print("Starting Rebar Vista with AI and Distance Sensor Integration...")
-        print("📝 SAVE MODE: Only analyzed images with AI overlays will be saved")
+        print("STARTING REBAR VISTA 4-STEP AI ANALYSIS PIPELINE")
+        print("=" * 70)
+        print("🤖 Pipeline: Detection → Intersections → Polygon → Cement")
+        print("📝 Save Mode: Only analyzed images with 4-step visualizations")
+        print("🎯 Expected: 2 vertical + 11 horizontal rebars = 13 detections")
         print("=" * 70)
         
         # Initialize services
@@ -288,7 +320,12 @@ def main():
         camera_manager = CameraManager()
         image_service = ImageService()
         ai_service = AIService()
-        distance_service = DistanceService()  # Initialize Distance Service
+        distance_service = DistanceService()
+        
+        # CRITICAL: Integrate services with dependencies
+        print("Integrating services for 4-step pipeline...")
+        if not integrate_services(camera_manager, image_service, ai_service, distance_service):
+            print("⚠️  Service integration had issues, continuing with reduced functionality")
         
         # Create Flask app with services
         print("Creating Flask web application...")
@@ -298,9 +335,9 @@ def main():
         with app.app_context():
             init_camera_routes(camera_manager, image_service)
             init_image_routes(image_service)
-            init_ai_routes(ai_service, camera_manager)  # MODIFIED: Pass camera_manager to AI routes
-            init_sensor_routes(distance_service)  # Initialize Sensor Routes
-            print("Flask routes initialized (AI routes have camera access)")
+            init_ai_routes(ai_service, camera_manager)  # AI routes have camera access
+            init_sensor_routes(distance_service)
+            print("Flask routes initialized (4-step AI pipeline ready)")
         
         # Ensure upload folder exists
         config.ensure_upload_folder()
@@ -327,7 +364,7 @@ def main():
         # Start distance monitoring
         distance_service.start_monitoring()
         
-        print("Starting Tkinter 480x640 display window (analyzed images only)...")
+        print("Starting Tkinter 480x640 display window...")
         # Start tkinter window in separate thread
         tkinter_thread = threading.Thread(
             target=start_tkinter_window, 
@@ -343,28 +380,34 @@ def main():
             print(f"  {rule.endpoint}: {rule.rule} [{methods}]")
         
         print("=" * 70)
-        print("REBAR VISTA READY - AI-POWERED ANALYSIS (ANALYZED IMAGES ONLY)")
-        print("Web interface: Camera display with AI analysis (saves analyzed images only)")
-        print("Tkinter window: Live 480x640 camera feed with distance overlay")
-        print("AI Analysis: Detectron2 rebar detection and measurement")
-        print("Distance Sensor: HC-SR04 optimal positioning (160-200cm)")
-        print("Save Mode: ONLY analyzed images with AI overlays are saved")
-        print("Gallery: Shows only analyzed images (no duplicates)")
+        print("REBAR VISTA 4-STEP AI PIPELINE READY")
+        print("=" * 70)
+        print("🌐 Web Interface: Camera with 4-step AI analysis display")
+        print("🖥️  Tkinter Window: Live 480x640 feed with distance overlay")
+        print("🤖 AI Analysis: Simplified 4-step pipeline with step visualization")
+        print("📏 Distance Sensor: HC-SR04 optimal positioning (160-200cm)")
+        print("💾 Save Mode: ONLY analyzed images with 4-step visualizations")
+        print("📚 Gallery: Shows analyzed images with complete metadata")
         print("=" * 70)
         
         # Print AI service status
         ai_status = ai_service.get_model_status()
-        print("\n=== AI Service Status ===")
+        print("\n=== 4-Step AI Pipeline Status ===")
         print(f"Detectron2 Available: {'✅' if ai_status['detectron2_available'] else '❌'}")
         print(f"Model Loaded: {'✅' if ai_status['model_loaded'] else '❌'}")
         print(f"Model Path: {ai_status['model_path']}")
         print(f"Model Exists: {'✅' if ai_status['model_exists'] else '❌'}")
-        print(f"Classes: {ai_status['class_names']}")
+        print(f"Classes (Fixed): {ai_status['class_names']}")
+        print(f"Expected Detections:")
+        print(f"  - Front Vertical: {ai_status['expected_detections']['front_vertical']}")
+        print(f"  - Front Horizontal: {ai_status['expected_detections']['front_horizontal']}")
+        print(f"  - Total Expected: {ai_status['expected_detections']['total']}")
         print(f"Detection Threshold: {ai_status['threshold']}")
-        print(f"Save Mode: {ai_status.get('save_mode', 'analyzed_images_only')}")
+        print(f"Pipeline Type: {ai_status['model_type']}")
         if not ai_status['model_loaded']:
-            print("⚠️  AI will use placeholder results until model is available")
-        print("========================")
+            print("⚠️  AI will use placeholder 4-step results until real model is available")
+            print("   Placeholder will show expected pipeline visualization")
+        print("==================================")
         
         # Print distance sensor status
         distance_status = distance_service.get_sensor_status()
@@ -381,23 +424,31 @@ def main():
             print("⚠️  Distance sensor using simulation mode")
         print("==============================")
         
-        # Print image service info
-        image_stats = image_service.get_storage_stats()
-        if image_stats['success']:
-            stats = image_stats['stats']
-            print("\n=== Image Storage Status ===")
-            print(f"Total Files: {stats['total_files']}")
-            print(f"Analyzed Images (Gallery): {stats['analyzed_files']} ({stats['analyzed_size_kb']} KB)")
-            print(f"Original Images (Hidden): {stats['original_files']} ({stats['original_size_kb']} KB)")
-            print(f"Total Storage: {stats['total_size_kb']} KB")
-            if stats['original_files'] > 0:
-                print(f"💡 Tip: Use /cleanup-originals endpoint to remove {stats['original_files']} hidden original images")
-            print("============================\n")
+        # Print enhanced image service info
+        try:
+            image_stats = image_service.get_storage_stats()
+            if image_stats['success']:
+                stats = image_stats['stats']
+                print("\n=== Enhanced Image Storage Status ===")
+                print(f"Total Image Files: {stats['total_files']}")
+                print(f"Analyzed Images (Gallery): {stats['analyzed_files']} ({stats['analyzed_size_kb']} KB)")
+                print(f"Original Images (Hidden): {stats['original_files']} ({stats['original_size_kb']} KB)")
+                print(f"Step Images (4-Step): {stats['step_files']} ({stats['step_size_kb']} KB)")
+                print(f"Metadata Files: {stats['metadata_files']} ({stats['metadata_size_kb']} KB)")
+                print(f"Total Storage: {stats['total_size_kb']} KB")
+                print(f"Gallery Shows: {stats['gallery_shows']} analyzed images")
+                print(f"Hidden from Gallery: {stats['hidden_from_gallery']} files")
+                if stats['original_files'] > 0:
+                    print(f"💡 Cleanup available: {stats['original_files']} hidden original images")
+                print("=====================================\n")
+        except Exception as e:
+            print(f"⚠️  Could not get enhanced image storage stats: {e}\n")
         
         # Check SSL certificates and start server
         if not os.path.exists(config.SSL_CERT_PATH):
             print(f"SSL certificate not found at {config.SSL_CERT_PATH}")
             print("Running HTTP server (no SSL)...")
+            print(f"🌐 Access via: http://{config.current_ip}:{config.PORT}")
             app.run(
                 host=config.HOST,
                 port=config.PORT,
@@ -408,6 +459,9 @@ def main():
         else:
             print(f"Using SSL certificates from {config.SSL_CERT_PATH}")
             print("Running HTTPS server...")
+            print(f"🌐 Access via: https://{config.current_ip}:{config.PORT}")
+            print(f"📱 Mobile access: https://{config.current_ip}:{config.PORT}")
+            print(f"🏠 Local access: https://localhost:{config.PORT}")
             app.run(
                 host=config.HOST,
                 port=config.PORT,
@@ -418,35 +472,53 @@ def main():
             )
             
     except KeyboardInterrupt:
-        print("\nShutting down Rebar Vista...")
+        print("\n" + "=" * 50)
+        print("SHUTTING DOWN REBAR VISTA 4-STEP PIPELINE")
+        print("=" * 50)
         
         # Clean shutdown of services
         try:
             if 'distance_service' in locals():
                 distance_service.stop_monitoring()
-                print("Distance sensor monitoring stopped")
+                print("✅ Distance sensor monitoring stopped")
         except Exception as e:
-            print(f"Error stopping distance service: {e}")
+            print(f"⚠️  Error stopping distance service: {e}")
         
         try:
             if 'camera_manager' in locals():
                 camera_manager.stop_camera()
-                print("Camera stopped")
+                print("✅ Camera stopped")
         except Exception as e:
-            print(f"Error stopping camera: {e}")
+            print(f"⚠️  Error stopping camera: {e}")
         
-        print("Goodbye!")
+        print("=" * 50)
+        print("REBAR VISTA 4-STEP PIPELINE SHUTDOWN COMPLETE")
+        print("Thank you for using Rebar Vista!")
+        print("=" * 50)
         
     except Exception as e:
-        print(f"Error starting application: {e}")
+        print(f"❌ Error starting 4-step pipeline application: {e}")
         import traceback
         traceback.print_exc()
+        print("\n" + "=" * 50)
+        print("TROUBLESHOOTING TIPS:")
+        print("1. Check model file exists: /home/team10/RebarWeb/app/model/model_final.pth")
+        print("2. Verify 2 classes: front_horizontal, front_vertical")
+        print("3. Ensure all required files are updated")
+        print("4. Check SSL certificates if HTTPS fails")
+        print("=" * 50)
 
 if __name__ == '__main__':
-    print("REBAR VISTA - AI-POWERED REBAR DETECTION (ANALYZED IMAGES ONLY)")
-    print("AI-powered rebar detection with optimal positioning system")
-    print("Portrait 480x640 image processing with Detectron2 and HC-SR04")
-    print("Optimal distance range: 160-200cm for best analysis results")
-    print("Save Mode: Only analyzed images with AI overlays are saved")
+    print("=" * 70)
+    print("REBAR VISTA - 4-STEP AI ANALYSIS PIPELINE")
+    print("=" * 70)
+    print("🤖 AI-powered rebar detection with simplified 4-step visualization")
+    print("📐 Portrait 480x640 image processing with Detectron2 and HC-SR04")
+    print("🎯 Expected detections: 2 vertical + 11 horizontal rebars = 13 total")
+    print("🔄 Pipeline: Detection → Intersections → Polygon → Cement Mixture")
+    print("💾 Save Mode: Only analyzed images with 4-step visualizations")
+    print("📚 Gallery: Enhanced metadata with complete analysis details")
+    print("🌐 HTTPS Support: SSL certificates for secure mobile access")
+    print("=" * 70)
     print("")
     main()

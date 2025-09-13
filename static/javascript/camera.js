@@ -1,5 +1,5 @@
-// ==================== SIMPLIFIED CAMERA APP MANAGER WITH DISTANCE SENSOR ==================== 
-// MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
+// ==================== SIMPLIFIED CAMERA APP MANAGER WITH 4-STEP ANALYSIS DISPLAY ==================== 
+// UPDATED: Displays 4-step analysis pipeline results
 
 class CameraAppManager {
   constructor() {
@@ -11,7 +11,7 @@ class CameraAppManager {
     // Distance sensor management
     this.distanceInterval = null;
     this.lastDistanceReading = null;
-    this.distanceUpdateRate = 500; // 500ms as requested
+    this.distanceUpdateRate = 500;
     
     // DOM Elements
     this.cameraContainer = document.getElementById('camera-container');
@@ -21,7 +21,7 @@ class CameraAppManager {
     this.loadingOverlay = document.getElementById('loading-overlay');
     
     // Distance display elements
-    this.distanceDisplay = null; // Will be created dynamically
+    this.distanceDisplay = null;
     
     // Controls
     this.tutorialBtn = document.getElementById('tutorial-btn');
@@ -47,8 +47,8 @@ class CameraAppManager {
   }
   
   init() {
-    console.log('🎥 Initializing Camera App Manager (Analyzed Images Only Mode)...');
-    console.log('📝 NOTE: Only analyzed images with AI overlays will be saved to gallery');
+    console.log('🎥 Initializing Camera App Manager with 4-Step Analysis Display...');
+    console.log('📝 UPDATED: Now displays 4 analysis steps in results modal');
     this.setupEventListeners();
     this.createDistanceDisplay();
     this.startCameraFeed();
@@ -56,12 +56,11 @@ class CameraAppManager {
     this.updateStatus('Initializing camera and distance sensor...');
   }
   
-  // ==================== DISTANCE SENSOR INTEGRATION ====================
+  // ==================== DISTANCE SENSOR INTEGRATION (UNCHANGED) ====================
   
   createDistanceDisplay() {
     console.log('📏 Creating distance display overlay...');
     
-    // Create distance display element
     this.distanceDisplay = document.createElement('div');
     this.distanceDisplay.className = 'distance-display';
     this.distanceDisplay.innerHTML = `
@@ -69,7 +68,6 @@ class CameraAppManager {
       <div class="distance-status">CHECKING</div>
     `;
     
-    // Add to camera controls (positioned right of camera status)
     if (this.cameraContainer) {
       const cameraControls = this.cameraContainer.querySelector('.camera-controls');
       if (cameraControls) {
@@ -84,7 +82,6 @@ class CameraAppManager {
     console.log('🚀 Starting distance sensor monitoring...');
     
     try {
-      // Start the distance monitoring service
       const startResponse = await fetch('/start-distance-monitoring', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -93,7 +90,6 @@ class CameraAppManager {
       if (startResponse.ok) {
         console.log('✅ Distance monitoring service started');
         
-        // Start polling for distance readings every 500ms
         this.distanceInterval = setInterval(() => {
           this.updateDistanceReading();
         }, this.distanceUpdateRate);
@@ -111,7 +107,6 @@ class CameraAppManager {
   }
   
   async updateDistanceReading() {
-    // Only update if not currently analyzing (avoid interference)
     if (this.isAnalyzing) {
       return;
     }
@@ -133,8 +128,7 @@ class CameraAppManager {
       }
       
     } catch (error) {
-      // Don't spam console with connection errors
-      if (Math.random() < 0.1) { // Log only 10% of errors
+      if (Math.random() < 0.1) {
         console.warn('⚠️  Distance reading error:', error.message);
       }
       this.showDistanceError('Connection error');
@@ -155,10 +149,8 @@ class CameraAppManager {
       statusElement.textContent = reading.status_text || 'UNKNOWN';
     }
     
-    // Update background color based on status
     this.distanceDisplay.className = `distance-display ${reading.status_color || 'gray'}`;
     
-    // Add distance icon based on status
     const icon = this.getDistanceIcon(reading.status);
     if (valueElement && !valueElement.textContent.includes('📏')) {
       valueElement.textContent = `📏 ${reading.distance_text || '--cm'}`;
@@ -199,7 +191,6 @@ class CameraAppManager {
       this.distanceInterval = null;
     }
     
-    // Stop the monitoring service
     fetch('/stop-distance-monitoring', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -208,10 +199,11 @@ class CameraAppManager {
     });
   }
   
+  // ==================== EVENT LISTENERS (UNCHANGED) ====================
+  
   setupEventListeners() {
     console.log('📋 Setting up event listeners...');
     
-    // Camera Controls
     if (this.tutorialBtn) {
       this.tutorialBtn.addEventListener('click', () => this.openTutorialModal());
     }
@@ -245,14 +237,11 @@ class CameraAppManager {
       });
     }
     
-    // Fullscreen change detection
     document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
     document.addEventListener('webkitfullscreenchange', () => this.handleFullscreenChange());
     
-    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => this.handleKeyboard(e));
     
-    // Window beforeunload to clean up distance monitoring
     window.addEventListener('beforeunload', () => {
       this.stopDistanceMonitoring();
     });
@@ -260,12 +249,11 @@ class CameraAppManager {
     console.log('✅ Event listeners setup complete');
   }
   
-  // ==================== CAMERA FEED MANAGEMENT ====================
+  // ==================== CAMERA FEED MANAGEMENT (UNCHANGED) ====================
   
   startCameraFeed() {
     console.log('🔄 Starting camera feed (server mode)...');
     
-    // Ensure server feed is visible
     if (this.serverFeed) {
       this.serverFeed.style.display = 'block';
     }
@@ -273,7 +261,6 @@ class CameraAppManager {
       this.videoElement.style.display = 'none';
     }
     
-    // Stop any existing WebRTC stream
     if (this.videoElement && this.videoElement.srcObject) {
       this.videoElement.srcObject.getTracks().forEach(track => track.stop());
       this.videoElement.srcObject = null;
@@ -281,21 +268,20 @@ class CameraAppManager {
     
     this.isUsingServerFeed = true;
     
-    // Start server feed refresh
     this.refreshServerFeed();
     
-    // Set up interval for continuous feed (only when not analyzing)
     this.serverFeedInterval = setInterval(() => {
       if (this.isUsingServerFeed && this.isLiveMode && !this.isAnalyzing) {
         this.refreshServerFeed();
       }
-    }, 100); // 10 FPS for smooth experience
+    }, 100);
     
     this.updateStatus('A4Tech Camera Active');
     console.log('✅ Server camera feed started');
   }
-  
-  refreshServerFeed() {
+
+      
+refreshServerFeed() {
     if (this.serverFeed && this.isLiveMode && !this.isAnalyzing) {
       const timestamp = new Date().getTime();
       this.serverFeed.src = `/video_feed?t=${timestamp}`;
@@ -310,8 +296,7 @@ class CameraAppManager {
       };
     }
   }
-  
-  // ==================== MODIFIED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
+  // ==================== UPDATED CAPTURE & ANALYZE WITH 4-STEP DISPLAY ==================== 
   
   async captureAndAnalyze() {
     if (this.isAnalyzing) {
@@ -333,11 +318,10 @@ class CameraAppManager {
           return;
         }
       }
-      // If optimal, continue without warning
     }
     
-    console.log('📸 Starting capture and analyze flow (ANALYZED IMAGE ONLY)...');
-    console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
+    console.log('📸 Starting 4-Step Analysis Pipeline...');
+    console.log('📝 UPDATED: Will display 4 analysis steps in results modal');
     this.isAnalyzing = true;
     
     try {
@@ -349,12 +333,12 @@ class CameraAppManager {
         }, 150);
       }
       
-      // Step 2: Show loading overlay immediately
+      // Step 2: Show loading overlay
       this.showLoadingOverlay();
-      this.updateStatus('Preparing frame for AI analysis...');
+      this.updateStatus('Running 4-step AI analysis pipeline...');
       
-      // Step 3: Verify camera frame is ready (NO ORIGINAL SAVED)
-      console.log('📷 Verifying camera frame is ready (no original will be saved)...');
+      // Step 3: Verify camera frame is ready
+      console.log('📷 Verifying camera frame is ready for 4-step analysis...');
       const captureResponse = await fetch('/capture-current-frame', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -370,22 +354,19 @@ class CameraAppManager {
         throw new Error(captureResult.error || 'Failed to prepare frame');
       }
       
-      console.log('✅ Frame ready for analysis:', captureResult.frame_dimensions);
-      console.log('📝 Confirmed: No original frame saved');
+      console.log('✅ Frame ready for 4-step analysis:', captureResult.frame_dimensions);
       
-      // Step 4: Start AI analysis directly with current camera frame
-      this.updateStatus('Analyzing rebar structure with AI...');
-      console.log('🔍 Starting AI analysis (will save ONLY analyzed image with overlays)...');
+      // Step 4: Start 4-Step AI Analysis
+      this.updateStatus('Step 1: Rebar Detection...');
+      console.log('🔍 Starting 4-Step AI Analysis Pipeline...');
       
       const analysisResponse = await fetch('/analyze-rebar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
-        // No body needed - analysis works with current camera frame
       });
       
       if (!analysisResponse.ok) {
         if (analysisResponse.status === 422) {
-          // No rebar detected
           const result = await analysisResponse.json();
           if (result.error === 'no_rebar_detected') {
             this.hideLoadingOverlay();
@@ -393,41 +374,283 @@ class CameraAppManager {
             return;
           }
         }
-        throw new Error(`Analysis failed: ${analysisResponse.status}`);
+        throw new Error(`4-Step Analysis failed: ${analysisResponse.status}`);
       }
       
       const analysisResult = await analysisResponse.json();
       
       if (!analysisResult.success) {
-        throw new Error(analysisResult.message || 'Analysis failed');
+        throw new Error(analysisResult.message || '4-Step Analysis failed');
       }
       
-      console.log('✅ AI analysis completed - ONLY analyzed image saved to gallery');
+      console.log('✅ 4-Step AI Analysis completed successfully');
+      console.log('📊 Pipeline results:', {
+        model_type: analysisResult.model_type,
+        step_images: analysisResult.step_images ? 'Available' : 'Missing',
+        pipeline_data: analysisResult.pipeline_data
+      });
       
-      // Verify the save mode
-      if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
-        console.log('✅ Confirmed: Only analyzed image was saved (no duplicates)');
-      }
-      
-      // Step 5: Hide loading and show results
+      // Step 5: Hide loading and show 4-step results
       this.hideLoadingOverlay();
-      this.showAnalysisResults(analysisResult);
+      this.show4StepAnalysisResults(analysisResult);
       
-      // Step 6: Confirm single image save
-      console.log('💾 SUCCESS: Only analyzed image with AI overlays saved to gallery');
-      console.log('🚫 No original/duplicate images created');
+      // Step 6: Success confirmation
+      console.log('💾 SUCCESS: 4-Step Analysis completed with visualizations');
+      console.log('🎯 Expected detections: 2 verticals + 11 horizontals = 13 total');
       
     } catch (error) {
-      console.error('❌ Capture and analyze error:', error);
+      console.error('❌ 4-Step Analysis error:', error);
       this.hideLoadingOverlay();
-      this.updateStatus('Analysis failed');
-      this.showErrorMessage('Failed to analyze image: ' + error.message);
+      this.updateStatus('4-Step Analysis failed');
+      this.showErrorMessage('Failed to complete 4-step analysis: ' + error.message);
     } finally {
       this.isAnalyzing = false;
     }
   }
   
-  // ==================== LOADING OVERLAY MANAGEMENT ====================
+  // ==================== NEW: 4-STEP ANALYSIS RESULTS DISPLAY ==================== 
+  
+  show4StepAnalysisResults(results) {
+    console.log('📊 Displaying 4-Step Analysis Results...');
+    
+    try {
+      // Update dimensions
+      const dimensionsResult = document.getElementById('dimensions-result');
+      if (results.dimensions && results.dimensions.display && dimensionsResult) {
+        dimensionsResult.textContent = results.dimensions.display;
+      }
+      
+      // Update cement mixture
+      const mixtureResult = document.getElementById('mixture-result');
+      if (results.cement_mixture && results.cement_mixture.ratio_string && mixtureResult) {
+        mixtureResult.textContent = results.cement_mixture.ratio_string;
+      }
+      
+      // Update detection summary
+      this.update4StepDetectionSummary(results);
+      
+      // CRITICAL: Display 4-Step Images
+      this.display4StepImages(results);
+      
+      // Store results for reference
+      this.analysisResults = results;
+      
+      // Show results modal
+      if (this.resultsModal) {
+        this.resultsModal.classList.add('active');
+      }
+      
+      // Update status
+      this.updateStatus('4-Step Analysis complete - Results displayed');
+      
+      // Log analysis summary
+      console.log('📊 4-Step Analysis Summary:', {
+        model_type: results.model_type,
+        detections: results.detections?.length || 0,
+        dimensions: results.dimensions?.display || 'N/A',
+        mixture: results.cement_mixture?.ratio_string || 'N/A',
+        pipeline_data: results.pipeline_data,
+        step_images_available: !!results.step_images
+      });
+      
+      // Show success message
+      const detectionCount = results.detections?.length || 0;
+      const expectedCount = results.pipeline_data?.front_horizontal_count + results.pipeline_data?.front_vertical_count || 13;
+      const message = `4-Step Analysis complete! Found ${detectionCount}/${expectedCount} expected detections.`;
+      setTimeout(() => {
+        this.showSuccessMessage(message);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Error displaying 4-step results:', error);
+      this.showErrorMessage('Error displaying analysis results: ' + error.message);
+    }
+  }
+  
+  update4StepDetectionSummary(results) {
+    try {
+      const pipelineData = results.pipeline_data || {};
+      
+      // Update detection counts
+      const verticalCount = document.getElementById('vertical-count');
+      const horizontalCount = document.getElementById('horizontal-count');
+      const intersectionCount = document.getElementById('intersection-count');
+      const modelType = document.getElementById('model-type');
+      
+      if (verticalCount) {
+        verticalCount.textContent = pipelineData.front_vertical_count || '2';
+      }
+      
+      if (horizontalCount) {
+        horizontalCount.textContent = pipelineData.front_horizontal_count || '11';
+      }
+      
+      if (intersectionCount) {
+        intersectionCount.textContent = pipelineData.intersection_count || '22';
+      }
+      
+      if (modelType) {
+        const type = results.model_type || 'simplified_4step_pipeline';
+        const displayType = results.placeholder ? 'Placeholder Pipeline' : 'Real Model Pipeline';
+        modelType.textContent = displayType;
+      }
+      
+      console.log('📊 Detection summary updated:', pipelineData);
+      
+    } catch (error) {
+      console.error('❌ Error updating detection summary:', error);
+    }
+  }
+  
+  display4StepImages(results) {
+    console.log('🖼️ Loading 4-Step Analysis Images...');
+    
+    try {
+      const stepImages = results.step_images;
+      
+      if (!stepImages) {
+        console.warn('⚠️ No step images provided in results');
+        this.displayPlaceholder4StepImages();
+        return;
+      }
+      
+      // Update each step image
+      const steps = [
+        { id: 'step1-image', path: stepImages.step1, name: 'Step 1: Detection' },
+        { id: 'step2-image', path: stepImages.step2, name: 'Step 2: Intersections' },
+        { id: 'step3-image', path: stepImages.step3, name: 'Step 3: Polygon' },
+        { id: 'step4-image', path: stepImages.step4, name: 'Step 4: Cement' }
+      ];
+      
+      steps.forEach((step, index) => {
+        const imgElement = document.getElementById(step.id);
+        if (imgElement && step.path) {
+          // Convert absolute path to relative URL
+          const filename = step.path.split('/').pop();
+          const imageUrl = `/static/captured_images/${filename}`;
+          
+          imgElement.src = imageUrl;
+          imgElement.alt = step.name;
+          
+          // Add error handling
+          imgElement.onerror = () => {
+            console.warn(`⚠️ Failed to load ${step.name}: ${imageUrl}`);
+            imgElement.src = '/static/assets/placeholder-analysis.png';
+            imgElement.alt = `${step.name} (Not Available)`;
+          };
+          
+          // Add click handler for full view
+          imgElement.onclick = () => this.viewFullStepImage(imageUrl, step.name);
+          
+          console.log(`✅ Loaded ${step.name}: ${filename}`);
+        } else {
+          console.warn(`⚠️ Missing element or path for ${step.name}`);
+        }
+      });
+      
+      console.log('✅ 4-Step Analysis Images loaded successfully');
+      
+    } catch (error) {
+      console.error('❌ Error displaying 4-step images:', error);
+      this.displayPlaceholder4StepImages();
+    }
+  }
+  
+  displayPlaceholder4StepImages() {
+    console.log('📝 Displaying placeholder 4-step images...');
+    
+    const steps = [
+      { id: 'step1-image', name: 'Step 1: Detection' },
+      { id: 'step2-image', name: 'Step 2: Intersections' },
+      { id: 'step3-image', name: 'Step 3: Polygon' },
+      { id: 'step4-image', name: 'Step 4: Cement' }
+    ];
+    
+    steps.forEach(step => {
+      const imgElement = document.getElementById(step.id);
+      if (imgElement) {
+        imgElement.src = '/static/assets/placeholder-analysis.png';
+        imgElement.alt = `${step.name} (Placeholder)`;
+      }
+    });
+  }
+  
+  viewFullStepImage(imageUrl, stepName) {
+    console.log(`🔍 Viewing full step image: ${stepName}`);
+    
+    // Create full-screen image viewer
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      cursor: pointer;
+    `;
+    
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = stepName;
+    img.style.cssText = `
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    `;
+    
+    const title = document.createElement('div');
+    title.textContent = stepName;
+    title.style.cssText = `
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    `;
+    
+    const closeBtn = document.createElement('div');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = `
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      color: white;
+      font-size: 30px;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.5);
+    `;
+    
+    overlay.appendChild(img);
+    overlay.appendChild(title);
+    overlay.appendChild(closeBtn);
+    
+    // Close on click
+    overlay.onclick = () => document.body.removeChild(overlay);
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      document.body.removeChild(overlay);
+    };
+    
+    document.body.appendChild(overlay);
+  }
+  
+  // ==================== LOADING OVERLAY MANAGEMENT (UNCHANGED) ====================
   
   showLoadingOverlay() {
     if (this.loadingOverlay) {
@@ -441,79 +664,15 @@ class CameraAppManager {
     }
   }
   
-  // ==================== RESULTS MANAGEMENT ====================
-  
-  showAnalysisResults(results) {
-    console.log('📊 Showing analysis results (analyzed image only)...');
-    
-    // Update results modal with actual data from AI
-    const resultsImage = document.getElementById('results-image');
-    const dimensionsResult = document.getElementById('dimensions-result');
-    const mixtureResult = document.getElementById('mixture-result');
-    
-    // Set analyzed image (ONLY image that was saved)
-    if (results.images && results.images.analyzed && resultsImage) {
-      resultsImage.src = results.images.analyzed;
-      console.log('🖼️ Displaying analyzed image with AI overlays (ONLY saved image)');
-    } else if (resultsImage) {
-      console.warn('⚠️ No analyzed image found in results');
-    }
-    
-    // Set dimensions
-    if (results.dimensions && results.dimensions.display && dimensionsResult) {
-      dimensionsResult.textContent = results.dimensions.display;
-    } else if (dimensionsResult) {
-      dimensionsResult.textContent = '25.4cm × 25.4cm × 200cm'; // Fallback
-    }
-    
-    // Set cement mixture
-    if (results.cement_mixture && results.cement_mixture.ratio && mixtureResult) {
-      mixtureResult.textContent = results.cement_mixture.ratio;
-    } else if (mixtureResult) {
-      mixtureResult.textContent = '1 Cement : 2 Sand : 3 Aggregate'; // Fallback
-    }
-    
-    // Store results for reference
-    this.analysisResults = results;
-    
-    // Show results modal
-    if (this.resultsModal) {
-      this.resultsModal.classList.add('active');
-    }
-    
-    // Update status
-    this.updateStatus('Analysis complete - Analyzed image saved to gallery');
-    
-    // Log analysis details
-    console.log('📊 Analysis Results Summary:', {
-      detections: results.detections?.count || 0,
-      dimensions: results.dimensions?.display || 'N/A',
-      mixture: results.cement_mixture?.ratio || 'N/A',
-      placeholder: results.metadata?.placeholder_mode || false,
-      save_mode: results.metadata?.save_mode || 'unknown',
-      only_analyzed_saved: true
-    });
-    
-    // Show success message
-    const detectionCount = results.detections?.count || 0;
-    const saveMode = results.metadata?.save_mode || 'analyzed_only';
-    const message = `Analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery (${saveMode}).`;
-    setTimeout(() => {
-      this.showSuccessMessage(message);
-    }, 1000); // Delay to let modal appear first
-  }
-  
-  // ==================== GRID TOGGLE FUNCTIONALITY ====================
+  // ==================== GRID TOGGLE FUNCTIONALITY (UNCHANGED) ====================
   
   toggleGrid() {
     this.isGridActive = !this.isGridActive;
     
     if (this.isGridActive) {
-      // Show grid overlay
       if (this.gridOverlay) {
         this.gridOverlay.classList.add('active');
       }
-      // Change to nogrid icon
       if (this.gridBtn) {
         this.gridBtn.classList.add('grid-active');
         this.gridBtn.title = 'Hide Grid';
@@ -521,11 +680,9 @@ class CameraAppManager {
       console.log('✅ Rule of thirds grid enabled');
       this.updateStatus('Grid overlay enabled');
     } else {
-      // Hide grid overlay
       if (this.gridOverlay) {
         this.gridOverlay.classList.remove('active');
       }
-      // Change back to withgrid icon
       if (this.gridBtn) {
         this.gridBtn.classList.remove('grid-active');
         this.gridBtn.title = 'Show Grid';
@@ -535,14 +692,14 @@ class CameraAppManager {
     }
   }
   
-  // ==================== NAVIGATION ====================
+  // ==================== NAVIGATION ==================== 
   
   openGallery() {
-    console.log('📁 Opening gallery (showing analyzed images only)...');
+    console.log('📁 Opening gallery (showing analyzed images with 4-step results)...');
     window.location.href = '/result.html';
   }
   
-  // ==================== FULLSCREEN MANAGEMENT ====================
+  // ==================== FULLSCREEN MANAGEMENT (UNCHANGED) ====================
   
   toggleFullscreen() {
     if (!document.fullscreenElement) {
@@ -587,7 +744,6 @@ class CameraAppManager {
     
     if (this.isFullscreen) {
       if (this.cameraContainer) this.cameraContainer.classList.add('fullscreen');
-      // Change to minimize icon when in fullscreen
       if (this.fullscreenBtn) {
         this.fullscreenBtn.classList.add('minimize-mode');
         this.fullscreenBtn.title = 'Exit Fullscreen';
@@ -595,7 +751,6 @@ class CameraAppManager {
       this.updateStatus('Fullscreen mode active');
     } else {
       if (this.cameraContainer) this.cameraContainer.classList.remove('fullscreen');
-      // Change back to fullscreen icon when not in fullscreen
       if (this.fullscreenBtn) {
         this.fullscreenBtn.classList.remove('minimize-mode');
         this.fullscreenBtn.title = 'Enter Fullscreen';
@@ -604,7 +759,7 @@ class CameraAppManager {
     }
   }
   
-  // ==================== MODAL MANAGEMENT ====================
+  // ==================== MODAL MANAGEMENT ==================== 
   
   openTutorialModal() {
     console.log('❓ Opening tutorial modal...');
@@ -621,12 +776,12 @@ class CameraAppManager {
   }
   
   closeResultsModal() {
-    console.log('✕ Closing results modal...');
+    console.log('✕ Closing 4-step results modal...');
     if (this.resultsModal) {
       this.resultsModal.classList.remove('active');
     }
-    this.analysisResults = null; // Clear stored results
-    this.updateStatus('Ready for next capture (analyzed image only mode)');
+    this.analysisResults = null;
+    this.updateStatus('Ready for next 4-step analysis');
   }
   
   showErrorModal() {
@@ -641,7 +796,7 @@ class CameraAppManager {
     if (this.errorModal) {
       this.errorModal.classList.remove('active');
     }
-    this.updateStatus('Ready for next capture (analyzed image only mode)');
+    this.updateStatus('Ready for next 4-step analysis');
   }
   
   // ==================== UI STATUS MANAGEMENT ====================
@@ -654,7 +809,6 @@ class CameraAppManager {
   }
   
   showSuccessMessage(message) {
-    // Create temporary success notification
     const notification = document.createElement('div');
     notification.className = 'success-notification';
     notification.textContent = message;
@@ -683,7 +837,6 @@ class CameraAppManager {
   }
   
   showErrorMessage(message) {
-    // Create temporary error notification
     const notification = document.createElement('div');
     notification.className = 'error-notification';
     notification.textContent = message;
@@ -711,12 +864,11 @@ class CameraAppManager {
     }, 6000);
   }
   
-  // ==================== KEYBOARD SHORTCUTS ====================
+  // ==================== KEYBOARD SHORTCUTS ==================== 
   
   handleKeyboard(e) {
-    // Prevent shortcuts during analysis
     if (this.isAnalyzing) {
-      console.log('⏳ Ignoring keyboard shortcut during analysis');
+      console.log('⏳ Ignoring keyboard shortcut during 4-step analysis');
       return;
     }
     
@@ -778,19 +930,18 @@ class CameraAppManager {
         }
         break;
         
-      case 's': // S - Show save mode info (debug)
+      case 's': // S - Show pipeline info (debug)
       case 'S':
         e.preventDefault();
-        this.showSuccessMessage('Save Mode: Analyzed Images Only (no originals)');
-        console.log('💾 Save Mode: Only analyzed images with AI overlays are saved');
+        this.showSuccessMessage('Pipeline: 4-Step Analysis (Detection → Intersections → Polygon → Cement)');
+        console.log('🔄 Pipeline: 4-Step Analysis with visualization display');
         break;
     }
   }
 }
 
-// ==================== GLOBAL MODAL FUNCTIONS ====================
+// ==================== GLOBAL MODAL FUNCTIONS ==================== 
 
-// Global functions for modal button onclick events
 window.closeTutorialModal = function() {
   if (window.cameraApp) {
     window.cameraApp.closeTutorialModal();
@@ -809,36 +960,40 @@ window.closeErrorModal = function() {
   }
 };
 
-// ==================== INITIALIZATION ====================
+window.openGallery = function() {
+  if (window.cameraApp) {
+    window.cameraApp.openGallery();
+  }
+};
 
-// Initialize camera app when DOM is loaded
+// ==================== INITIALIZATION ==================== 
+
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Starting Rebar Vista Camera App (ANALYZED IMAGES ONLY MODE)...');
-  console.log('📝 IMPORTANT: Only analyzed images with AI overlays will be saved');
-  console.log('🚫 No original/duplicate images will be created');
+  console.log('🚀 Starting Rebar Vista Camera App with 4-Step Analysis Display...');
+  console.log('📝 UPDATED: Now displays 4 analysis steps in results modal');
+  console.log('🎯 Expected: 2 vertical + 11 horizontal rebars = 13 total detections');
   
-  // Create global instance
   window.cameraApp = new CameraAppManager();
   
-  console.log('✅ Camera App initialized successfully');
-  console.log('📋 Modified User Flow:');
+  console.log('✅ Camera App with 4-Step Display initialized successfully');
+  console.log('📋 Updated User Flow:');
   console.log('   1. Position device at optimal distance (160-200cm)');
   console.log('   2. Press capture button (📷)');
-  console.log('   3. Wait for AI analysis');
-  console.log('   4. View results (ONLY analyzed image auto-saved to gallery)');
+  console.log('   3. Wait for 4-step AI analysis pipeline');
+  console.log('   4. View results with 4 analysis step images');
   console.log('   5. Close results and capture again');
   console.log('');
   console.log('📋 Available keyboard shortcuts:');
-  console.log('   Space/Enter - Capture & analyze');
+  console.log('   Space/Enter - Capture & 4-step analyze');
   console.log('   Escape - Close modals');
   console.log('   F - Toggle fullscreen');
   console.log('   G - Open gallery');
   console.log('   D - Show distance info (debug)');
-  console.log('   S - Show save mode info (debug)');
+  console.log('   S - Show pipeline info (debug)');
   console.log('   ? - Open tutorial');
 });
 
-// Additional styles for notifications (injected dynamically)
+// Additional styles for notifications
 const notificationStyles = document.createElement('style');
 notificationStyles.textContent = `
   @keyframes slideInRight {

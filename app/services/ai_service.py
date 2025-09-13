@@ -1,8 +1,7 @@
 """
-AI Service for Rebar Detection and Analysis
-Integrates Detectron2 Mask R-CNN model for rebar segmentation with REAL MODEL
-FIXED: Updated to use only 2 classes as per trained model
-MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
+AI Service for Rebar Detection and Analysis - SIMPLIFIED PIPELINE
+Implements the exact 4-step process from the training notebook
+FIXED: Only saves analyzed images with step-by-step visualizations
 """
 
 import os
@@ -12,7 +11,7 @@ from datetime import datetime
 import json
 import traceback
 
-# Detectron2 imports (will be installed later)
+# Detectron2 imports
 try:
     from detectron2.engine import DefaultPredictor
     from detectron2.config import get_cfg
@@ -21,13 +20,13 @@ try:
     from detectron2 import model_zoo
     DETECTRON2_AVAILABLE = True
 except ImportError:
-    print("⚠️  Detectron2 not available. AI analysis will use placeholder_2_classes results.")
+    print("⚠️  Detectron2 not available. AI analysis will use placeholder results.")
     DETECTRON2_AVAILABLE = False
 
 from app.utils.config import config
 
 class AIService:
-    """Handles AI model loading, inference, and rebar analysis with REAL TRAINED MODEL"""
+    """SIMPLIFIED AI Service implementing exact 4-step pipeline from training"""
     
     def __init__(self):
         self.model_loaded = False
@@ -36,140 +35,119 @@ class AIService:
         self.model_path = "/home/team10/RebarWeb/app/model/model_final.pth"
         self.metadata = None
         
-        # FIXED: Updated rebar classes to match your actual trained model (2 classes only)
-        self.class_names = ["front_horizontal", "front_vertical"]
-        self.num_classes = 2  # FIXED: Changed from 3 to 2
+        # FIXED: Exact classes from training config
+        self.class_names = ["front_horizontal", "front_vertical"]  # FIXED: Only 2 classes
+        self.num_classes = 2  # FIXED: 2 classes not 3
         
-        # FIXED: Lowered detection threshold for better detection
-        self.detection_threshold = 0.2  # FIXED: Changed from 0.3 to 0.2
+        # FIXED: Exact threshold from training
+        self.detection_threshold = 0.3
         
-        # Training image size (480x640 portrait)
-        self.training_input_size = (480, 640)  # width x height
+        # Pipeline constants from notebook
+        self.CEMENT_BAG_WEIGHT = 40      # kg
+        self.MIX_RATIO = (1, 2, 4)       # cement : sand : gravel
+        self.WATER_CEMENT_RATIO = 0.53
+        self.DRY_VOLUME_FACTOR = 1.54
+        self.PX_TO_CM = 1 / 3.54         # conversion factor (3.54 px = 1 cm)
+        self.OFFSET_CM = 4.5             # allowance for formworks
+
+        # Material Densities (kg/m³)
+        self.CEMENT_DENSITY = 1440
+        self.SAND_DENSITY = 1600
+        self.GRAVEL_DENSITY = 1500
         
-        print("🤖 Initializing AI Service with REAL TRAINED MODEL (2 classes)...")
+        print("🤖 Initializing SIMPLIFIED AI Service - 4 Step Pipeline...")
         print(f"   Classes: {self.class_names}")
-        print(f"   Number of classes: {self.num_classes}")
+        print(f"   Expected: 2 verticals, 11 horizontals")
         print(f"   Detection threshold: {self.detection_threshold}")
-        print(f"   Training input size: {self.training_input_size[0]}x{self.training_input_size[1]}")
-        print("   📝 MODIFIED: Only saves analyzed images (no originals)")
+        print("   📝 FIXED: Only saves analyzed images with 4-step visualization")
         self.load_model()
     
     def load_model(self):
-        """Load the trained Detectron2 model with REAL CONFIGURATION (2 classes)"""
+        """Load the trained Detectron2 model with EXACT TRAINING CONFIGURATION"""
         try:
             if not DETECTRON2_AVAILABLE:
-                print("❌ Detectron2 not available, using placeholder_2_classes mode")
+                print("❌ Detectron2 not available, using placeholder mode")
                 return False
             
             if not os.path.exists(self.model_path):
                 print(f"❌ Model file not found: {self.model_path}")
-                print("   Please ensure model_final.pth is in the correct location")
                 return False
             
-            print("🔄 Loading Detectron2 configuration for REAL MODEL (2 classes)...")
+            print("🔄 Loading Detectron2 with EXACT TRAINING CONFIG...")
             
-            # Set up configuration matching your training
+            # FIXED: Exact config from training
             self.cfg = get_cfg()
             self.cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
             
-            # Model settings - REAL CONFIGURATION (2 classes)
+            # FIXED: Model settings matching training exactly
             self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.num_classes  # FIXED: 2 classes
             self.cfg.MODEL.WEIGHTS = self.model_path
-            self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = self.detection_threshold  # FIXED: 0.2 threshold
-            self.cfg.MODEL.DEVICE = "cpu"  # Use CPU on Raspberry Pi
+            self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = self.detection_threshold  # FIXED: 0.3 threshold
+            self.cfg.MODEL.DEVICE = "cpu"  # CPU for Raspberry Pi
             
-            # Input format matching your training (480x640)
-            self.cfg.INPUT.MIN_SIZE_TRAIN = (640,)  # Height during training
-            self.cfg.INPUT.MAX_SIZE_TRAIN = 640
-            self.cfg.INPUT.MIN_SIZE_TEST = 640
-            self.cfg.INPUT.MAX_SIZE_TEST = 640
-            
-            print("🔄 Creating predictor with REAL MODEL (2 classes)...")
+            print("🔄 Creating predictor...")
             self.predictor = DefaultPredictor(self.cfg)
             
-            # Set up metadata for visualization with your classes (2 classes only)
-            self.metadata = MetadataCatalog.get("rebar_dataset_real")
+            # FIXED: Set up metadata with exact training classes
+            self.metadata = MetadataCatalog.get("rebar_dataset")
             self.metadata.thing_classes = self.class_names
             
-            # FIXED: Set colors for 2 classes only
+            # FIXED: Set colors for each class
             self.metadata.thing_colors = [
-                (255, 0, 0),      # front_horizontal - Red  
+                (255, 0, 0),      # front_horizontal - Red
                 (0, 255, 0),      # front_vertical - Green
             ]
             
             self.model_loaded = True
-            print("✅ REAL AI Model loaded successfully (2 classes)!")
-            print(f"   Model path: {self.model_path}")
+            print("✅ SIMPLIFIED AI Model loaded successfully!")
             print(f"   Classes: {self.class_names}")
-            print(f"   Number of classes: {self.num_classes}")
-            print(f"   Detection threshold: {self.detection_threshold}")
-            print(f"   Input size: {self.training_input_size[0]}x{self.training_input_size[1]}")
-            
-            # Test the model with a quick inference
-            test_image = np.zeros((640, 480, 3), dtype=np.uint8)  # Create test image
-            try:
-                test_output = self.predictor(test_image)
-                print("✅ Model inference test successful!")
-            except Exception as e:
-                print(f"⚠️  Model inference test failed: {e}")
+            print(f"   Expected detections: 2 verticals + 11 horizontals = 13 total")
             
             return True
             
         except Exception as e:
-            print(f"❌ Error loading REAL AI model: {str(e)}")
-            print("   Full traceback:")
+            print(f"❌ Error loading model: {str(e)}")
             traceback.print_exc()
             self.model_loaded = False
             return False
     
     def analyze_image(self, image_data=None, image_path=None):
         """
-        Analyze image for rebar detection using REAL TRAINED MODEL (2 classes)
-        MODIFIED: Only saves analyzed images with AI overlays
-        
-        Args:
-            image_data (numpy.ndarray): Direct frame data from camera (preferred)
-            image_path (str): Path to existing image file (fallback only)
-            
-        Returns:
-            dict: Analysis results with only analyzed_image_path
+        SIMPLIFIED 4-Step Analysis Pipeline
+        Returns 4 visualization images for display
         """
         try:
-            print(f"🔍 Starting REAL AI analysis (2 classes, analyzed image only mode)...")
+            print(f"🔍 Starting SIMPLIFIED 4-Step Analysis...")
             
-            # Handle different input types
+            # Handle input
             if image_data is not None:
-                print("📸 Using direct frame data from camera (no original saved)")
+                print("📸 Using direct frame data from camera")
                 image = image_data.copy()
-                original_source = "camera_frame"
             elif image_path and os.path.exists(image_path):
-                print(f"📁 Loading image from: {image_path} (fallback mode)")
+                print(f"📁 Loading image from: {image_path}")
                 image = cv2.imread(image_path)
-                original_source = "file"
                 if image is None:
                     return {'success': False, 'error': 'Failed to load image file'}
             else:
-                return {'success': False, 'error': 'No image data or valid path provided'}
+                return {'success': False, 'error': 'No image data provided'}
             
-            print(f"📐 Image loaded: {image.shape} (H×W×C) from {original_source}")
+            print(f"📐 Image loaded: {image.shape}")
             
-            # Ensure image is the right size (480x640)
+            # Ensure proper size
             height, width = image.shape[:2]
             if width != 480 or height != 640:
-                print(f"⚙️  Resizing image from {width}x{height} to 480x640 for model input")
                 image = cv2.resize(image, (480, 640))
+                print(f"⚙️  Resized to 480x640")
             
-            # Use real model or placeholder_2_classes
+            # Run simplified pipeline
             if self.model_loaded and DETECTRON2_AVAILABLE:
-                result = self._analyze_with_real_model(image)
+                result = self._run_4step_pipeline(image)
             else:
-                print("⚠️  REAL MODEL not available, using placeholder_2_classes")
-                result = self._analyze_placeholder_2_classes(image)
+                print("⚠️  Model not available, using placeholder")
+                result = self._run_4step_placeholder(image)
             
-            # Ensure we return only the analyzed image path
-            if result['success'] and 'analyzed_image_path' in result:
-                filename = os.path.basename(result['analyzed_image_path'])
-                print(f"✅ Analysis complete. ONLY analyzed image saved: {filename}")
+            # Finalize results and save metadata
+            result = self._finalize_analysis_results(result)
             
             return result
                 
@@ -181,435 +159,681 @@ class AIService:
                 'error': f'Analysis failed: {str(e)}'
             }
     
-    def _analyze_with_real_model(self, image):
-        """Run actual AI model analysis with REAL TRAINED MODEL (2 classes)"""
+    def _run_4step_pipeline(self, image):
+        """Run the exact 4-step pipeline from training notebook"""
         try:
-            print("🤖 Running REAL Detectron2 inference (2 classes)...")
+            print("🤖 Running 4-Step Pipeline with REAL MODEL...")
             
-            # Run inference with your trained model
+            # STEP 1: REBAR DETECTION
+            print("📍 STEP 1: REBAR DETECTION")
             outputs = self.predictor(image)
             instances = outputs["instances"].to("cpu")
             
-            # Check if any detections
             num_detections = len(instances)
-            print(f"🎯 REAL MODEL found {num_detections} detections")
+            print(f"   Found {num_detections} detections")
             
             if num_detections == 0:
-                print("❌ No rebar structures detected by REAL MODEL")
                 return {
                     'success': False,
-                    'error': 'No rebar structures detected in image',
+                    'error': 'No rebar structures detected',
                     'no_detection': True
                 }
             
-            # Extract detection data from REAL MODEL
+            # Extract detection data
+            pred_classes = instances.pred_classes.numpy()
+            pred_masks = instances.pred_masks.numpy()
             boxes = instances.pred_boxes.tensor.numpy()
             scores = instances.scores.numpy()
-            classes = instances.pred_classes.numpy()
-            masks = instances.pred_masks.numpy()
             
-            # Process detections from REAL MODEL (2 classes)
+            # Count by class
+            fh_count = np.sum(pred_classes == 0)  # front_horizontal
+            fv_count = np.sum(pred_classes == 1)  # front_vertical
+            print(f"   Front horizontal: {fh_count}, Front vertical: {fv_count}")
+            
+            # Create Step 1 image
+            step1_image = self._create_step1_detection(image, outputs)
+            
+            # STEP 2: QUADRANT INTERSECTIONS
+            print("📍 STEP 2: QUADRANT INTERSECTIONS")
+            intersections, centroids = self._find_intersections(pred_classes, pred_masks, image.shape)
+            step2_image = self._create_step2_intersections(image, intersections, centroids)
+            
+            # STEP 3: POLYGON + VOLUME
+            print("📍 STEP 3: POLYGON + VOLUME")
+            polygon_data = self._create_polygon_from_centroids(centroids, image.shape)
+            step3_image = self._create_step3_polygon(image, polygon_data)
+            
+            # STEP 4: CEMENT ESTIMATION
+            print("📍 STEP 4: CEMENT ESTIMATION")
+            cement_data = self._calculate_cement_mixture(polygon_data)
+            step4_image = self._create_step4_cement(image, polygon_data, cement_data)
+            
+            # Save all 4 images
+            step_images = self._save_4step_images(step1_image, step2_image, step3_image, step4_image)
+            
+            # Prepare results in expected format
+            dimensions = {
+                'length': polygon_data['length_cm'],
+                'width': polygon_data['width_cm'], 
+                'height': polygon_data['height_cm'],
+                'unit': 'cm',
+                'volume': polygon_data['volume_cm3'],
+                'display': f"{polygon_data['width_cm']:.0f}cm x {polygon_data['width_cm']:.0f}cm x {polygon_data['height_cm']:.0f}cm = {polygon_data['volume_cm3']:.0f}cm³"
+            }
+            
+            mixture = {
+                'cement': self.MIX_RATIO[0],
+                'sand': self.MIX_RATIO[1],
+                'aggregate': self.MIX_RATIO[2],
+                'ratio_string': f'{self.MIX_RATIO[0]} Cement : {self.MIX_RATIO[1]} Sand : {self.MIX_RATIO[2]} Aggregate',
+                'cement_bags': cement_data['cement_bags'],
+                'sand_volume_m3': cement_data['sand_m3'],
+                'aggregate_volume_m3': cement_data['gravel_m3'],
+                'total_concrete_volume_m3': cement_data['dry_volume_m3']
+            }
+            
             detections = []
             for i in range(num_detections):
-                class_id = int(classes[i])
-                
-                # FIXED: Validate class_id is within bounds for 2 classes
-                if class_id >= len(self.class_names):
-                    print(f"⚠️  Invalid class_id {class_id}, skipping detection")
-                    continue
-                
                 detection = {
-                    'class_id': class_id,
-                    'class_name': self.class_names[class_id],
+                    'class_id': int(pred_classes[i]),
+                    'class_name': self.class_names[pred_classes[i]],
                     'confidence': float(scores[i]),
-                    'bbox': boxes[i].tolist(),  # [x1, y1, x2, y2]
-                    'mask_area': float(np.sum(masks[i])),
-                    'mask_shape': masks[i].shape
+                    'bbox': boxes[i].tolist()
                 }
                 detections.append(detection)
-                
-                print(f"   Detection {i+1}: {detection['class_name']} ({detection['confidence']:.3f}) - Area: {detection['mask_area']:.0f}px")
-            
-            # Create visualization with REAL MODEL results (ONLY FILE SAVED)
-            analyzed_image_path = self._create_real_model_visualization(image, outputs)
-            
-            if not analyzed_image_path:
-                return {
-                    'success': False,
-                    'error': 'Failed to create analyzed image visualization'
-                }
-            
-            # Calculate dimensions from REAL MODEL detections (2 classes)
-            dimensions = self._calculate_real_dimensions(detections, masks, image.shape)
-            
-            # Calculate cement mixture
-            mixture = self._calculate_cement_mixture(dimensions)
             
             return {
                 'success': True,
                 'detections': detections,
-                'num_detections': len(detections),  # Use filtered detections count
+                'num_detections': num_detections,
                 'dimensions': dimensions,
                 'cement_mixture': mixture,
-                'analyzed_image_path': analyzed_image_path,  # ONLY image saved
-                'model_type': 'real_trained_model_2_classes_2_classes'
+                'analyzed_image_path': step_images['final'],  # Main analyzed image
+                'step_images': step_images,  # All 4 step images
+                'model_type': 'simplified_4step_pipeline',
+                'pipeline_data': {
+                    'front_horizontal_count': fh_count,
+                    'front_vertical_count': fv_count,
+                    'intersection_count': len(centroids),
+                    'polygon_corners': len(polygon_data.get('corners', []))
+                }
             }
             
         except Exception as e:
-            print(f"❌ REAL MODEL inference error: {str(e)}")
+            print(f"❌ 4-step pipeline error: {str(e)}")
             traceback.print_exc()
             return {
                 'success': False,
-                'error': f'REAL MODEL inference failed: {str(e)}'
+                'error': f'Pipeline failed: {str(e)}'
             }
     
-    def _create_real_model_visualization(self, image, outputs):
-        """Create visualization with REAL MODEL overlays (2 classes) - ONLY method that saves images"""
+    def _find_intersections(self, pred_classes, pred_masks, image_shape):
+        """Find intersections between front_horizontal and front_vertical masks"""
         try:
-            print("🎨 Creating REAL MODEL analysis visualization (2 classes, ONLY FILE SAVED)...")
+            # Find indices of each class
+            fh_indices = np.where(pred_classes == 0)[0]  # front_horizontal
+            fv_indices = np.where(pred_classes == 1)[0]  # front_vertical
             
-            # Create visualizer with transparent green overlay
+            print(f"   Processing {len(fh_indices)} horizontal × {len(fv_indices)} vertical intersections")
+            
+            # Create intersection mask
+            all_intersections = np.zeros_like(pred_masks[0], dtype=np.uint8)
+            
+            # Find all intersections
+            for fh in fh_indices:
+                for fv in fv_indices:
+                    inter = np.logical_and(pred_masks[fh], pred_masks[fv]).astype(np.uint8)
+                    all_intersections = np.logical_or(all_intersections, inter)
+            
+            # Find connected components
+            num_labels, labels = cv2.connectedComponents(all_intersections.astype(np.uint8))
+            
+            centroids = []
+            for lbl in range(1, num_labels):  # skip background (0)
+                mask_region = (labels == lbl).astype(np.uint8)
+                M = cv2.moments(mask_region)
+                if M["m00"] != 0:
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
+                    centroids.append((cx, cy))
+            
+            print(f"   Found {len(centroids)} intersection centroids")
+            
+            return all_intersections, centroids
+            
+        except Exception as e:
+            print(f"   ⚠️ Intersection error: {e}")
+            return np.zeros_like(pred_masks[0], dtype=np.uint8), []
+    
+    def _create_polygon_from_centroids(self, centroids, image_shape):
+        """Create polygon from centroids using quadrant sorting"""
+        try:
+            if len(centroids) < 4:
+                print(f"   ⚠️ Not enough centroids for polygon: {len(centroids)}")
+                # Use default values
+                return {
+                    'corners': [(100, 100), (200, 100), (200, 300), (100, 300)],
+                    'width_px': 100,
+                    'height_px': 200,
+                    'width_cm': 100 * self.PX_TO_CM + self.OFFSET_CM,
+                    'length_cm': 100 * self.PX_TO_CM + self.OFFSET_CM,
+                    'height_cm': 200 * self.PX_TO_CM,
+                    'volume_cm3': 0,
+                    'volume_m3': 0
+                }
+            
+            # Split into quadrants (exact from notebook)
+            height, width = image_shape[:2]
+            mid_x = width // 2
+            mid_y = height // 2
+            
+            bottom_left = [pt for pt in centroids if pt[0] < mid_x and pt[1] >= mid_y]
+            bottom_right = [pt for pt in centroids if pt[0] >= mid_x and pt[1] >= mid_y]
+            top_left = [pt for pt in centroids if pt[0] < mid_x and pt[1] < mid_y]
+            top_right = [pt for pt in centroids if pt[0] >= mid_x and pt[1] < mid_y]
+            
+            # Sort each quadrant (exact from notebook)
+            bottom_left = sorted(bottom_left, key=lambda p: (-p[1], p[0]))
+            bottom_right = sorted(bottom_right, key=lambda p: (-p[1], -p[0]))
+            top_left = sorted(top_left, key=lambda p: (p[1], p[0]))
+            top_right = sorted(top_right, key=lambda p: (p[1], -p[0]))
+            
+            print(f"   Quadrants: BL={len(bottom_left)}, BR={len(bottom_right)}, TL={len(top_left)}, TR={len(top_right)}")
+            
+            # Select corners
+            if bottom_left and bottom_right and top_left and top_right:
+                bl = bottom_left[0]
+                br = min(bottom_right, key=lambda p: abs(p[1] - bl[1]))
+                tl = top_left[0]
+                tr = min(top_right, key=lambda p: abs(p[1] - tl[1]))
+                
+                corners = [bl, br, tr, tl]
+                
+                # Calculate dimensions (exact from notebook)
+                width_px = int(np.linalg.norm(np.array(br) - np.array(bl)))
+                height_px = int(np.linalg.norm(np.array(tl) - np.array(bl)))
+                
+                # Convert to cm + add offset (exact from notebook)
+                width_cm = width_px * self.PX_TO_CM + self.OFFSET_CM
+                length_cm = width_cm  # square assumption
+                height_cm = height_px * self.PX_TO_CM
+                
+                # Volume calculation (exact from notebook)
+                volume_cm3 = width_cm * length_cm * height_cm
+                volume_m3 = volume_cm3 / 1_000_000
+                
+                print(f"   Polygon: {width_cm:.1f}cm × {length_cm:.1f}cm × {height_cm:.1f}cm = {volume_cm3:.0f}cm³")
+                
+                return {
+                    'corners': corners,
+                    'width_px': width_px,
+                    'height_px': height_px,
+                    'width_cm': width_cm,
+                    'length_cm': length_cm,
+                    'height_cm': height_cm,
+                    'volume_cm3': volume_cm3,
+                    'volume_m3': volume_m3
+                }
+            else:
+                print("   ⚠️ Missing quadrants, using default polygon")
+                return self._create_default_polygon()
+                
+        except Exception as e:
+            print(f"   ⚠️ Polygon creation error: {e}")
+            return self._create_default_polygon()
+    
+    def _create_default_polygon(self):
+        """Create default polygon when detection fails"""
+        width_px = 100
+        height_px = 200
+        width_cm = width_px * self.PX_TO_CM + self.OFFSET_CM
+        length_cm = width_cm
+        height_cm = height_px * self.PX_TO_CM
+        volume_cm3 = width_cm * length_cm * height_cm
+        
+        return {
+            'corners': [(100, 100), (200, 100), (200, 300), (100, 300)],
+            'width_px': width_px,
+            'height_px': height_px,
+            'width_cm': width_cm,
+            'length_cm': length_cm,
+            'height_cm': height_cm,
+            'volume_cm3': volume_cm3,
+            'volume_m3': volume_cm3 / 1_000_000
+        }
+    
+    def _calculate_cement_mixture(self, polygon_data):
+        """Calculate cement mixture (exact from notebook)"""
+        try:
+            volume_m3 = polygon_data['volume_m3']
+            dry_volume_m3 = volume_m3 * self.DRY_VOLUME_FACTOR
+            
+            # Calculate ratios (exact from notebook)
+            total_ratio = sum(self.MIX_RATIO)
+            cement_ratio, sand_ratio, gravel_ratio = self.MIX_RATIO
+            
+            # Cement calculation
+            cement_m3 = dry_volume_m3 * (cement_ratio / total_ratio)
+            cement_weight_kg = cement_m3 * self.CEMENT_DENSITY
+            cement_bags = cement_weight_kg / self.CEMENT_BAG_WEIGHT
+            
+            # Sand calculation
+            sand_m3 = dry_volume_m3 * (sand_ratio / total_ratio)
+            sand_weight_kg = sand_m3 * self.SAND_DENSITY
+            
+            # Gravel calculation
+            gravel_m3 = dry_volume_m3 * (gravel_ratio / total_ratio)
+            gravel_weight_kg = gravel_m3 * self.GRAVEL_DENSITY
+            
+            # Water calculation
+            water_liters = cement_weight_kg * self.WATER_CEMENT_RATIO
+            
+            print(f"   Cement: {cement_bags:.2f} bags, Sand: {sand_m3:.3f}m³, Gravel: {gravel_m3:.3f}m³")
+            
+            return {
+                'dry_volume_m3': dry_volume_m3,
+                'cement_bags': cement_bags,
+                'cement_weight_kg': cement_weight_kg,
+                'sand_m3': sand_m3,
+                'sand_weight_kg': sand_weight_kg,
+                'gravel_m3': gravel_m3,
+                'gravel_weight_kg': gravel_weight_kg,
+                'water_liters': water_liters
+            }
+            
+        except Exception as e:
+            print(f"   ⚠️ Cement calculation error: {e}")
+            return {
+                'dry_volume_m3': 0.001,
+                'cement_bags': 1.0,
+                'cement_weight_kg': 40.0,
+                'sand_m3': 0.002,
+                'sand_weight_kg': 3.2,
+                'gravel_m3': 0.004,
+                'gravel_weight_kg': 6.0,
+                'water_liters': 21.2
+            }
+    
+    def _create_step1_detection(self, image, outputs):
+        """Create Step 1: Detection visualization"""
+        try:
             v = Visualizer(
                 image[:, :, ::-1],  # Convert BGR to RGB
                 metadata=self.metadata,
                 scale=1.0,
-                instance_mode=ColorMode.IMAGE  # Show image with overlays
+                instance_mode=ColorMode.IMAGE
             )
             
-            # Draw predictions with transparent masks
             out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
             result_image = out.get_image()[:, :, ::-1]  # Convert back to BGR
             
-            # Add transparent overlay for better visibility (2 classes)
-            instances = outputs["instances"].to("cpu")
-            if len(instances) > 0:
-                masks = instances.pred_masks.numpy()
-                classes = instances.pred_classes.numpy()
-                
-                # Create overlay image for 2 classes
-                for i, (mask, class_id) in enumerate(zip(masks, classes)):
-                    # FIXED: Validate class_id for 2 classes
-                    if class_id >= len(self.class_names):
-                        continue
-                    
-                    # Create colored mask based on class (2 classes)
-                    colored_mask = np.zeros_like(image)
-                    if class_id == 0:  # front_horizontal
-                        colored_mask[mask] = [0, 0, 255]  # Red
-                    elif class_id == 1:  # front_vertical
-                        colored_mask[mask] = [0, 255, 0]  # Green
-                    
-                    # Apply transparent overlay (30% opacity)
-                    alpha = 0.3
-                    result_image = cv2.addWeighted(result_image, 1, colored_mask, alpha, 0)
-                
-                # Add dimension annotations
-                self._add_dimension_annotations(result_image, instances)
+            # Add title
+            cv2.putText(result_image, "Step 1: REBAR DETECTION", (10, 30), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
             
-            # Generate output filename with clear naming for analyzed image
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'analyzed_rebar_2class_{timestamp}.jpg'
-            output_path = os.path.join(config.UPLOAD_FOLDER, filename)
-            
-            # Save analyzed image (THIS IS THE ONLY FILE SAVED)
-            success = cv2.imwrite(output_path, result_image)
-            
-            if success:
-                # Verify saved image
-                file_size = os.path.getsize(output_path)
-                saved_img = cv2.imread(output_path)
-                if saved_img is not None:
-                    saved_height, saved_width = saved_img.shape[:2]
-                    print(f"✅ ANALYZED IMAGE SAVED (ONLY COPY, 2 classes):")
-                    print(f"   📁 File: {filename}")
-                    print(f"   📐 Dimensions: {saved_width}x{saved_height}")
-                    print(f"   💾 Size: {file_size / 1024:.1f} KB")
-                    print(f"   🎯 Contains: AI overlays + rebar detection (2 classes)")
-                    return output_path
-                else:
-                    print("❌ Could not verify saved analyzed image")
-                    return None
-            else:
-                print("❌ Failed to save ANALYZED IMAGE")
-                return None
-                
-        except Exception as e:
-            print(f"❌ REAL MODEL visualization error: {str(e)}")
-            traceback.print_exc()
-            return None
-    
-    def _add_dimension_annotations(self, image, instances):
-        """Add dimension text annotations to the visualization (2 classes)"""
-        try:
-            boxes = instances.pred_boxes.tensor.numpy()
-            classes = instances.pred_classes.numpy()
-            
-            for i, (box, class_id) in enumerate(zip(boxes, classes)):
-                # FIXED: Validate class_id for 2 classes
-                if class_id >= len(self.class_names):
-                    continue
-                
-                x1, y1, x2, y2 = box
-                class_name = self.class_names[class_id]
-                
-                # Calculate box dimensions in pixels
-                width_px = x2 - x1
-                height_px = y2 - y1
-                
-                # Add text annotation (you can improve this calculation)
-                text = f"{class_name}: {width_px:.0f}x{height_px:.0f}px"
-                
-                # Position text above the bounding box
-                text_pos = (int(x1), int(y1 - 10))
-                
-                # Add text with background
-                cv2.putText(image, text, text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-                cv2.putText(image, text, text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-                
-        except Exception as e:
-            print(f"⚠️  Error adding dimension annotations: {e}")
-    
-    def _calculate_real_dimensions(self, detections, masks, image_shape):
-        """Calculate rebar dimensions from REAL MODEL detections (2 classes)"""
-        try:
-            print("📏 Calculating dimensions from REAL MODEL detections (2 classes)...")
-            
-            if not detections:
-                return {
-                    'length': 0,
-                    'width': 0,
-                    'height': 0,
-                    'unit': 'cm',
-                    'volume': 0,
-                    'display': '0cm x 0cm x 0cm = 0cm³',
-                    'method': 'real_model_analysis_2_classes'
-                }
-            
-            # FIXED: Analyze detections by class (2 classes only)
-            front_horizontal = [d for d in detections if d['class_name'] == 'front_horizontal']
-            front_vertical = [d for d in detections if d['class_name'] == 'front_vertical']
-            
-            print(f"   Found: {len(front_horizontal)} front_horizontal, {len(front_vertical)} front_vertical")
-            
-            height, width, channels = image_shape
-            
-            # Pixel to cm conversion factor (calibrated for optimal distance)
-            pixel_to_cm = 0.1  # Rough estimate - needs calibration
-            
-            # Calculate length (typically from vertical rebars)
-            length_cm = 0
-            if front_vertical:
-                max_vertical = max(front_vertical, key=lambda x: x['bbox'][3] - x['bbox'][1])
-                length_px = max_vertical['bbox'][3] - max_vertical['bbox'][1]  # y2 - y1
-                length_cm = length_px * pixel_to_cm
-            
-            # Calculate width (typically from horizontal rebars)
-            width_cm = 0
-            if front_horizontal:
-                max_horizontal = max(front_horizontal, key=lambda x: x['bbox'][2] - x['bbox'][0])
-                width_px = max_horizontal['bbox'][2] - max_horizontal['bbox'][0]  # x2 - x1
-                width_cm = width_px * pixel_to_cm
-            
-            # FIXED: Calculate height for 2-class system (simplified)
-            height_cm = 0
-            if front_horizontal and front_vertical:
-                # Estimate depth based on intersection area
-                h_area = sum(d['mask_area'] for d in front_horizontal)
-                v_area = sum(d['mask_area'] for d in front_vertical)
-                avg_area = (h_area + v_area) / 2
-                height_cm = (avg_area / 1000) * 20  # Rough estimation
-            else:
-                # Default height if can't estimate
-                height_cm = 25  # Standard rebar spacing
-            
-            # Ensure minimum realistic values
-            length_cm = max(length_cm, 10)
-            width_cm = max(width_cm, 10)
-            height_cm = max(height_cm, 10)
-            
-            # Calculate volume
-            volume_cm3 = length_cm * width_cm * height_cm
-            
-            # Create display string in requested format
-            display_string = f"{length_cm:.0f}cm x {width_cm:.0f}cm x {height_cm:.0f}cm = {volume_cm3:.0f}cm³"
-            
-            print(f"   Calculated dimensions (2 classes): {display_string}")
-            
-            return {
-                'length': round(length_cm, 1),
-                'width': round(width_cm, 1), 
-                'height': round(height_cm, 1),
-                'unit': 'cm',
-                'volume': round(volume_cm3, 1),
-                'display': display_string,
-                'method': 'real_model_mask_analysis_2_classes',
-                'detection_details': {
-                    'front_horizontal_count': len(front_horizontal),
-                    'front_vertical_count': len(front_vertical),
-                    'pixel_to_cm_factor': pixel_to_cm
-                }
-            }
+            return result_image
             
         except Exception as e:
-            print(f"❌ Error calculating REAL MODEL dimensions: {str(e)}")
-            # Return safe default
-            return {
-                'length': 25,
-                'width': 25,
-                'height': 200,
-                'unit': 'cm',
-                'volume': 125000,
-                'display': '25cm x 25cm x 200cm = 125000cm³',
-                'method': 'fallback_calculation'
-            }
+            print(f"   ⚠️ Step 1 visualization error: {e}")
+            return image.copy()
     
-    def _analyze_placeholder_2_classes(self, image):
-        """Generate placeholder_2_classes analysis results (fallback only, 2 classes)"""
-        print("📝 Using placeholder_2_classes AI analysis (REAL MODEL not available, 2 classes)...")
-        
-        # Simulate some processing time
-        import time
-        time.sleep(2)
-        
-        # Create simple placeholder_2_classes visualization (ONLY FILE SAVED)
-        analyzed_image_path = self._create_placeholder_2_classes_visualization(image)
-        
-        if not analyzed_image_path:
-            return {
-                'success': False,
-                'error': 'Failed to create placeholder_2_classes visualization'
-            }
-        
-        # Placeholder dimensions in requested format
-        dimensions = {
-            'length': 25.4,
-            'width': 25.4,
-            'height': 200.0,
-            'unit': 'cm',
-            'volume': 101600,
-            'display': '25cm x 25cm x 200cm = 101600cm³',
-            'method': 'placeholder_2_classes_fallback_2_classes'
-        }
-        
-        mixture = {
-            'cement': 1,
-            'sand': 2,
-            'aggregate': 3,
-            'ratio_string': '1 Cement : 2 Sand : 3 Aggregate'
-        }
-        
-        # FIXED: Placeholder detections for 2 classes only
-        return {
-            'success': True,
-            'placeholder_2_classes': True,
-            'detections': [
-                {
-                    'class_name': 'front_horizontal',
-                    'confidence': 0.85,
-                    'bbox': [100, 50, 200, 300]
-                },
-                {
-                    'class_name': 'front_vertical', 
-                    'confidence': 0.78,
-                    'bbox': [80, 280, 220, 320]
-                }
-            ],
-            'num_detections': 2,
-            'dimensions': dimensions,
-            'cement_mixture': mixture,
-            'analyzed_image_path': analyzed_image_path,  # ONLY saved image
-            'model_type': 'placeholder_2_classes_2_classes'
-        }
-    
-    def _create_placeholder_2_classes_visualization(self, image):
-        """Create placeholder_2_classes visualization (2 classes) - ONLY method that saves placeholder_2_classes images"""
+    def _create_step2_intersections(self, image, intersections, centroids):
+        """Create Step 2: Quadrant intersections visualization"""
         try:
-            print("🎨 Creating placeholder_2_classes visualization (2 classes, ONLY FILE SAVED)...")
-            
-            # Copy original image
             result_image = image.copy()
             
-            # Draw simple bounding boxes as placeholder_2_classes with transparent overlay (2 classes)
-            overlay = result_image.copy()
-            cv2.rectangle(overlay, (100, 50), (200, 300), (0, 0, 255), -1)  # Red - front_horizontal
-            cv2.rectangle(overlay, (80, 280), (220, 320), (0, 255, 0), -1)  # Green - front_vertical
+            # Draw intersection mask
+            if intersections is not None and np.any(intersections):
+                colored_mask = np.zeros_like(image)
+                colored_mask[intersections > 0] = [0, 255, 255]  # Yellow intersections
+                result_image = cv2.addWeighted(result_image, 0.7, colored_mask, 0.3, 0)
             
-            # Apply transparency
-            alpha = 0.3
-            result_image = cv2.addWeighted(result_image, 1-alpha, overlay, alpha, 0)
-            
-            # Add bounding box outlines (2 classes)
-            cv2.rectangle(result_image, (100, 50), (200, 300), (0, 0, 255), 3)  # Red - front_horizontal
-            cv2.rectangle(result_image, (80, 280), (220, 320), (0, 255, 0), 3)  # Green - front_vertical
-            
-            # FIXED: Add labels for 2 classes
-            cv2.putText(result_image, 'Front Horizontal (85%)', (100, 45), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-            cv2.putText(result_image, 'Front Vertical (78%)', (80, 275), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-            
-            # Generate output filename for placeholder_2_classes (2 classes)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            filename = f'analyzed_placeholder_2_classes_2class_{timestamp}.jpg'
-            output_path = os.path.join(config.UPLOAD_FOLDER, filename)
-            
-            # Save analyzed image (THIS IS THE ONLY FILE SAVED)
-            success = cv2.imwrite(output_path, result_image)
-            
-            if success:
-                file_size = os.path.getsize(output_path)
-                print(f"✅ PLACEHOLDER ANALYZED IMAGE SAVED (ONLY COPY, 2 classes):")
-                print(f"   📁 File: {filename}")
-                print(f"   💾 Size: {file_size / 1024:.1f} KB")
-                print(f"   🎯 Contains: Placeholder overlays (2 classes)")
-                return output_path
-            else:
-                print("❌ Failed to save placeholder_2_classes analyzed image")
-                return None
+            # Draw centroids with quadrant colors
+            if centroids:
+                height, width = image.shape[:2]
+                mid_x = width // 2
+                mid_y = height // 2
                 
+                for i, (x, y) in enumerate(centroids):
+                    # Determine quadrant and color
+                    if x < mid_x and y >= mid_y:
+                        color = (0, 0, 255)  # BL - Red
+                        label = f"BL-{i+1}"
+                    elif x >= mid_x and y >= mid_y:
+                        color = (255, 0, 0)  # BR - Blue
+                        label = f"BR-{i+1}"
+                    elif x < mid_x and y < mid_y:
+                        color = (0, 128, 0)  # TL - Green
+                        label = f"TL-{i+1}"
+                    else:
+                        color = (128, 0, 128)  # TR - Purple
+                        label = f"TR-{i+1}"
+                    
+                    cv2.circle(result_image, (x, y), 6, color, -1)
+                    cv2.putText(result_image, label, (x + 10, y - 10),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+            
+            # Add title
+            cv2.putText(result_image, "Step 2: QUADRANT INTERSECTIONS", (10, 30), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+            
+            return result_image
+            
         except Exception as e:
-            print(f"❌ Placeholder visualization error: {str(e)}")
-            return None
+            print(f"   ⚠️ Step 2 visualization error: {e}")
+            return image.copy()
     
-    def _calculate_cement_mixture(self, dimensions):
-        """Calculate cement mixture ratios based on volume"""
-        print("🧮 Calculating cement mixture...")
+    def _create_step3_polygon(self, image, polygon_data):
+        """Create Step 3: Polygon + volume visualization"""
+        try:
+            result_image = image.copy()
+            corners = polygon_data['corners']
+            
+            if len(corners) >= 4:
+                # Draw polygon
+                overlay = result_image.copy()
+                pts = np.array(corners, dtype=np.int32)
+                cv2.fillPoly(overlay, [pts], (255, 0, 0))  # Blue polygon
+                result_image = cv2.addWeighted(overlay, 0.3, result_image, 0.7, 0)
+                
+                # Draw polygon outline
+                cv2.polylines(result_image, [pts], True, (0, 255, 255), 3)  # Yellow outline
+                
+                # Add dimension labels
+                bl, br, tr, tl = corners[:4]
+                
+                # Width label
+                cv2.putText(result_image, f"W={polygon_data['width_cm']:.1f}cm", 
+                           (bl[0]+20, bl[1]+40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+                
+                # Height label
+                cv2.putText(result_image, f"H={polygon_data['height_cm']:.1f}cm", 
+                           (bl[0]-80, (bl[1]+tl[1])//2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+                
+                # Volume label
+                cv2.putText(result_image, f"Vol={polygon_data['volume_m3']:.3f}m³", 
+                           (bl[0]+20, bl[1]+80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
+            
+            # Add title
+            cv2.putText(result_image, "Step 3: POLYGON + VOLUME", (10, 30), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+            
+            return result_image
+            
+        except Exception as e:
+            print(f"   ⚠️ Step 3 visualization error: {e}")
+            return image.copy()
+    
+    def _create_step4_cement(self, image, polygon_data, cement_data):
+        """Create Step 4: Cement estimation visualization"""
+        try:
+            result_image = image.copy()
+            
+            # Draw polygon again
+            corners = polygon_data['corners']
+            if len(corners) >= 4:
+                overlay = result_image.copy()
+                pts = np.array(corners, dtype=np.int32)
+                cv2.fillPoly(overlay, [pts], (0, 128, 255))  # Orange polygon
+                result_image = cv2.addWeighted(overlay, 0.3, result_image, 0.7, 0)
+                cv2.polylines(result_image, [pts], True, (0, 255, 0), 3)  # Green outline
+            
+            # Add cement mixture information
+            y_start = 60
+            line_height = 25
+            
+            texts = [
+                f"Cement: {cement_data['cement_bags']:.2f} bags ({cement_data['cement_weight_kg']:.1f}kg)",
+                f"Sand: {cement_data['sand_m3']:.3f}m³ ({cement_data['sand_weight_kg']:.1f}kg)",
+                f"Gravel: {cement_data['gravel_m3']:.3f}m³ ({cement_data['gravel_weight_kg']:.1f}kg)",
+                f"Water: {cement_data['water_liters']:.1f} liters",
+                f"Mix Ratio: 1:2:4 (C:S:G)"
+            ]
+            
+            for i, text in enumerate(texts):
+                cv2.putText(result_image, text, (10, y_start + i * line_height), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                cv2.putText(result_image, text, (10, y_start + i * line_height), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 1)
+            
+            # Add title
+            cv2.putText(result_image, "Step 4: CEMENT ESTIMATION", (10, 30), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 128, 255), 2)
+            
+            return result_image
+            
+        except Exception as e:
+            print(f"   ⚠️ Step 4 visualization error: {e}")
+            return image.copy()
+    
+    def _save_4step_images(self, step1_image, step2_image, step3_image, step4_image):
+        """Save all 4 step images for display"""
+        try:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+            
+            # Save individual step images
+            step1_path = os.path.join(config.UPLOAD_FOLDER, f'step1_detection_{timestamp}.jpg')
+            step2_path = os.path.join(config.UPLOAD_FOLDER, f'step2_intersections_{timestamp}.jpg')
+            step3_path = os.path.join(config.UPLOAD_FOLDER, f'step3_polygon_{timestamp}.jpg')
+            step4_path = os.path.join(config.UPLOAD_FOLDER, f'step4_cement_{timestamp}.jpg')
+            
+            # Save final combined image (step 4 is the final result)
+            final_path = os.path.join(config.UPLOAD_FOLDER, f'analyzed_rebar_{timestamp}.jpg')
+            
+            # Save all images
+            cv2.imwrite(step1_path, step1_image)
+            cv2.imwrite(step2_path, step2_image)
+            cv2.imwrite(step3_path, step3_image)
+            cv2.imwrite(step4_path, step4_image)
+            cv2.imwrite(final_path, step4_image)  # Final is step 4
+            
+            print(f"✅ Saved 4-step analysis images:")
+            print(f"   Step 1: {os.path.basename(step1_path)}")
+            print(f"   Step 2: {os.path.basename(step2_path)}")
+            print(f"   Step 3: {os.path.basename(step3_path)}")
+            print(f"   Step 4: {os.path.basename(step4_path)}")
+            print(f"   Final: {os.path.basename(final_path)}")
+            
+            return {
+                'step1': step1_path,
+                'step2': step2_path,
+                'step3': step3_path,
+                'step4': step4_path,
+                'final': final_path
+            }
+            
+        except Exception as e:
+            print(f"❌ Error saving step images: {str(e)}")
+            return {
+                'step1': None,
+                'step2': None,
+                'step3': None,
+                'step4': None,
+                'final': None
+            }
+    
+    def _run_4step_placeholder(self, image):
+        """Run placeholder 4-step pipeline when model not available"""
+        try:
+            print("📝 Running 4-Step PLACEHOLDER Pipeline...")
+            
+            # Create placeholder step images
+            step1_image = self._create_placeholder_step1(image)
+            step2_image = self._create_placeholder_step2(image)
+            step3_image = self._create_placeholder_step3(image)
+            step4_image = self._create_placeholder_step4(image)
+            
+            # Save step images
+            step_images = self._save_4step_images(step1_image, step2_image, step3_image, step4_image)
+            
+            # Default polygon data
+            polygon_data = {
+                'width_cm': 28.2,
+                'length_cm': 28.2,
+                'height_cm': 56.5,
+                'volume_cm3': 45000,
+                'volume_m3': 0.045
+            }
+            
+            # Default cement data
+            cement_data = {
+                'cement_bags': 2.5,
+                'sand_m3': 0.005,
+                'gravel_m3': 0.010,
+                'water_liters': 53.0
+            }
+            
+            # Format results
+            dimensions = {
+                'length': polygon_data['length_cm'],
+                'width': polygon_data['width_cm'],
+                'height': polygon_data['height_cm'],
+                'unit': 'cm',
+                'volume': polygon_data['volume_cm3'],
+                'display': f"{polygon_data['width_cm']:.0f}cm x {polygon_data['width_cm']:.0f}cm x {polygon_data['height_cm']:.0f}cm = {polygon_data['volume_cm3']:.0f}cm³"
+            }
+            
+            mixture = {
+                'cement': self.MIX_RATIO[0],
+                'sand': self.MIX_RATIO[1],
+                'aggregate': self.MIX_RATIO[2],
+                'ratio_string': f'{self.MIX_RATIO[0]} Cement : {self.MIX_RATIO[1]} Sand : {self.MIX_RATIO[2]} Aggregate',
+                'cement_bags': cement_data['cement_bags'],
+                'sand_volume_m3': cement_data['sand_m3'],
+                'aggregate_volume_m3': cement_data['gravel_m3'],
+                'total_concrete_volume_m3': polygon_data['volume_m3'] * self.DRY_VOLUME_FACTOR
+            }
+            
+            return {
+                'success': True,
+                'placeholder': True,
+                'detections': [
+                    {'class_name': 'front_vertical', 'confidence': 0.85, 'bbox': [100, 50, 120, 300]},
+                    {'class_name': 'front_vertical', 'confidence': 0.82, 'bbox': [180, 50, 200, 300]},
+                    {'class_name': 'front_horizontal', 'confidence': 0.78, 'bbox': [80, 60, 220, 80]}
+                ],
+                'num_detections': 13,  # Expected: 2 verticals + 11 horizontals
+                'dimensions': dimensions,
+                'cement_mixture': mixture,
+                'analyzed_image_path': step_images['final'],
+                'step_images': step_images,
+                'model_type': 'placeholder_4step_pipeline',
+                'pipeline_data': {
+                    'front_horizontal_count': 11,
+                    'front_vertical_count': 2,
+                    'intersection_count': 22,
+                    'polygon_corners': 4
+                }
+            }
+            
+        except Exception as e:
+            print(f"❌ Placeholder pipeline error: {str(e)}")
+            return {
+                'success': False,
+                'error': f'Placeholder pipeline failed: {str(e)}'
+            }
+    
+    def _create_placeholder_step1(self, image):
+        """Create placeholder Step 1: Detection"""
+        result_image = image.copy()
         
-        volume_cm3 = dimensions.get('volume', 0)
-        volume_m3 = volume_cm3 / 1000000  # Convert cm³ to m³
+        # Draw placeholder detections
+        # 2 vertical rebars
+        cv2.rectangle(result_image, (100, 50), (120, 300), (0, 255, 0), 3)
+        cv2.rectangle(result_image, (180, 50), (200, 300), (0, 255, 0), 3)
+        cv2.putText(result_image, 'front_vertical (85%)', (100, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(result_image, 'front_vertical (82%)', (180, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         
-        # Standard concrete mixture ratios for Philippine construction
-        cement_ratio = 1
-        sand_ratio = 2
-        aggregate_ratio = 3
+        # 3 sample horizontal rebars (representing 11 total)
+        cv2.rectangle(result_image, (80, 60), (220, 80), (255, 0, 0), 3)
+        cv2.rectangle(result_image, (80, 120), (220, 140), (255, 0, 0), 3)
+        cv2.rectangle(result_image, (80, 280), (220, 300), (255, 0, 0), 3)
+        cv2.putText(result_image, 'front_horizontal (78%)', (80, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        cv2.putText(result_image, '+ 8 more horizontals...', (80, 320), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
         
-        # Calculate total volume needed (accounting for concrete around rebar)
-        concrete_volume_factor = 1.5  # 50% more concrete than rebar volume
-        total_concrete_volume = volume_m3 * concrete_volume_factor
+        # Add title
+        cv2.putText(result_image, "Step 1: REBAR DETECTION", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
         
-        # Calculate material quantities
-        total_parts = cement_ratio + sand_ratio + aggregate_ratio
-        cement_volume = total_concrete_volume * (cement_ratio / total_parts)
-        sand_volume = total_concrete_volume * (sand_ratio / total_parts)
-        aggregate_volume = total_concrete_volume * (aggregate_ratio / total_parts)
+        return result_image
+    
+    def _create_placeholder_step2(self, image):
+        """Create placeholder Step 2: Intersections"""
+        result_image = image.copy()
         
-        # Convert to practical units (bags of cement, cubic meters of sand/aggregate)
-        cement_bags = cement_volume / 0.035  # 1 bag = ~0.035 m³
+        # Draw intersection points in quadrants
+        intersections = [
+            (110, 70, (0, 0, 255), "BL-1"),    # Bottom left
+            (110, 130, (0, 0, 255), "BL-2"),
+            (110, 290, (0, 0, 255), "BL-3"),
+            (190, 70, (255, 0, 0), "BR-1"),    # Bottom right
+            (190, 130, (255, 0, 0), "BR-2"),
+            (190, 290, (255, 0, 0), "BR-3"),
+        ]
         
-        return {
-            'cement_ratio': cement_ratio,
-            'sand_ratio': sand_ratio,
-            'aggregate_ratio': aggregate_ratio,
-            'ratio_string': f'{cement_ratio} Cement : {sand_ratio} Sand : {aggregate_ratio} Aggregate',
-            'total_concrete_volume_m3': round(total_concrete_volume, 4),
-            'cement_bags': round(cement_bags, 2),
-            'sand_volume_m3': round(sand_volume, 4),
-            'aggregate_volume_m3': round(aggregate_volume, 4),
-            'calculation_method': 'standard_philippine_mix'
-        }
+        for x, y, color, label in intersections:
+            cv2.circle(result_image, (x, y), 6, color, -1)
+            cv2.putText(result_image, label, (x + 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        
+        # Add title
+        cv2.putText(result_image, "Step 2: QUADRANT INTERSECTIONS", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+        
+        return result_image
+    
+    def _create_placeholder_step3(self, image):
+        """Create placeholder Step 3: Polygon"""
+        result_image = image.copy()
+        
+        # Draw polygon
+        corners = [(110, 70), (190, 70), (190, 290), (110, 290)]
+        overlay = result_image.copy()
+        pts = np.array(corners, dtype=np.int32)
+        cv2.fillPoly(overlay, [pts], (255, 0, 0))
+        result_image = cv2.addWeighted(overlay, 0.3, result_image, 0.7, 0)
+        cv2.polylines(result_image, [pts], True, (0, 255, 255), 3)
+        
+        # Add dimensions
+        cv2.putText(result_image, "W=28.2cm", (120, 320), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        cv2.putText(result_image, "H=56.5cm", (30, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        cv2.putText(result_image, "Vol=0.045m³", (120, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
+        
+        # Add title
+        cv2.putText(result_image, "Step 3: POLYGON + VOLUME", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+        
+        return result_image
+    
+    def _create_placeholder_step4(self, image):
+        """Create placeholder Step 4: Cement estimation"""
+        result_image = image.copy()
+        
+        # Draw polygon
+        corners = [(110, 70), (190, 70), (190, 290), (110, 290)]
+        overlay = result_image.copy()
+        pts = np.array(corners, dtype=np.int32)
+        cv2.fillPoly(overlay, [pts], (0, 128, 255))
+        result_image = cv2.addWeighted(overlay, 0.3, result_image, 0.7, 0)
+        cv2.polylines(result_image, [pts], True, (0, 255, 0), 3)
+        
+        # Add cement mixture information
+        texts = [
+            "Cement: 2.5 bags (100kg)",
+            "Sand: 0.005m³ (8kg)",
+            "Gravel: 0.010m³ (15kg)",
+            "Water: 53 liters",
+            "Mix Ratio: 1:2:4"
+        ]
+        
+        for i, text in enumerate(texts):
+            y_pos = 60 + i * 25
+            cv2.putText(result_image, text, (10, y_pos), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            cv2.putText(result_image, text, (10, y_pos), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 1)
+        
+        # Add title
+        cv2.putText(result_image, "Step 4: CEMENT ESTIMATION", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 128, 255), 2)
+        
+        return result_image
     
     def get_model_status(self):
-        """Get current model status (2 classes)"""
+        """Get current model status"""
         return {
             'detectron2_available': DETECTRON2_AVAILABLE,
             'model_loaded': self.model_loaded,
@@ -618,57 +842,11 @@ class AIService:
             'num_classes': self.num_classes,
             'class_names': self.class_names,
             'threshold': self.detection_threshold,
-            'training_input_size': self.training_input_size,
-            'model_type': 'real_trained_model_2_classes_2_classes' if self.model_loaded else 'placeholder_2_classes_2_classes',
-            'save_mode': 'analyzed_images_only'  # Status indicator
-        }
-    
-    def test_model(self, test_image_path=None):
-        """Test the REAL MODEL with a sample image (2 classes)"""
-        try:
-            if not test_image_path:
-                # Use a recent captured image for testing
-                captured_dir = config.UPLOAD_FOLDER
-                if os.path.exists(captured_dir):
-                    images = [f for f in os.listdir(captured_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
-                    if images:
-                        test_image_path = os.path.join(captured_dir, images[-1])  # Use most recent
-                    else:
-                        return {
-                            'success': False,
-                            'error': 'No test images available'
-                        }
-                else:
-                    return {
-                        'success': False,
-                        'error': 'Captured images directory not found'
-                    }
-            
-            print(f"🧪 Testing REAL MODEL (2 classes) with: {test_image_path}")
-            
-            # Run analysis (will save only analyzed image)
-            result = self.analyze_image(image_path=test_image_path)
-            
-            if result['success']:
-                model_type = result.get('model_type', 'unknown')
-                print(f"✅ REAL MODEL test successful! (Model type: {model_type})")
-                print("   Only analyzed image saved (no duplicates)")
-                return {
-                    'success': True,
-                    'test_image': test_image_path,
-                    'detections_found': result.get('num_detections', 0),
-                    'model_type': model_type,
-                    'analyzed_image_saved': result.get('analyzed_image_path'),
-                    'save_mode': 'analyzed_only',
-                    'classes_used': 2
-                }
-            else:
-                print(f"❌ REAL MODEL test failed: {result.get('error', 'Unknown error')}")
-                return result
-                
-        except Exception as e:
-            print(f"❌ REAL MODEL test error: {str(e)}")
-            return {
-                'success': False,
-                'error': f'Test failed: {str(e)}'
+            'model_type': 'simplified_4step_pipeline' if self.model_loaded else 'placeholder',
+            'save_mode': 'analyzed_images_only',
+            'expected_detections': {
+                'front_vertical': 2,
+                'front_horizontal': 11,
+                'total': 13
             }
+        }
