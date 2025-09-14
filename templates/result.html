@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rebar Vista - Analysis Results Gallery</title>
+  <title>Rebar Vista - Image Gallery</title>
   
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
@@ -23,7 +23,7 @@
       </div>
       
       <div class="header-title">
-        <h1>4-Step Analysis Results Gallery</h1>
+        <h1>Analysis Results Gallery</h1>
       </div>
       
       <button class="back-btn" onclick="goToMainPage()">BACK</button>
@@ -61,13 +61,13 @@
       </div>
     </section>
 
-    <!-- Gallery Section -->
+    <!-- Gallery Section - UPDATED: Portrait-optimized 3x5 grid -->
     <section class="gallery-section">
       <div class="gallery-container">
         <div id="gallery-grid" class="gallery-grid">
           <div class="loading-state">
             <div class="loading-spinner"></div>
-            <p>Loading 4-step analysis results...</p>
+            <p>Loading analysis results...</p>
           </div>
         </div>
         
@@ -81,56 +81,25 @@
     </section>
   </main>
 
-  <!-- UPDATED: Enhanced Image Modal with 4-Step Analysis Display -->
+  <!-- UPDATED: Enhanced Image Modal (matching main page result modal with 1:2:4 ratio) -->
   <div id="image-modal" class="modal-overlay" onclick="closeModal()">
     <div class="modal-content results-modal-content" onclick="event.stopPropagation()">
       <div class="modal-header results-header">
-        <h3 class="modal-title">4-Step Rebar Analysis Results</h3>
+        <h3 class="modal-title">Rebar Analysis Results</h3>
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
       
       <div class="modal-body results-body">
-        
-        <!-- 4-Step Analysis Images Grid (Same as main page) -->
-        <div class="analysis-steps-grid">
-          <div class="analysis-step">
-            <div class="step-header">
-              <span class="step-number">1</span>
-              <span class="step-title">REBAR DETECTION</span>
-            </div>
-            <img id="modal-step1-image" src="" alt="Step 1: Rebar Detection" class="step-image">
-          </div>
-          
-          <div class="analysis-step">
-            <div class="step-header">
-              <span class="step-number">2</span>
-              <span class="step-title">QUADRANT INTERSECTIONS</span>
-            </div>
-            <img id="modal-step2-image" src="" alt="Step 2: Quadrant Intersections" class="step-image">
-          </div>
-          
-          <div class="analysis-step">
-            <div class="step-header">
-              <span class="step-number">3</span>
-              <span class="step-title">POLYGON + VOLUME</span>
-            </div>
-            <img id="modal-step3-image" src="" alt="Step 3: Polygon + Volume" class="step-image">
-          </div>
-          
-          <div class="analysis-step">
-            <div class="step-header">
-              <span class="step-number">4</span>
-              <span class="step-title">CEMENT ESTIMATION</span>
-            </div>
-            <img id="modal-step4-image" src="" alt="Step 4: Cement Estimation" class="step-image">
-          </div>
+        <!-- Analysis Result Image -->
+        <div class="modal-image-container results-image-container">
+          <img id="modal-image" src="" alt="Analysis Result" class="results-image">
         </div>
         
-        <!-- Analysis Data Display (matching main page) -->
+        <!-- UPDATED: Analysis Data Display (matching main page with 1:2:4 ratio) -->
         <div class="results-data">
           <div class="result-card">
             <h3>Rebar Dimensions</h3>
-            <div class="result-value" id="modal-dimensions">25.4cm × 25.4cm × 200cm</div>
+            <div class="result-value" id="modal-dimensions">32cm × 32cm × 393cm</div>
           </div>
           <div class="result-card">
             <h3>Cement Mixture Ratio</h3>
@@ -138,27 +107,19 @@
           </div>
         </div>
         
-        <!-- Additional Analysis Details -->
+        <!-- UPDATED: Additional Analysis Details -->
         <div class="analysis-details">
           <div class="detail-row">
             <span class="detail-label">Analysis Date:</span>
             <span id="modal-analysis-date" class="detail-value">-</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Vertical Rebars:</span>
-            <span id="modal-vertical-count" class="detail-value">2</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Horizontal Rebars:</span>
-            <span id="modal-horizontal-count" class="detail-value">11</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Intersections:</span>
-            <span id="modal-intersections" class="detail-value">22</span>
+            <span class="detail-label">Detections Found:</span>
+            <span id="modal-detections" class="detail-value">-</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Model Type:</span>
-            <span id="modal-model-type" class="detail-value">4-Step Pipeline</span>
+            <span id="modal-model-type" class="detail-value">-</span>
           </div>
         </div>
       </div>

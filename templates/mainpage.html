@@ -24,7 +24,7 @@
       </div>
       
       <div class="header-title">
-        <h1>AI Camera Analysis</h1>
+        <h1>AI Camera Analysis - Pipeline Mode</h1>
       </div>
     </div>
   </header>
@@ -50,7 +50,7 @@
       <!-- Loading Overlay -->
       <div class="loading-overlay" id="loading-overlay">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Analyzing rebar structure...</div>
+        <div class="loading-text">Running quadrant pipeline analysis...</div>
       </div>
       
       <!-- Camera Controls Overlay -->
@@ -79,13 +79,13 @@
   <!-- Tutorial Modal -->
   <div class="modal-overlay tutorial-modal" id="tutorial-modal">
     <div class="modal-content">
-      <h2>How to Use Rebar Vista</h2>
+      <h2>How to Use Rebar Vista Pipeline</h2>
       
       <div class="tutorial-step">
         <div class="tutorial-step-number">1</div>
         <div>
           <strong>Position the camera</strong><br>
-          Point the camera at the rebar column structure with good lighting
+          Point the camera at the rebar column structure with good lighting at 160-200cm distance
         </div>
       </div>
       
@@ -93,23 +93,31 @@
         <div class="tutorial-step-number">2</div>
         <div>
           <strong>Capture & analyze</strong><br>
-          Press the camera button (📷) to capture and automatically start AI analysis
+          Press the camera button (📷) to capture and start quadrant pipeline analysis
         </div>
       </div>
       
       <div class="tutorial-step">
         <div class="tutorial-step-number">3</div>
         <div>
-          <strong>View results</strong><br>
-          Wait for analysis to complete and view rebar dimensions and cement mixture
+          <strong>Pipeline processing</strong><br>
+          Wait for AI to detect intersections, calculate polygons, and compute cement mixture (1:2:4)
         </div>
       </div>
       
       <div class="tutorial-step">
         <div class="tutorial-step-number">4</div>
         <div>
+          <strong>View results</strong><br>
+          Results show exact dimensions and 1:2:4 cement mixture ratio
+        </div>
+      </div>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">5</div>
+        <div>
           <strong>Automatic saving</strong><br>
-          Results are automatically saved to the gallery for future reference
+          Pipeline analysis results are automatically saved to the gallery with metadata
         </div>
       </div>
       
@@ -119,86 +127,74 @@
     </div>
   </div>
 
-  <!-- UPDATED: Enhanced Results Modal with 4-Step Analysis Display -->
+  <!-- UPDATED: Pipeline Results Modal with Exact Format -->
   <div class="modal-overlay results-modal" id="results-modal">
-    <div class="modal-content results-modal-large">
+    <div class="modal-content">
       <div class="results-header">
-        <h2>4-Step Rebar Analysis Results</h2>
-        <button class="modal-close" onclick="closeResultsModal()">&times;</button>
+        <h2>Rebar Pipeline Analysis Results</h2>
       </div>
       <div class="results-body">
+        <!-- Analysis Result Image -->
+        <img id="results-image" src="" alt="Pipeline Analysis Result" class="results-image">
         
-        <!-- 4-Step Analysis Images Grid -->
-        <div class="analysis-steps-grid">
-          <div class="analysis-step">
-            <div class="step-header">
-              <span class="step-number">1</span>
-              <span class="step-title">REBAR DETECTION</span>
-            </div>
-            <img id="step1-image" src="" alt="Step 1: Rebar Detection" class="step-image">
-          </div>
-          
-          <div class="analysis-step">
-            <div class="step-header">
-              <span class="step-number">2</span>
-              <span class="step-title">QUADRANT INTERSECTIONS</span>
-            </div>
-            <img id="step2-image" src="" alt="Step 2: Quadrant Intersections" class="step-image">
-          </div>
-          
-          <div class="analysis-step">
-            <div class="step-header">
-              <span class="step-number">3</span>
-              <span class="step-title">POLYGON + VOLUME</span>
-            </div>
-            <img id="step3-image" src="" alt="Step 3: Polygon + Volume" class="step-image">
-          </div>
-          
-          <div class="analysis-step">
-            <div class="step-header">
-              <span class="step-number">4</span>
-              <span class="step-title">CEMENT ESTIMATION</span>
-            </div>
-            <img id="step4-image" src="" alt="Step 4: Cement Estimation" class="step-image">
-          </div>
-        </div>
-        
-        <!-- Analysis Results Data -->
-        <div class="results-data">
-          <div class="result-card">
+        <!-- UPDATED: Pipeline Data Display with Exact Format -->
+        <div class="pipeline-results-data">
+          <div class="pipeline-result-card">
             <h3>Rebar Dimensions</h3>
-            <div class="result-value" id="dimensions-result">25.4cm × 25.4cm × 200cm</div>
+            <div class="pipeline-result-value" id="dimensions-result">27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters</div>
           </div>
-          <div class="result-card">
+          <div class="pipeline-result-card">
             <h3>Cement Mixture Ratio</h3>
-            <div class="result-value" id="mixture-result">1 Cement : 2 Sand : 4 Aggregate</div>
+            <div class="pipeline-result-value" id="mixture-result">1:2:4</div>
           </div>
         </div>
         
-        <!-- Detection Summary -->
-        <div class="detection-summary">
-          <div class="detection-item">
-            <span class="detection-label">Vertical Rebars:</span>
-            <span id="vertical-count" class="detection-value">2</span>
+        <!-- UPDATED: Additional Pipeline Details -->
+        <div class="pipeline-details">
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Analysis Method:</span>
+            <span id="pipeline-method" class="pipeline-detail-value">Quadrant Intersection Pipeline</span>
           </div>
-          <div class="detection-item">
-            <span class="detection-label">Horizontal Rebars:</span>
-            <span id="horizontal-count" class="detection-value">11</span>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Detections Found:</span>
+            <span id="pipeline-detections" class="pipeline-detail-value">2 verticals + 11 horizontals</span>
           </div>
-          <div class="detection-item">
-            <span class="detection-label">Intersections:</span>
-            <span id="intersection-count" class="detection-value">22</span>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Quadrant Processing:</span>
+            <span id="pipeline-quadrants" class="pipeline-detail-value">BL, BR, TL, TR corners analyzed</span>
           </div>
-          <div class="detection-item">
-            <span class="detection-label">Model Type:</span>
-            <span id="model-type" class="detection-value">4-Step Pipeline</span>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Formula Applied:</span>
+            <span id="pipeline-formula" class="pipeline-detail-value">PX_TO_CM × 1/3.54 + 4.5cm offset</span>
+          </div>
+        </div>
+        
+        <!-- UPDATED: Pipeline Visualization Steps (4 Images as requested) -->
+        <div class="pipeline-visualization-steps">
+          <h4>Pipeline Analysis Steps</h4>
+          <div class="pipeline-step-images">
+            <div class="pipeline-step-image">
+              <img id="step1-detection" src="" alt="Step 1: Detection" class="step-image">
+              <p class="step-label">1. Rebar Detection</p>
+            </div>
+            <div class="pipeline-step-image">
+              <img id="step2-quadrants" src="" alt="Step 2: Quadrant Intersections" class="step-image">
+              <p class="step-label">2. Quadrant Intersections</p>
+            </div>
+            <div class="pipeline-step-image">
+              <img id="step3-polygon" src="" alt="Step 3: Polygon + Volume" class="step-image">
+              <p class="step-label">3. Polygon + Volume</p>
+            </div>
+            <div class="pipeline-step-image">
+              <img id="step4-cement" src="" alt="Step 4: Cement Estimation" class="step-image">
+              <p class="step-label">4. Cement Estimation</p>
+            </div>
           </div>
         </div>
       </div>
       
-      <div class="modal-buttons">
+      <div class="modal-footer results-footer">
         <button class="modal-btn secondary" onclick="closeResultsModal()">Close</button>
-        <button class="modal-btn primary" onclick="openGallery()">View Gallery</button>
       </div>
     </div>
   </div>
@@ -208,7 +204,17 @@
     <div class="modal-content">
       <div class="error-icon">⚠️</div>
       <h2>No Rebar Detected</h2>
-      <p>The AI could not detect any rebar structures in the captured image. Please ensure the rebar is clearly visible and try again.</p>
+      <p>The pipeline analysis could not detect the required rebar structures in the captured image. Please ensure the rebar is clearly visible and try again.</p>
+      <div class="error-requirements">
+        <h4>Pipeline Requirements:</h4>
+        <ul>
+          <li>2 front vertical rebars visible</li>
+          <li>11 front horizontal rebars visible</li>
+          <li>Clear intersection points</li>
+          <li>Good lighting conditions</li>
+          <li>160-200cm optimal distance</li>
+        </ul>
+      </div>
       <div class="modal-buttons">
         <button class="modal-btn secondary" onclick="closeErrorModal()">Try Again</button>
       </div>

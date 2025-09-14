@@ -1,6 +1,5 @@
-// ==================== OPTIMIZED CAMERA APP MANAGER WITH DISTANCE SENSOR & REDUCED LATENCY ==================== 
+// ==================== SIMPLIFIED CAMERA APP MANAGER WITH DISTANCE SENSOR ==================== 
 // MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
-// OPTIMIZED: Reduced latency camera feed with better buffering and performance
 
 class CameraAppManager {
   constructor() {
@@ -13,14 +12,6 @@ class CameraAppManager {
     this.distanceInterval = null;
     this.lastDistanceReading = null;
     this.distanceUpdateRate = 500; // 500ms as requested
-    
-    // OPTIMIZED: Faster refresh rate and better buffering
-    this.serverFeedInterval = null;
-    this.isUsingServerFeed = true;
-    this.feedUpdateRate = 66; // ~15 FPS instead of 10 FPS (was 100ms, now 66ms)
-    this.feedTimeoutDuration = 3000; // 3 second timeout
-    this.consecutiveErrors = 0;
-    this.maxConsecutiveErrors = 5;
     
     // DOM Elements
     this.cameraContainer = document.getElementById('camera-container');
@@ -48,17 +39,21 @@ class CameraAppManager {
     this.gridOverlay = document.getElementById('grid-overlay');
     this.isGridActive = false;
     
+    // Camera feed management
+    this.serverFeedInterval = null;
+    this.isUsingServerFeed = true;
+    
     this.init();
   }
   
   init() {
-    console.log('🎥 Initializing Optimized Camera App Manager (Reduced Latency Mode)...');
+    console.log('🎥 Initializing Camera App Manager (Analyzed Images Only Mode)...');
     console.log('📝 NOTE: Only analyzed images with AI overlays will be saved to gallery');
     this.setupEventListeners();
     this.createDistanceDisplay();
     this.startCameraFeed();
     this.startDistanceMonitoring();
-    this.updateStatus('Initializing optimized camera and distance sensor...');
+    this.updateStatus('Initializing camera and distance sensor...');
   }
   
   // ==================== DISTANCE SENSOR INTEGRATION ====================
@@ -259,24 +254,20 @@ class CameraAppManager {
     
     // Window beforeunload to clean up distance monitoring
     window.addEventListener('beforeunload', () => {
-      this.destroy();
+      this.stopDistanceMonitoring();
     });
     
     console.log('✅ Event listeners setup complete');
   }
   
-  // ==================== OPTIMIZED CAMERA FEED MANAGEMENT ====================
+  // ==================== CAMERA FEED MANAGEMENT ====================
   
-  // OPTIMIZED: Faster camera feed startup
   startCameraFeed() {
-    console.log('🔄 Starting optimized camera feed (reduced latency mode)...');
+    console.log('🔄 Starting camera feed (server mode)...');
     
     // Ensure server feed is visible
     if (this.serverFeed) {
       this.serverFeed.style.display = 'block';
-      // OPTIMIZATION: Disable smoothing for faster updates
-      this.serverFeed.style.imageRendering = 'crisp-edges';
-      this.serverFeed.style.imageRendering = '-webkit-optimize-contrast';
     }
     if (this.videoElement) {
       this.videoElement.style.display = 'none';
@@ -290,110 +281,38 @@ class CameraAppManager {
     
     this.isUsingServerFeed = true;
     
-    // Start with immediate refresh
+    // Start server feed refresh
     this.refreshServerFeed();
     
-    // OPTIMIZED: Faster refresh interval for reduced lag
+    // Set up interval for continuous feed (only when not analyzing)
     this.serverFeedInterval = setInterval(() => {
       if (this.isUsingServerFeed && this.isLiveMode && !this.isAnalyzing) {
         this.refreshServerFeed();
       }
-    }, this.feedUpdateRate); // Faster: ~15 FPS instead of 10 FPS
+    }, 100); // 10 FPS for smooth experience
     
-    this.updateStatus('Optimized Camera Feed Active (Reduced Latency)');
-    console.log(`✅ Optimized camera feed started at ${(1000 / this.feedUpdateRate).toFixed(1)} FPS`);
+    this.updateStatus('A4Tech Camera Active');
+    console.log('✅ Server camera feed started');
   }
-
-  // OPTIMIZED: Faster feed refresh with error handling
+  
   refreshServerFeed() {
     if (this.serverFeed && this.isLiveMode && !this.isAnalyzing) {
       const timestamp = new Date().getTime();
+      this.serverFeed.src = `/video_feed?t=${timestamp}`;
       
-      // OPTIMIZATION: Add cache busting and faster loading
-      const feedUrl = `/video_feed?t=${timestamp}&fast=1`;
-      
-      // Create new image to preload (reduces perceived latency)
-      const img = new Image();
-      
-      // OPTIMIZATION: Set timeout to prevent hanging
-      const timeoutId = setTimeout(() => {
-        img.onload = null;
-        img.onerror = null;
-        this.consecutiveErrors++;
-      }, this.feedTimeoutDuration);
-      
-      img.onload = () => {
-        clearTimeout(timeoutId);
-        // OPTIMIZATION: Only update if image actually loaded
-        if (this.serverFeed && img.src) {
-          this.serverFeed.src = img.src;
-          this.consecutiveErrors = 0; // Reset error counter on success
-          
-          // OPTIMIZATION: Reset to fast refresh rate on success
-          if (this.feedUpdateRate > 66) {
-            this.feedUpdateRate = 66; // Reset to fast rate
-          }
-        }
+      this.serverFeed.onload = () => {
+        // Successfully loaded frame
       };
       
-      img.onerror = () => {
-        clearTimeout(timeoutId);
-        this.consecutiveErrors++;
-        
-        // Only log every 10 errors to avoid console spam
-        if (this.consecutiveErrors % 10 === 1) {
-          console.warn(`⚠️ Camera feed error (${this.consecutiveErrors} consecutive)`);
-        }
-        
-        // If too many consecutive errors, reduce refresh rate temporarily
-        if (this.consecutiveErrors > this.maxConsecutiveErrors) {
-          this.feedUpdateRate = Math.min(this.feedUpdateRate * 1.5, 500); // Slow down
-          this.restartFeedWithDelay();
-        }
+      this.serverFeed.onerror = () => {
+        this.updateStatus('Camera feed error');
+        console.error('❌ Camera feed error');
       };
-      
-      // Start loading
-      img.src = feedUrl;
-    }
-  }
-
-  // OPTIMIZATION: Restart feed with adaptive delay
-  restartFeedWithDelay() {
-    if (this.serverFeedInterval) {
-      clearInterval(this.serverFeedInterval);
-    }
-    
-    console.log(`🔄 Restarting camera feed with ${this.feedUpdateRate}ms interval`);
-    
-    setTimeout(() => {
-      this.serverFeedInterval = setInterval(() => {
-        if (this.isUsingServerFeed && this.isLiveMode && !this.isAnalyzing) {
-          this.refreshServerFeed();
-        }
-      }, this.feedUpdateRate);
-    }, 1000); // 1 second delay before restart
-  }
-
-  // OPTIMIZATION: Pause feed during analysis to free resources
-  pauseFeedDuringAnalysis() {
-    console.log('⏸️ Pausing camera feed during analysis...');
-    if (this.serverFeedInterval) {
-      clearInterval(this.serverFeedInterval);
-      this.serverFeedInterval = null;
-    }
-  }
-
-  // OPTIMIZATION: Resume feed after analysis
-  resumeFeedAfterAnalysis() {
-    console.log('▶️ Resuming optimized camera feed...');
-    if (!this.serverFeedInterval) {
-      this.startCameraFeed();
     }
   }
   
-  // ==================== OPTIMIZED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
+  // ==================== MODIFIED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
   
-  // UPDATED: Optimized capture and analyze with feed pausing
   async captureAndAnalyze() {
     if (this.isAnalyzing) {
       console.log('⚠️ Analysis already in progress, ignoring capture request');
@@ -417,14 +336,11 @@ class CameraAppManager {
       // If optimal, continue without warning
     }
     
-    console.log('📸 Starting optimized capture and analyze flow (ANALYZED IMAGE ONLY)...');
+    console.log('📸 Starting capture and analyze flow (ANALYZED IMAGE ONLY)...');
     console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
     this.isAnalyzing = true;
     
     try {
-      // OPTIMIZATION: Pause feed during analysis to free up bandwidth/CPU
-      this.pauseFeedDuringAnalysis();
-      
       // Step 1: Capture Animation
       if (this.captureBtn) {
         this.captureBtn.style.transform = 'scale(0.9)';
@@ -435,10 +351,10 @@ class CameraAppManager {
       
       // Step 2: Show loading overlay immediately
       this.showLoadingOverlay();
-      this.updateStatus('Running optimized AI analysis (feed paused for performance)...');
+      this.updateStatus('Preparing frame for AI analysis...');
       
       // Step 3: Verify camera frame is ready (NO ORIGINAL SAVED)
-      console.log('📷 Getting optimized frame for analysis (no original will be saved)...');
+      console.log('📷 Verifying camera frame is ready (no original will be saved)...');
       const captureResponse = await fetch('/capture-current-frame', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -458,8 +374,8 @@ class CameraAppManager {
       console.log('📝 Confirmed: No original frame saved');
       
       // Step 4: Start AI analysis directly with current camera frame
-      this.updateStatus('Step 1: AI analyzing rebar structure...');
-      console.log('🔍 Starting optimized AI analysis (will save ONLY analyzed image with overlays)...');
+      this.updateStatus('Analyzing rebar structure with AI...');
+      console.log('🔍 Starting AI analysis (will save ONLY analyzed image with overlays)...');
       
       const analysisResponse = await fetch('/analyze-rebar', {
         method: 'POST',
@@ -486,7 +402,7 @@ class CameraAppManager {
         throw new Error(analysisResult.message || 'Analysis failed');
       }
       
-      console.log('✅ Optimized AI analysis completed - ONLY analyzed image saved to gallery');
+      console.log('✅ AI analysis completed - ONLY analyzed image saved to gallery');
       
       // Verify the save mode
       if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
@@ -502,16 +418,12 @@ class CameraAppManager {
       console.log('🚫 No original/duplicate images created');
       
     } catch (error) {
-      console.error('❌ Optimized capture and analyze error:', error);
+      console.error('❌ Capture and analyze error:', error);
       this.hideLoadingOverlay();
       this.updateStatus('Analysis failed');
       this.showErrorMessage('Failed to analyze image: ' + error.message);
     } finally {
       this.isAnalyzing = false;
-      // OPTIMIZATION: Resume feed after analysis
-      setTimeout(() => {
-        this.resumeFeedAfterAnalysis();
-      }, 500); // Small delay to let UI update
     }
   }
   
@@ -714,7 +626,7 @@ class CameraAppManager {
       this.resultsModal.classList.remove('active');
     }
     this.analysisResults = null; // Clear stored results
-    this.updateStatus('Ready for next capture (optimized analyzed image only mode)');
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   
   showErrorModal() {
@@ -729,7 +641,7 @@ class CameraAppManager {
     if (this.errorModal) {
       this.errorModal.classList.remove('active');
     }
-    this.updateStatus('Ready for next capture (optimized analyzed image only mode)');
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   
   // ==================== UI STATUS MANAGEMENT ====================
@@ -869,38 +781,10 @@ class CameraAppManager {
       case 's': // S - Show save mode info (debug)
       case 'S':
         e.preventDefault();
-        this.showSuccessMessage('Save Mode: Analyzed Images Only (no originals) - OPTIMIZED');
-        console.log('💾 Save Mode: Only analyzed images with AI overlays are saved (OPTIMIZED)');
-        break;
-        
-      case 'o': // O - Show optimization info (debug)
-      case 'O':
-        e.preventDefault();
-        this.showSuccessMessage(`Optimized Feed: ${(1000 / this.feedUpdateRate).toFixed(1)} FPS, ${this.consecutiveErrors} errors`);
-        console.log('⚡ Optimization Info:', {
-          fps: 1000/this.feedUpdateRate,
-          updateRate: this.feedUpdateRate,
-          consecutiveErrors: this.consecutiveErrors,
-          feedActive: !!this.serverFeedInterval
-        });
+        this.showSuccessMessage('Save Mode: Analyzed Images Only (no originals)');
+        console.log('💾 Save Mode: Only analyzed images with AI overlays are saved');
         break;
     }
-  }
-
-  // OPTIMIZATION: Clean up intervals on destruction
-  destroy() {
-    console.log('🧹 Cleaning up optimized camera feed resources...');
-    if (this.serverFeedInterval) {
-      clearInterval(this.serverFeedInterval);
-      this.serverFeedInterval = null;
-    }
-    
-    if (this.distanceInterval) {
-      clearInterval(this.distanceInterval);
-      this.distanceInterval = null;
-    }
-    
-    this.stopDistanceMonitoring();
   }
 }
 
@@ -925,51 +809,24 @@ window.closeErrorModal = function() {
   }
 };
 
-// ==================== OPTIMIZATION: VISIBILITY & PERFORMANCE MANAGEMENT ====================
-
-// OPTIMIZATION: Clean up on page unload
-window.addEventListener('beforeunload', () => {
-  if (window.cameraApp) {
-    window.cameraApp.destroy();
-  }
-});
-
-// OPTIMIZATION: Pause feed when tab is not active (saves bandwidth)
-document.addEventListener('visibilitychange', () => {
-  if (window.cameraApp) {
-    if (document.hidden) {
-      console.log('📱 Tab hidden, pausing optimized camera feed...');
-      window.cameraApp.pauseFeedDuringAnalysis();
-    } else {
-      console.log('📱 Tab visible, resuming optimized camera feed...');
-      setTimeout(() => {
-        if (!window.cameraApp.isAnalyzing) {
-          window.cameraApp.resumeFeedAfterAnalysis();
-        }
-      }, 100);
-    }
-  }
-});
-
 // ==================== INITIALIZATION ====================
 
 // Initialize camera app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Starting Rebar Vista Camera App (OPTIMIZED ANALYZED IMAGES ONLY MODE)...');
+  console.log('🚀 Starting Rebar Vista Camera App (ANALYZED IMAGES ONLY MODE)...');
   console.log('📝 IMPORTANT: Only analyzed images with AI overlays will be saved');
   console.log('🚫 No original/duplicate images will be created');
-  console.log('⚡ OPTIMIZATION: Reduced latency camera feed with better buffering');
   
   // Create global instance
   window.cameraApp = new CameraAppManager();
   
-  console.log('✅ Optimized Camera App initialized successfully');
-  console.log('📋 Optimized User Flow:');
+  console.log('✅ Camera App initialized successfully');
+  console.log('📋 Modified User Flow:');
   console.log('   1. Position device at optimal distance (160-200cm)');
-  console.log('   2. Press capture button (📷) - feed pauses for performance');
-  console.log('   3. Wait for AI analysis (optimized processing)');
+  console.log('   2. Press capture button (📷)');
+  console.log('   3. Wait for AI analysis');
   console.log('   4. View results (ONLY analyzed image auto-saved to gallery)');
-  console.log('   5. Close results and capture again (feed resumes)');
+  console.log('   5. Close results and capture again');
   console.log('');
   console.log('📋 Available keyboard shortcuts:');
   console.log('   Space/Enter - Capture & analyze');
@@ -978,16 +835,7 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('   G - Open gallery');
   console.log('   D - Show distance info (debug)');
   console.log('   S - Show save mode info (debug)');
-  console.log('   O - Show optimization info (debug)');
   console.log('   ? - Open tutorial');
-  console.log('   R - Toggle grid');
-  console.log('');
-  console.log('⚡ Optimization Features:');
-  console.log(`   - ${(1000 / 66).toFixed(1)} FPS camera feed (reduced latency)`);
-  console.log('   - Feed pausing during analysis (better performance)');
-  console.log('   - Adaptive error recovery');
-  console.log('   - Background tab power saving');
-  console.log('   - Optimized image loading');
 });
 
 // Additional styles for notifications (injected dynamically)
@@ -998,3 +846,4 @@ notificationStyles.textContent = `
     to { transform: translateX(0); opacity: 1; }
   }
 `;
+document.head.appendChild(notificationStyles);

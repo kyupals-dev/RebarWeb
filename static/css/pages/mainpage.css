@@ -1,4 +1,4 @@
-/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES WITH BRIGHTNESS ENHANCEMENT ==================== */
+/* ==================== PORTRAIT-FOCUSED CAMERA APP STYLES WITH PIPELINE SUPPORT ==================== */
 
 /* Global Styles with #2d7d47 Theme */
 body {
@@ -120,7 +120,7 @@ body {
   z-index: 200;
 }
 
-/* ==================== ENHANCED CAMERA FEEDS WITH BRIGHTNESS OPTIMIZATION ==================== */
+/* ==================== CAMERA FEEDS ==================== */
 
 #camera-feed, 
 #server-feed {
@@ -128,36 +128,7 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: all 0.3s ease;
-  
-  /* Enhanced brightness and contrast for better visibility */
-  filter: brightness(1.2) contrast(1.1) saturate(1.05);
-  
-  /* Smooth image rendering */
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-}
-
-/* Enhanced brightness mode */
-#camera-feed.enhanced-brightness, 
-#server-feed.enhanced-brightness {
-  filter: brightness(1.4) contrast(1.3) saturate(1.1) hue-rotate(0deg);
-  transition: filter 0.5s ease;
-}
-
-/* High brightness mode for very dark environments */
-#camera-feed.high-brightness, 
-#server-feed.high-brightness {
-  filter: brightness(1.6) contrast(1.4) saturate(1.15) gamma(0.8);
-  transition: filter 0.5s ease;
-}
-
-/* Dark mode detection and auto-enhancement */
-@media (prefers-color-scheme: dark) {
-  #camera-feed, 
-  #server-feed {
-    filter: brightness(1.3) contrast(1.2) saturate(1.08);
-  }
+  transition: opacity 0.3s ease;
 }
 
 /* ==================== RULE OF THIRDS GRID OVERLAY ==================== */
@@ -179,10 +150,9 @@ body {
 
 .grid-line {
   position: absolute;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: white;
   opacity: 0.6;
   transition: opacity 0.3s ease;
-  box-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 .grid-vertical {
@@ -213,7 +183,7 @@ body {
   pointer-events: all;
 }
 
-/* Camera Status - positioned on left side with enhanced visibility */
+/* Camera Status - positioned on left side */
 .camera-status {
   position: absolute;
   top: 20px;
@@ -225,17 +195,15 @@ body {
   font-size: 12px;
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 15px rgba(45, 125, 71, 0.2);
 }
 
-/* ==================== DISTANCE SENSOR DISPLAY WITH ENHANCED STYLING ==================== */
+/* ==================== DISTANCE SENSOR DISPLAY ==================== */
 
 /* Distance Display - positioned on right side of camera status */
 .distance-display {
   position: absolute;
   top: 20px;
-  right: 270px; /* Adjusted for brightness controls */
+  right: 80px; /* Leave space for tutorial button */
   background: rgba(0, 0, 0, 0.8);
   color: white;
   padding: 8px 12px;
@@ -288,11 +256,6 @@ body {
   border-color: rgba(127, 140, 141, 0.6);
   box-shadow: 0 4px 15px rgba(127, 140, 141, 0.3);
 }
-
-/* ==================== BRIGHTNESS CONTROLS (ALREADY DEFINED IN JAVASCRIPT) ==================== */
-
-/* These styles are injected by the JavaScript brightness control system */
-/* See camera.js for the complete brightness control styling */
 
 /* Tutorial Button - White ? symbol with #49A166 background */
 .tutorial-btn {
@@ -379,7 +342,7 @@ body {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
-/* Capture Button - Custom capture.png icon (NO emoji) with enhanced glow */
+/* Capture Button - Custom capture.png icon (NO emoji) */
 .capture-btn {
   width: 80px;
   height: 80px;
@@ -388,12 +351,6 @@ body {
   background-repeat: no-repeat;
   background-position: center;
   background-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 0 20px rgba(255, 255, 255, 0.1);
-}
-
-.capture-btn:hover {
-  background-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2), 0 0 30px rgba(255, 255, 255, 0.2);
 }
 
 /* Grid Toggle Button - Custom withgrid.png and nogrid.png icons */
@@ -451,7 +408,7 @@ body {
   background-image: url('/static/assets/button/minimize.png');
 }
 
-/* ==================== LOADING OVERLAY WITH ENHANCED STYLING ==================== */
+/* ==================== LOADING OVERLAY ==================== */
 
 .loading-overlay {
   position: absolute;
@@ -466,7 +423,6 @@ body {
   flex-direction: column;
   z-index: 20;
   border-radius: 20px;
-  backdrop-filter: blur(10px);
 }
 
 .loading-overlay.active {
@@ -496,7 +452,7 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* ==================== MODAL STYLES WITH ENHANCED BRIGHTNESS ==================== */
+/* ==================== MODAL STYLES ==================== */
 
 .modal-overlay {
   position: fixed;
@@ -528,7 +484,6 @@ body {
   color: #333;
   transform: scale(0.9);
   transition: transform 0.3s ease;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 .modal-overlay.active .modal-content {
@@ -578,11 +533,13 @@ body {
   color: #2d7d47;
 }
 
-/* ==================== RESULTS MODAL WITH ENHANCED IMAGE DISPLAY ==================== */
+/* ==================== UPDATED PIPELINE RESULTS MODAL ==================== */
 
 .results-modal .modal-content {
-  width: 700px;
+  width: 900px;
+  max-width: 95vw;
   padding: 0;
+  max-height: 95vh;
 }
 
 .results-header {
@@ -600,64 +557,144 @@ body {
 
 .results-body {
   padding: 30px;
+  max-height: calc(95vh - 200px);
+  overflow-y: auto;
 }
 
 .results-image {
   width: 100%;
-  max-height: 400px;
+  max-height: 300px;
   object-fit: contain;
   border-radius: 12px;
   margin-bottom: 25px;
   border: 2px solid #f0f0f0;
-  
-  /* Enhanced display for analyzed images */
-  filter: brightness(1.05) contrast(1.02);
-  transition: filter 0.3s ease;
 }
 
-.results-image:hover {
-  filter: brightness(1.1) contrast(1.05);
-}
-
-.results-data {
+/* UPDATED: Pipeline Results Data with Exact Format */
+.pipeline-results-data {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 25px;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
-.result-card {
+.pipeline-result-card {
   background: #f8f9fa;
   padding: 25px;
   border-radius: 12px;
   border-left: 5px solid #2d7d47;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.result-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-}
-
-.result-card h3 {
+.pipeline-result-card h3 {
   margin: 0 0 15px 0;
   color: #2d7d47;
   font-size: 16px;
   font-weight: 600;
 }
 
-.result-value {
-  font-size: 20px;
+.pipeline-result-value {
+  font-size: 18px;
   font-weight: bold;
   color: #2d7d47;
-  line-height: 1.3;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* UPDATED: Pipeline Details Section */
+.pipeline-details {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  border: 1px solid #e0e0e0;
+}
+
+.pipeline-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.pipeline-detail-row:last-child {
+  border-bottom: none;
+}
+
+.pipeline-detail-label {
+  font-weight: 600;
+  color: #2d7d47;
+  font-size: 14px;
+}
+
+.pipeline-detail-value {
+  color: #333;
+  font-size: 14px;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+/* UPDATED: Pipeline Visualization Steps (4 Images) */
+.pipeline-visualization-steps {
+  margin-top: 25px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.pipeline-visualization-steps h4 {
+  margin: 0 0 20px 0;
+  color: #2d7d47;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pipeline-step-images {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.pipeline-step-image {
+  text-align: center;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.pipeline-step-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.step-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+}
+
+.step-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2d7d47;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* ==================== ERROR MODAL ==================== */
 
 .error-modal .modal-content {
-  width: 450px;
+  width: 500px;
   padding: 40px;
   text-align: center;
 }
@@ -666,7 +703,6 @@ body {
   font-size: 80px;
   color: #e74c3c;
   margin-bottom: 20px;
-  text-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
 }
 
 .error-modal h2 {
@@ -679,7 +715,33 @@ body {
   color: #666;
   font-size: 16px;
   line-height: 1.6;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+}
+
+.error-requirements {
+  text-align: left;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border-left: 4px solid #e74c3c;
+}
+
+.error-requirements h4 {
+  margin: 0 0 10px 0;
+  color: #e74c3c;
+  font-size: 16px;
+}
+
+.error-requirements ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.error-requirements li {
+  margin-bottom: 5px;
+  color: #666;
+  font-size: 14px;
 }
 
 /* ==================== MODAL BUTTONS ==================== */
@@ -691,6 +753,12 @@ body {
   padding: 25px 30px;
   border-top: 1px solid #eee;
   margin: 25px -30px -30px -30px;
+}
+
+.results-footer {
+  padding: 25px 30px;
+  border-top: 1px solid #eee;
+  text-align: center;
 }
 
 .modal-btn {
@@ -707,28 +775,24 @@ body {
 .modal-btn.primary {
   background: #2d7d47;
   color: white;
-  box-shadow: 0 4px 15px rgba(45, 125, 71, 0.3);
 }
 
 .modal-btn.primary:hover {
   background: #245a37;
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(45, 125, 71, 0.4);
 }
 
 .modal-btn.secondary {
   background: #6c757d;
   color: white;
-  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
 }
 
 .modal-btn.secondary:hover {
   background: #5a6268;
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
 }
 
-/* ==================== ANIMATIONS WITH ENHANCED EFFECTS ==================== */
+/* ==================== ANIMATIONS ==================== */
 
 .fade-in {
   animation: fadeIn 0.4s ease;
@@ -739,8 +803,8 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
@@ -748,32 +812,70 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* Brightness pulse animation for controls */
-@keyframes brightnessPulse {
-  0% { filter: brightness(1); }
-  50% { filter: brightness(1.2); }
-  100% { filter: brightness(1); }
-}
+/* ==================== RESPONSIVE DESIGN FOR PIPELINE MODAL ==================== */
 
-.brightness-active {
-  animation: brightnessPulse 2s infinite;
-}
-
-/* ==================== PORTRAIT-OPTIMIZED RESPONSIVE DESIGN ==================== */
-
-/* Large portrait screens - maximize space even more */
-@media (orientation: portrait) and (min-height: 800px) {
-  .camera-container {
-    height: 85vh; /* Use even more space on tall screens */
-    width: calc(85vh * 0.75);
+/* Tablet adjustments */
+@media (max-width: 1024px) {
+  .results-modal .modal-content {
+    width: 85vw;
+    max-width: 800px;
   }
   
-  .distance-display {
-    right: 280px; /* Adjust for brightness controls on larger screens */
+  .pipeline-step-images {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .step-image {
+    height: 100px;
   }
 }
 
-/* Medium portrait screens */
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .results-modal .modal-content {
+    width: 95vw;
+    margin: 10px;
+  }
+  
+  .pipeline-results-data {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .pipeline-step-images {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .step-image {
+    height: 150px;
+  }
+  
+  .pipeline-detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .pipeline-detail-value {
+    text-align: left;
+    max-width: 100%;
+  }
+  
+  .results-body {
+    padding: 20px;
+  }
+}
+
+/* Portrait-optimized responsive design */
+@media (orientation: portrait) and (min-height: 800px) {
+  .camera-container {
+    height: 85vh;
+    width: calc(85vh * 0.75);
+  }
+}
+
 @media (orientation: portrait) and (max-height: 800px) and (min-height: 600px) {
   .camera-container {
     height: 80vh;
@@ -812,9 +914,8 @@ body {
     font-size: 22px;
   }
   
-  /* Adjust distance display for medium screens */
   .distance-display {
-    right: 260px; /* Adjust for brightness controls */
+    right: 75px;
     font-size: 10px;
     padding: 6px 10px;
     min-width: 70px;
@@ -829,7 +930,6 @@ body {
   }
 }
 
-/* Small portrait screens */
 @media (orientation: portrait) and (max-height: 600px) {
   .header {
     height: 60px;
@@ -887,9 +987,8 @@ body {
     font-size: 20px;
   }
   
-  /* Compact distance display for small screens */
   .distance-display {
-    right: 240px; /* Adjust for brightness controls */
+    right: 70px;
     font-size: 9px;
     padding: 5px 8px;
     min-width: 60px;
@@ -911,7 +1010,7 @@ body {
   }
 }
 
-/* Landscape fallback (discourage landscape use) */
+/* Landscape fallback */
 @media (orientation: landscape) {
   .camera-container {
     height: 85vh;
@@ -921,7 +1020,7 @@ body {
   }
   
   .camera-interface::before {
-    content: "📱 For best experience, please rotate your device to portrait mode";
+    content: "📱 For best pipeline results, please rotate your device to portrait mode";
     position: absolute;
     top: 10px;
     left: 50%;
@@ -932,25 +1031,23 @@ body {
     border-radius: 20px;
     font-size: 12px;
     z-index: 50;
-    backdrop-filter: blur(10px);
   }
   
-  /* Adjust distance display for landscape */
   .distance-display {
-    right: 250px;
+    right: 80px;
     top: 15px;
     font-size: 10px;
   }
 }
 
-/* Tablet-specific optimizations - maximize space */
+/* Tablet-specific optimizations */
 @media (min-width: 768px) and (orientation: portrait) {
   .camera-interface {
     padding: 20px;
   }
   
   .camera-container {
-    height: 88vh; /* Use almost full height on tablets */
+    height: 88vh;
     width: calc(88vh * 0.75);
     max-height: 900px;
     max-width: 675px;
@@ -968,16 +1065,10 @@ body {
     background-size: 45px 45px;
   }
   
-  .grid-btn {
-    width: 70px;
-    height: 70px;
-    background-size: 45px 45px;
-  }
-  
   .fullscreen-btn {
-    width: 45px;
-    height: 45px;
-    background-size: 30px 30px;
+    width: 65px;
+    height: 65px;
+    background-size: 40px 40px;
   }
   
   .tutorial-btn {
@@ -986,9 +1077,8 @@ body {
     font-size: 26px;
   }
   
-  /* Enhanced distance display for tablets */
   .distance-display {
-    right: 290px; /* More space for larger brightness controls */
+    right: 85px;
     font-size: 12px;
     padding: 10px 15px;
     min-width: 90px;
@@ -1002,61 +1092,5 @@ body {
   
   .distance-display .distance-status {
     font-size: 10px;
-  }
-  
-  .results-modal .modal-content {
-    width: 600px;
-  }
-  
-  .tutorial-modal .modal-content {
-    width: 550px;
-  }
-}
-
-/* ==================== HIGH CONTRAST MODE FOR ACCESSIBILITY ==================== */
-
-@media (prefers-contrast: high) {
-  #camera-feed, 
-  #server-feed {
-    filter: brightness(1.3) contrast(1.5) saturate(1.2);
-  }
-  
-  .camera-status,
-  .distance-display {
-    border-width: 2px;
-    border-style: solid;
-  }
-  
-  .grid-line {
-    background-color: rgba(255, 255, 255, 1);
-    opacity: 0.8;
-  }
-}
-
-/* ==================== REDUCED MOTION SUPPORT ==================== */
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  
-  .loading-spinner {
-    animation: none;
-  }
-}
-
-/* ==================== PRINT STYLES ==================== */
-
-@media print {
-  body {
-    background: white;
-    color: black;
-  }
-  
-  .camera-interface,
-  .camera-container {
-    display: none;
   }
 }

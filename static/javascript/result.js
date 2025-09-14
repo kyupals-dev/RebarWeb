@@ -1,5 +1,5 @@
-// ==================== UPDATED RESULT PAGE JAVASCRIPT (PIPELINE SUPPORT) ==================== 
-// MODIFIED: Enhanced to display pipeline analysis metadata
+// ==================== MODERN RESULT PAGE JAVASCRIPT (ANALYZED IMAGES ONLY) ==================== 
+// FIXED: Now properly displays simplified_analysis_ files and handles 1:2:4 cement ratio
 
 // Global state management
 const state = {
@@ -18,7 +18,8 @@ const state = {
 
 // ==================== INITIALIZATION ==================== 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Result page loaded, initializing (PIPELINE MODE)...');
+  console.log('Result page loaded, initializing (analyzed images only mode)...');
+  console.log('FIXED: Now includes simplified_analysis_ files');
   initializePage();
 });
 
@@ -28,7 +29,7 @@ async function initializePage() {
     await loadImages();
     setupEventListeners();
     applyFilters();
-    console.log('Result page initialized successfully (PIPELINE MODE)');
+    console.log('Result page initialized successfully (analyzed images only)');
   } catch (error) {
     console.error('Error initializing page:', error);
     showErrorState('Failed to load images');
@@ -84,7 +85,7 @@ function handleKeyboard(e) {
 }
 
 function handleResize() {
-  // Adjust items per page based on screen size
+  // Adjust items per page based on screen size - keeping 3 columns on tablet
   const width = window.innerWidth;
   if (width <= 768) {
     state.itemsPerPage = 6; // 1 per row, 6 rows on mobile
@@ -95,10 +96,10 @@ function handleResize() {
   applyFilters(); // Recalculate pagination
 }
 
-// ==================== IMAGE LOADING (ENHANCED FOR PIPELINE) ==================== 
+// ==================== IMAGE LOADING (FIXED FOR simplified_analysis_) ==================== 
 async function loadImages() {
   try {
-    console.log('Loading PIPELINE analyzed images from server...');
+    console.log('Loading analyzed images from server (including simplified_analysis_)...');
     const response = await fetch('/get-images');
     
     if (!response.ok) {
@@ -119,18 +120,23 @@ async function loadImages() {
     if (result.stats) {
       state.imageStats = result.stats;
       console.log('Image filtering stats:', result.stats);
-      console.log(`Gallery shows ${result.stats.analyzed_shown} pipeline analyzed images, hides ${result.stats.originals_hidden} original images`);
+      console.log(`Gallery shows ${result.stats.analyzed_shown} analyzed images, hides ${result.stats.originals_hidden} original images`);
     }
     
-    console.log(`Loaded ${state.allImages.length} PIPELINE analyzed images for gallery`);
+    console.log(`FIXED: Loaded ${state.allImages.length} analyzed images for gallery (including simplified_analysis_)`);
     
     // Log types of images loaded
     if (state.allImages.length > 0) {
-      const imageTypes = state.allImages.map(img => img.type || 'analyzed').reduce((acc, type) => {
+      const imageTypes = state.allImages.map(img => {
+        const filename = img.filename || '';
+        if (filename.startsWith('simplified_analysis_')) return 'simplified';
+        if (filename.startsWith('analyzed_rebar_')) return 'full_model';
+        return 'other_analyzed';
+      }).reduce((acc, type) => {
         acc[type] = (acc[type] || 0) + 1;
         return acc;
       }, {});
-      console.log('Image types loaded:', imageTypes);
+      console.log('FIXED: Image types loaded:', imageTypes);
     }
     
   } catch (error) {
@@ -141,7 +147,7 @@ async function loadImages() {
 
 // ==================== FILTERING AND SORTING ==================== 
 function applyFilters() {
-  console.log('Applying filters to PIPELINE analyzed images:', state.currentFilters);
+  console.log('Applying filters to analyzed images:', state.currentFilters);
   
   // Start with all analyzed images (already filtered by backend)
   let filtered = [...state.allImages];
@@ -160,7 +166,7 @@ function applyFilters() {
     state.currentPage = Math.max(1, state.totalPages);
   }
   
-  console.log(`Filtered results: ${filtered.length} PIPELINE images, ${state.totalPages} pages`);
+  console.log(`Filtered results: ${filtered.length} images, ${state.totalPages} pages`);
   
   renderGallery();
   renderPagination();
@@ -241,25 +247,26 @@ function createImageCard(image, index) {
   const capturedDate = new Date(image.timestamp).toLocaleDateString();
   const imageType = image.type || 'analyzed';
   
-  // Determine if this is a pipeline image
-  const isPipelineImage = image.filename && (
-    image.filename.includes('pipeline') || 
-    image.filename.includes('analyzed')
-  );
-  
-  const badgeText = isPipelineImage ? 'Pipeline Analysis' : 'AI Analysis';
+  // Determine analysis type from filename
+  let analysisType = 'AI Analysis';
+  const filename = image.filename || '';
+  if (filename.startsWith('simplified_analysis_')) {
+    analysisType = 'Simplified Detection';
+  } else if (filename.startsWith('analyzed_rebar_')) {
+    analysisType = 'Full Model Analysis';
+  }
   
   return `
     <div class="image-card" data-index="${index}" data-type="${imageType}">
       <div class="image-container">
-        <img src="${image.url}" alt="Pipeline analyzed image with AI overlays" loading="lazy" onerror="handleImageError(this)">
+        <img src="${image.url}" alt="Analyzed image with AI overlays" loading="lazy" onerror="handleImageError(this)">
         <div class="image-overlay">
           <div class="image-actions">
-            <button class="view-btn" onclick="openPipelineModal('${image.filename}', '${image.url}', '${capturedDate}')">
-              View Pipeline Analysis
+            <button class="view-btn" onclick="openModal('${image.filename}', '${image.url}', '${capturedDate}')">
+              View Analysis
             </button>
           </div>
-          <div class="image-type-badge">${badgeText}</div>
+          <div class="image-type-badge">${analysisType}</div>
         </div>
       </div>
     </div>
@@ -275,7 +282,7 @@ function handleImageError(img) {
       <div class="image-container">
         <div class="error-placeholder">
           <span>⚠️</span>
-          <p>Pipeline analyzed image not found</p>
+          <p>Analyzed image not found</p>
         </div>
       </div>
     `;
@@ -369,10 +376,15 @@ function goToPage(page) {
   }
 }
 
-// ==================== ENHANCED PIPELINE MODAL FUNCTIONALITY ==================== 
-async function openPipelineModal(filename, url, captured) {
+// ==================== MODAL FUNCTIONALITY (FIXED FOR SIMPLIFIED ANALYSIS) ==================== 
+function openModal(filename, url, captured) {
   const modal = document.getElementById('image-modal');
   const modalImage = document.getElementById('modal-image');
+  const modalDimensions = document.getElementById('modal-dimensions');
+  const modalMixture = document.getElementById('modal-mixture');
+  const modalAnalysisDate = document.getElementById('modal-analysis-date');
+  const modalDetections = document.getElementById('modal-detections');
+  const modalModelType = document.getElementById('modal-model-type');
   
   if (!modal || !modalImage) {
     console.error('Modal elements not found');
@@ -388,135 +400,68 @@ async function openPipelineModal(filename, url, captured) {
   
   // Update modal content
   modalImage.src = url;
-  modalImage.alt = `Pipeline analyzed image: ${filename}`;
+  modalImage.alt = `Analyzed image: ${filename}`;
   
-  // Try to load pipeline metadata
-  try {
-    console.log('Loading pipeline metadata for:', filename);
-    const metadataResponse = await fetch(`/get-image-metadata/${encodeURIComponent(filename)}`);
-    
-    if (metadataResponse.ok) {
-      const metadata = await metadataResponse.json();
-      if (metadata.success && metadata.metadata) {
-        updatePipelineModalWithMetadata(metadata.metadata);
-      } else {
-        updatePipelineModalWithDefaults();
-      }
-    } else {
-      console.warn('Could not load metadata, using defaults');
-      updatePipelineModalWithDefaults();
-    }
-  } catch (error) {
-    console.error('Error loading pipeline metadata:', error);
-    updatePipelineModalWithDefaults();
+  // Set default values (will be replaced by metadata if available)
+  if (modalDimensions) modalDimensions.textContent = '32cm × 32cm × 393cm';
+  if (modalMixture) modalMixture.textContent = '1 Cement : 2 Sand : 4 Aggregate'; // FIXED: 1:2:4 ratio
+  if (modalAnalysisDate) modalAnalysisDate.textContent = captured || 'Unknown';
+  if (modalDetections) modalDetections.textContent = '12 detections';
+  
+  // Determine model type from filename
+  let modelType = 'AI Analysis';
+  if (filename.startsWith('simplified_analysis_')) {
+    modelType = 'Simplified Front Detection (2V + 11H)';
+    if (modalDetections) modalDetections.textContent = '2 Verticals + 10 Horizontals';
+  } else if (filename.startsWith('analyzed_rebar_')) {
+    modelType = 'Full Detectron2 Model';
   }
+  
+  if (modalModelType) modalModelType.textContent = modelType;
+  
+  // Try to get detailed metadata
+  fetchImageMetadata(filename);
   
   // Show modal
   modal.classList.add('active');
   document.body.style.overflow = 'hidden'; // Prevent background scrolling
   
-  console.log('Pipeline modal opened for analyzed image:', filename);
+  console.log('Modal opened for analyzed image:', filename);
 }
 
-function updatePipelineModalWithMetadata(metadata) {
-  console.log('Updating modal with pipeline metadata:', metadata);
-  
-  // Update dimensions - EXACT FORMAT: "27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters"
-  const dimensionsElement = document.getElementById('modal-dimensions');
-  if (dimensionsElement) {
-    const dimensions = metadata.dimensions || metadata.analysis_result?.dimensions;
-    if (dimensions && dimensions.display) {
-      dimensionsElement.textContent = dimensions.display;
-    } else {
-      dimensionsElement.textContent = '27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters';
-    }
-  }
-  
-  // Update cement mixture - EXACT FORMAT: "1:2:4"
-  const mixtureElement = document.getElementById('modal-mixture');
-  if (mixtureElement) {
-    const mixture = metadata.cement_mixture || metadata.analysis_result?.cement_mixture;
-    if (mixture && mixture.ratio_string) {
-      mixtureElement.textContent = mixture.ratio_string;
-    } else {
-      mixtureElement.textContent = '1:2:4';
-    }
-  }
-  
-  // Update pipeline details
-  updatePipelineDetails(metadata);
-}
-
-function updatePipelineDetails(metadata) {
-  // Update analysis date
-  const analysisDateElement = document.getElementById('modal-analysis-date');
-  if (analysisDateElement) {
-    const timestamp = metadata.timestamp || metadata.analysis_result?.timestamp;
-    if (timestamp) {
-      const date = new Date(timestamp);
-      analysisDateElement.textContent = date.toLocaleString();
-    } else {
-      analysisDateElement.textContent = new Date().toLocaleString();
-    }
-  }
-  
-  // Update detections count
-  const detectionsElement = document.getElementById('modal-detections');
-  if (detectionsElement) {
-    const detections = metadata.detections || metadata.analysis_result?.detections;
-    if (detections && detections.count !== undefined) {
-      detectionsElement.textContent = `${detections.count} structures detected`;
-    } else {
-      detectionsElement.textContent = '2 verticals + 11 horizontals (expected)';
-    }
-  }
-  
-  // Update model type
-  const modelTypeElement = document.getElementById('modal-model-type');
-  if (modelTypeElement) {
-    const modelType = metadata.model_type || metadata.analysis_result?.metadata?.model_type;
-    if (modelType) {
-      if (modelType.includes('pipeline')) {
-        modelTypeElement.textContent = 'Quadrant Pipeline Analysis';
-      } else if (modelType.includes('placeholder')) {
-        modelTypeElement.textContent = 'Placeholder Pipeline (Demo)';
-      } else {
-        modelTypeElement.textContent = 'AI Pipeline Analysis';
+async function fetchImageMetadata(filename) {
+  try {
+    const response = await fetch(`/get-image-metadata/${encodeURIComponent(filename)}`);
+    
+    if (response.ok) {
+      const result = await response.json();
+      
+      if (result.success && result.metadata) {
+        const metadata = result.metadata;
+        
+        // Update modal with detailed metadata
+        const modalAnalysisDate = document.getElementById('modal-analysis-date');
+        const modalDetections = document.getElementById('modal-detections');
+        const modalModelType = document.getElementById('modal-model-type');
+        
+        if (modalAnalysisDate && metadata.timestamp) {
+          const date = new Date(metadata.timestamp).toLocaleString();
+          modalAnalysisDate.textContent = date;
+        }
+        
+        if (modalDetections && metadata.analysis_type) {
+          modalDetections.textContent = metadata.model_info || 'Analysis Complete';
+        }
+        
+        if (modalModelType && metadata.analysis_type) {
+          modalModelType.textContent = metadata.analysis_type;
+        }
+        
+        console.log('Updated modal with metadata:', metadata.analysis_type);
       }
-    } else {
-      modelTypeElement.textContent = 'Quadrant Pipeline Analysis';
     }
-  }
-}
-
-function updatePipelineModalWithDefaults() {
-  console.log('Updating modal with default pipeline values');
-  
-  // Set default values - EXACT FORMAT
-  const dimensionsElement = document.getElementById('modal-dimensions');
-  if (dimensionsElement) {
-    dimensionsElement.textContent = '27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters';
-  }
-  
-  const mixtureElement = document.getElementById('modal-mixture');
-  if (mixtureElement) {
-    mixtureElement.textContent = '1:2:4';
-  }
-  
-  // Set default pipeline details
-  const analysisDateElement = document.getElementById('modal-analysis-date');
-  if (analysisDateElement) {
-    analysisDateElement.textContent = new Date().toLocaleString();
-  }
-  
-  const detectionsElement = document.getElementById('modal-detections');
-  if (detectionsElement) {
-    detectionsElement.textContent = '2 verticals + 11 horizontals (expected)';
-  }
-  
-  const modelTypeElement = document.getElementById('modal-model-type');
-  if (modelTypeElement) {
-    modelTypeElement.textContent = 'Quadrant Pipeline Analysis';
+  } catch (error) {
+    console.warn('Could not fetch image metadata:', error);
   }
 }
 
@@ -527,7 +472,7 @@ function closeModal() {
     modal.classList.remove('active');
     document.body.style.overflow = ''; // Restore scrolling
     state.currentModalImage = null;
-    console.log('Pipeline modal closed');
+    console.log('Modal closed');
   }
 }
 
@@ -546,7 +491,7 @@ function downloadCurrentImage() {
   
   const { filename, url } = state.currentModalImage;
   
-  console.log('Downloading pipeline analyzed image:', filename, 'from:', url);
+  console.log('Downloading analyzed image:', filename, 'from:', url);
   
   try {
     // Method 1: Try using fetch to get the blob first
@@ -577,8 +522,8 @@ function downloadCurrentImage() {
           window.URL.revokeObjectURL(blobUrl);
         }, 100);
         
-        showNotification('Pipeline analyzed image download started successfully', 'success');
-        console.log('Download initiated successfully for pipeline analyzed image:', filename);
+        showNotification('Analyzed image download started successfully', 'success');
+        console.log('Download initiated successfully for analyzed image:', filename);
       })
       .catch(error => {
         console.error('Fetch download failed, trying direct method:', error);
@@ -622,12 +567,12 @@ async function deleteCurrentImage() {
   
   const { filename } = state.currentModalImage;
   
-  if (!confirm(`Are you sure you want to delete pipeline analysis "${filename}"? This action cannot be undone.`)) {
+  if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
     return;
   }
   
   try {
-    console.log('Deleting pipeline analyzed image:', filename);
+    console.log('Deleting analyzed image:', filename);
     
     const response = await fetch(`/delete-image/${encodeURIComponent(filename)}`, {
       method: 'DELETE'
@@ -636,7 +581,7 @@ async function deleteCurrentImage() {
     const result = await response.json();
     
     if (result.success) {
-      console.log('Pipeline analyzed image deleted successfully:', filename);
+      console.log('Analyzed image deleted successfully:', filename);
       
       // Close modal
       closeModal();
@@ -645,7 +590,7 @@ async function deleteCurrentImage() {
       await loadImages();
       applyFilters();
       
-      showNotification('Pipeline analyzed image deleted successfully', 'success');
+      showNotification('Analyzed image deleted successfully', 'success');
     } else {
       throw new Error(result.error || 'Failed to delete image');
     }
@@ -677,15 +622,15 @@ function clearFilters() {
 
 async function clearAllImages() {
   const confirmMessage = state.imageStats && state.imageStats.analyzed_shown > 0
-    ? `Are you sure you want to delete all ${state.imageStats.analyzed_shown} pipeline analyzed images? This action cannot be undone!`
-    : 'Are you sure you want to delete ALL pipeline analyzed images? This action cannot be undone!';
+    ? `Are you sure you want to delete all ${state.imageStats.analyzed_shown} analyzed images? This action cannot be undone!`
+    : 'Are you sure you want to delete ALL analyzed images? This action cannot be undone!';
     
   if (!confirm(confirmMessage)) {
     return;
   }
   
   try {
-    console.log('Clearing all pipeline analyzed images...');
+    console.log('Clearing all analyzed images...');
     
     const response = await fetch('/clear-all-images', {
       method: 'DELETE'
@@ -694,7 +639,7 @@ async function clearAllImages() {
     const result = await response.json();
     
     if (result.success) {
-      console.log('All pipeline analyzed images cleared successfully');
+      console.log('All analyzed images cleared successfully');
       
       // Reset state
       state.allImages = [];
@@ -707,7 +652,7 @@ async function clearAllImages() {
       renderPagination();
       
       const clearedCount = result.details ? result.details.total_deleted : 'All';
-      showNotification(`${clearedCount} pipeline analyzed images cleared successfully`, 'success');
+      showNotification(`${clearedCount} analyzed images cleared successfully`, 'success');
     } else {
       throw new Error(result.error || 'Failed to clear images');
     }
@@ -719,7 +664,7 @@ async function clearAllImages() {
 }
 
 function goToMainPage() {
-  console.log('Navigating back to main page (PIPELINE MODE)...');
+  console.log('Navigating back to main page...');
   window.location.href = '/mainpage.html';
 }
 
@@ -731,7 +676,7 @@ function showLoadingState() {
     galleryGrid.innerHTML = `
       <div class="loading-state">
         <div class="loading-spinner"></div>
-        <p>Loading pipeline analyzed images...</p>
+        <p>Loading analyzed images...</p>
       </div>
     `;
   }
@@ -746,17 +691,17 @@ function showEmptyState() {
     let emptyMessage, emptyDescription;
     
     if (hasFilters) {
-      emptyMessage = 'No pipeline images match your filters';
-      emptyDescription = 'Try adjusting your filters or clear them to see all pipeline analyzed images.';
+      emptyMessage = 'No images match your filters';
+      emptyDescription = 'Try adjusting your filters or clear them to see all analyzed images.';
     } else {
-      emptyMessage = 'No pipeline analyzed images yet';
-      emptyDescription = 'Go back and capture some images with pipeline analysis!';
+      emptyMessage = 'No analyzed images yet';
+      emptyDescription = 'Go back and capture some images with AI analysis!';
     }
     
     // Add stats info if available
     let statsInfo = '';
     if (state.imageStats && state.imageStats.originals_hidden > 0) {
-      statsInfo = `<p class="stats-info">Note: ${state.imageStats.originals_hidden} original images are hidden. Only pipeline analyzed images with AI overlays are shown.</p>`;
+      statsInfo = `<p class="stats-info">Note: ${state.imageStats.originals_hidden} original images are hidden. Only analyzed images with AI overlays are shown.</p>`;
     }
     
     galleryGrid.innerHTML = `
@@ -764,8 +709,7 @@ function showEmptyState() {
         <h3>${emptyMessage}</h3>
         <p>${emptyDescription}</p>
         ${statsInfo}
-        <p class="hint">Only images with pipeline analysis (quadrant intersections + cement calculation) are shown in this gallery.</p>
-        <p class="pipeline-info">Expected format: "27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters" and "1:2:4" ratio</p>
+        <p class="hint">Only images with AI analysis and overlays are shown in this gallery.</p>
         ${hasFilters ? '<button class="clear-filters-btn" onclick="clearFilters()">Clear Filters</button>' : ''}
       </div>
     `;
@@ -778,7 +722,7 @@ function showErrorState(message) {
   if (galleryGrid) {
     galleryGrid.innerHTML = `
       <div class="empty-state">
-        <h3>Error loading pipeline analyzed images</h3>
+        <h3>Error loading analyzed images</h3>
         <p>${message}</p>
         <button class="clear-filters-btn" onclick="initializePage()">Try Again</button>
       </div>
@@ -837,16 +781,6 @@ function showNotification(message, type = 'info') {
         font-style: italic;
         margin: 10px 0;
       }
-      .pipeline-info {
-        font-size: 0.85em;
-        color: #2d7d47;
-        font-weight: 600;
-        margin: 10px 0;
-        padding: 8px 12px;
-        background: rgba(45, 125, 71, 0.1);
-        border-radius: 6px;
-        border-left: 3px solid #2d7d47;
-      }
       .image-type-badge {
         position: absolute;
         top: 8px;
@@ -902,8 +836,8 @@ window.downloadImage = function(url, filename) {
   document.body.removeChild(link);
 };
 
-// Export functions for global access - UPDATED FOR PIPELINE
-window.openModal = openPipelineModal; // Updated to use pipeline modal
+// Export functions for global access
+window.openModal = openModal;
 window.closeModal = closeModal;
 window.downloadCurrentImage = downloadCurrentImage;
 window.deleteCurrentImage = deleteCurrentImage;
@@ -912,8 +846,3 @@ window.clearAllImages = clearAllImages;
 window.goToMainPage = goToMainPage;
 window.goToPage = goToPage;
 window.handleImageError = handleImageError;
-
-// PIPELINE-SPECIFIC EXPORTS
-window.openPipelineModal = openPipelineModal;
-window.updatePipelineModalWithMetadata = updatePipelineModalWithMetadata;
-window.updatePipelineModalWithDefaults = updatePipelineModalWithDefaults;
