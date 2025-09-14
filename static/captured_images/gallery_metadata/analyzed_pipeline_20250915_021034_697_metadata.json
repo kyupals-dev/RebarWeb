@@ -1,0 +1,69 @@
+{
+  "analyzed_image_path": "static/captured_images/analyzed_pipeline_20250915_021034_697.jpg",
+  "analyzed_image_filename": "analyzed_pipeline_20250915_021034_697.jpg",
+  "save_timestamp": "2025-09-15T02:10:34.742675",
+  "analysis_metadata": {
+    "timestamp": "2025-09-14T18:10:34.555Z",
+    "analysis_type": "pipeline_quadrant",
+    "dimensions": {
+      "display": "27.38cm x 27.38cm x 60cm = 44,900 cubic centimeters",
+      "height": 59.89,
+      "length": 27.38,
+      "method": "pipeline_quadrant_calculation",
+      "unit": "cm",
+      "volume": 44900,
+      "width": 27.38
+    },
+    "cement_mixture": {
+      "aggregate_ratio": 4,
+      "aggregate_volume_m3": 0.04,
+      "calculation_method": "pipeline_1_2_4_mix",
+      "cement_bags": 0.36,
+      "cement_ratio": 1,
+      "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+      "sand_ratio": 2,
+      "sand_volume_m3": 0.02,
+      "water_liters": 7.5
+    },
+    "detections": 11,
+    "model_type": "pipeline_quadrant_analysis",
+    "quadrant_info": {
+      "intersections_found": 18,
+      "quadrant_counts": {
+        "bottom_left": 4,
+        "bottom_right": 4,
+        "top_left": 5,
+        "top_right": 5
+      }
+    }
+  },
+  "step_images": {
+    "cement": "static/captured_images/step4_cement_20250915_021034_207.jpg",
+    "detection": "static/captured_images/step1_detection_20250915_021034_207.jpg",
+    "polygon": "static/captured_images/step3_polygon_20250915_021034_207.jpg",
+    "quadrants": "static/captured_images/step2_quadrants_20250915_021034_207.jpg"
+  },
+  "pipeline_type": "quadrant_intersection",
+  "dimensions": {
+    "display": "27.38cm x 27.38cm x 60cm = 44,900 cubic centimeters",
+    "height": 59.89,
+    "length": 27.38,
+    "method": "pipeline_quadrant_calculation",
+    "unit": "cm",
+    "volume": 44900,
+    "width": 27.38
+  },
+  "cement_mixture": {
+    "aggregate_ratio": 4,
+    "aggregate_volume_m3": 0.04,
+    "calculation_method": "pipeline_1_2_4_mix",
+    "cement_bags": 0.36,
+    "cement_ratio": 1,
+    "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+    "sand_ratio": 2,
+    "sand_volume_m3": 0.02,
+    "water_liters": 7.5
+  },
+  "detection_count": 11,
+  "model_type": "pipeline_quadrant_analysis"
+}
