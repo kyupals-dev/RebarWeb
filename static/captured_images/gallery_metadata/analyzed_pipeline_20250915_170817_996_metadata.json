@@ -1,0 +1,67 @@
+{
+  "analyzed_image_path": "static/captured_images/analyzed_pipeline_20250915_170817_996.jpg",
+  "analyzed_image_filename": "analyzed_pipeline_20250915_170817_996.jpg",
+  "save_timestamp": "2025-09-15T18:57:59.655483",
+  "analysis_metadata": {
+    "timestamp": "2025-09-15T10:57:57.907Z",
+    "analysis_type": "pipeline_quadrant",
+    "dimensions": {
+      "display": "27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters",
+      "height": 200,
+      "length": 27.36,
+      "method": "pipeline_quadrant_calculation",
+      "unit": "cm",
+      "volume": 149874,
+      "width": 27.36
+    },
+    "cement_mixture": {
+      "aggregate_ratio": 4,
+      "aggregate_volume_m3": 0.074,
+      "cement_bags": 0.67,
+      "cement_ratio": 1,
+      "ratio_string": "1:2:4",
+      "sand_ratio": 2,
+      "sand_volume_m3": 0.037,
+      "water_liters": 14.1
+    },
+    "detections": 13,
+    "model_type": "pipeline_quadrant_analysis",
+    "quadrant_info": {
+      "intersections_found": 22,
+      "quadrant_counts": {
+        "bottom_left": 5,
+        "bottom_right": 5,
+        "top_left": 6,
+        "top_right": 6
+      }
+    }
+  },
+  "step_images": {
+    "step1_detection": "static/captured_images/step1_detection_20250915_170817_924.jpg",
+    "step2_intersections": "static/captured_images/step2_intersections_20250915_170817_924.jpg",
+    "step3_polygon": "static/captured_images/step3_polygon_20250915_170817_924.jpg",
+    "step4_cement": "static/captured_images/step4_cement_20250915_170817_924.jpg"
+  },
+  "pipeline_type": "quadrant_intersection",
+  "dimensions": {
+    "display": "27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters",
+    "height": 200,
+    "length": 27.36,
+    "method": "pipeline_quadrant_calculation",
+    "unit": "cm",
+    "volume": 149874,
+    "width": 27.36
+  },
+  "cement_mixture": {
+    "aggregate_ratio": 4,
+    "aggregate_volume_m3": 0.074,
+    "cement_bags": 0.67,
+    "cement_ratio": 1,
+    "ratio_string": "1:2:4",
+    "sand_ratio": 2,
+    "sand_volume_m3": 0.037,
+    "water_liters": 14.1
+  },
+  "detection_count": 13,
+  "model_type": "pipeline_quadrant_analysis"
+}
