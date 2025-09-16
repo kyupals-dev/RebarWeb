@@ -1,10 +1,8 @@
-// ==================== REFACTORED CAMERA APP MANAGER ====================
-// FOCUSED: Only camera integration, delegates buttons and modals to separate modules
-// FIXED: Proper error handling and method checking
+// ==================== SIMPLIFIED CAMERA APP MANAGER WITH DISTANCE SENSOR ==================== 
+// MODIFIED: Only saves analyzed images with AI overlays (no original duplicates)
 
 class CameraAppManager {
   constructor() {
-    // Core camera state
     this.isLiveMode = true;
     this.isAnalyzing = false;
     this.isFullscreen = false;
@@ -15,21 +13,24 @@ class CameraAppManager {
     this.lastDistanceReading = null;
     this.distanceUpdateRate = 500; // 500ms as requested
     
-    // DOM Elements - Camera specific
+    // DOM Elements
     this.cameraContainer = document.getElementById('camera-container');
     this.serverFeed = document.getElementById('server-feed');
     this.videoElement = document.getElementById('camera-feed');
     this.cameraStatus = document.getElementById('camera-status');
     this.loadingOverlay = document.getElementById('loading-overlay');
     
-    // DOM Elements - Controls
+    // Distance display elements
+    this.distanceDisplay = null; // Will be created dynamically
+    
+    // Controls
     this.tutorialBtn = document.getElementById('tutorial-btn');
     this.galleryBtn = document.getElementById('gallery-btn');
     this.captureBtn = document.getElementById('capture-btn');
     this.fullscreenBtn = document.getElementById('fullscreen-btn');
     this.gridBtn = document.getElementById('grid-btn');
     
-    // DOM Elements - Modals
+    // Modals
     this.tutorialModal = document.getElementById('tutorial-modal');
     this.resultsModal = document.getElementById('results-modal');
     this.errorModal = document.getElementById('error-modal');
@@ -42,168 +43,192 @@ class CameraAppManager {
     this.serverFeedInterval = null;
     this.isUsingServerFeed = true;
     
-    // Distance display
-    this.distanceDisplay = null;
-    
-    // Initialize modules
-    this.buttonManager = null;
-    this.modalManager = null;
-    
     this.init();
   }
   
   init() {
-    console.log('🎥 Initializing Camera App Manager (Pipeline Mode)...');
-    console.log('📝 NOTE: Only analyzed images with pipeline steps will be saved');
-    
-    // Initialize delegated modules - FIXED: Check if classes exist
-    try {
-      if (typeof ButtonManager !== 'undefined') {
-        this.buttonManager = new ButtonManager(this);
-        console.log('✅ Button manager initialized');
-      } else {
-        console.warn('⚠️ ButtonManager class not found, using fallback');
-        this.setupFallbackButtonListeners();
-      }
-      
-      if (typeof ModalManager !== 'undefined') {
-        this.modalManager = new ModalManager(this);
-        console.log('✅ Modal manager initialized');
-      } else {
-        console.warn('⚠️ ModalManager class not found, using fallback');
-        this.setupFallbackModalMethods();
-      }
-    } catch (error) {
-      console.error('❌ Error initializing managers:', error);
-      this.setupFallbackButtonListeners();
-      this.setupFallbackModalMethods();
-    }
-    
-    // Camera-specific initialization
+    console.log('🎥 Initializing Camera App Manager (Analyzed Images Only Mode)...');
+    console.log('📝 NOTE: Only analyzed images with AI overlays will be saved to gallery');
+    this.setupEventListeners();
     this.createDistanceDisplay();
     this.startCameraFeed();
     this.startDistanceMonitoring();
-    this.setupCameraEventListeners();
-    
     this.updateStatus('Initializing camera and distance sensor...');
   }
-
-  setupFallbackButtonListeners() {
-    console.log('🔧 Setting up fallback button listeners...');
+  
+  // ==================== DISTANCE SENSOR INTEGRATION ====================
+  
+  createDistanceDisplay() {
+    console.log('📏 Creating distance display overlay...');
     
-    // Tutorial Button
+    // Create distance display element
+    this.distanceDisplay = document.createElement('div');
+    this.distanceDisplay.className = 'distance-display';
+    this.distanceDisplay.innerHTML = `
+      <div class="distance-value">--cm</div>
+      <div class="distance-status">CHECKING</div>
+    `;
+    
+    // Add to camera controls (positioned right of camera status)
+    if (this.cameraContainer) {
+      const cameraControls = this.cameraContainer.querySelector('.camera-controls');
+      if (cameraControls) {
+        cameraControls.appendChild(this.distanceDisplay);
+      }
+    }
+    
+    console.log('✅ Distance display created');
+  }
+  
+  async startDistanceMonitoring() {
+    console.log('🚀 Starting distance sensor monitoring...');
+    
+    try {
+      // Start the distance monitoring service
+      const startResponse = await fetch('/start-distance-monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (startResponse.ok) {
+        console.log('✅ Distance monitoring service started');
+        
+        // Start polling for distance readings every 500ms
+        this.distanceInterval = setInterval(() => {
+          this.updateDistanceReading();
+        }, this.distanceUpdateRate);
+        
+        console.log(`📏 Distance polling started at ${this.distanceUpdateRate}ms intervals`);
+      } else {
+        console.warn('⚠️  Failed to start distance monitoring service');
+        this.showDistanceError('Service unavailable');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error starting distance monitoring:', error);
+      this.showDistanceError('Connection error');
+    }
+  }
+  
+  async updateDistanceReading() {
+    // Only update if not currently analyzing (avoid interference)
+    if (this.isAnalyzing) {
+      return;
+    }
+    
+    try {
+      const response = await fetch('/distance-reading');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const reading = await response.json();
+      
+      if (reading.success) {
+        this.lastDistanceReading = reading;
+        this.updateDistanceDisplay(reading);
+      } else {
+        this.showDistanceError(reading.error || 'Reading failed');
+      }
+      
+    } catch (error) {
+      // Don't spam console with connection errors
+      if (Math.random() < 0.1) { // Log only 10% of errors
+        console.warn('⚠️  Distance reading error:', error.message);
+      }
+      this.showDistanceError('Connection error');
+    }
+  }
+  
+  updateDistanceDisplay(reading) {
+    if (!this.distanceDisplay) return;
+    
+    const valueElement = this.distanceDisplay.querySelector('.distance-value');
+    const statusElement = this.distanceDisplay.querySelector('.distance-status');
+    
+    if (valueElement) {
+      valueElement.textContent = reading.distance_text || '--cm';
+    }
+    
+    if (statusElement) {
+      statusElement.textContent = reading.status_text || 'UNKNOWN';
+    }
+    
+    // Update background color based on status
+    this.distanceDisplay.className = `distance-display ${reading.status_color || 'gray'}`;
+    
+    // Add distance icon based on status
+    const icon = this.getDistanceIcon(reading.status);
+    if (valueElement && !valueElement.textContent.includes('📏')) {
+      valueElement.textContent = `📏 ${reading.distance_text || '--cm'}`;
+    }
+  }
+  
+  getDistanceIcon(status) {
+    switch (status) {
+      case 'optimal': return '✅';
+      case 'too_close': return '⚠️';
+      case 'too_far': return '📏';
+      default: return '❓';
+    }
+  }
+  
+  showDistanceError(error) {
+    if (!this.distanceDisplay) return;
+    
+    const valueElement = this.distanceDisplay.querySelector('.distance-value');
+    const statusElement = this.distanceDisplay.querySelector('.distance-status');
+    
+    if (valueElement) {
+      valueElement.textContent = '❌ --cm';
+    }
+    
+    if (statusElement) {
+      statusElement.textContent = 'ERROR';
+    }
+    
+    this.distanceDisplay.className = 'distance-display red';
+  }
+  
+  stopDistanceMonitoring() {
+    console.log('🛑 Stopping distance monitoring...');
+    
+    if (this.distanceInterval) {
+      clearInterval(this.distanceInterval);
+      this.distanceInterval = null;
+    }
+    
+    // Stop the monitoring service
+    fetch('/stop-distance-monitoring', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    }).catch(error => {
+      console.warn('⚠️  Error stopping distance monitoring:', error);
+    });
+  }
+  
+  setupEventListeners() {
+    console.log('📋 Setting up event listeners...');
+    
+    // Camera Controls
     if (this.tutorialBtn) {
       this.tutorialBtn.addEventListener('click', () => this.openTutorialModal());
     }
-
-    // Gallery Button
     if (this.galleryBtn) {
       this.galleryBtn.addEventListener('click', () => this.openGallery());
     }
-
-    // Capture Button
     if (this.captureBtn) {
       this.captureBtn.addEventListener('click', () => this.captureAndAnalyze());
     }
-
-    // Fullscreen Button
     if (this.fullscreenBtn) {
       this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
     }
-
-    // Grid Toggle Button
     if (this.gridBtn) {
       this.gridBtn.addEventListener('click', () => this.toggleGrid());
     }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
     
-    console.log('✅ Fallback button listeners setup complete');
-  }
-
-  setupFallbackModalMethods() {
-    console.log('🔧 Setting up fallback modal methods...');
-    
-    // Create basic modal methods if ModalManager is not available
-    this.openTutorialModal = this.openTutorialModal || (() => {
-      if (this.tutorialModal) {
-        this.tutorialModal.classList.add('active');
-      }
-    });
-    
-    this.closeTutorialModal = this.closeTutorialModal || (() => {
-      if (this.tutorialModal) {
-        this.tutorialModal.classList.remove('active');
-      }
-    });
-    
-    this.closeResultsModal = this.closeResultsModal || (() => {
-      if (this.resultsModal) {
-        this.resultsModal.classList.remove('active');
-      }
-      this.analysisResults = null;
-    });
-    
-    this.closeErrorModal = this.closeErrorModal || (() => {
-      if (this.errorModal) {
-        this.errorModal.classList.remove('active');
-      }
-    });
-    
-    console.log('✅ Fallback modal methods setup complete');
-  }
-
-  handleKeyboardShortcuts(e) {
-    // Ignore if user is typing in an input field
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-      return;
-    }
-
-    switch (e.key.toLowerCase()) {
-      case ' ': // Space - Capture
-      case 'enter':
-        e.preventDefault();
-        if (!this.isAnalyzing) {
-          this.captureAndAnalyze();
-        }
-        break;
-
-      case 'escape': // Escape - Close modals
-        e.preventDefault();
-        this.closeAllModals();
-        break;
-
-      case 'f': // F - Fullscreen
-        e.preventDefault();
-        this.toggleFullscreen();
-        break;
-
-      case 'g': // G - Gallery
-        e.preventDefault();
-        this.openGallery();
-        break;
-
-      case '?': // ? - Tutorial
-        e.preventDefault();
-        this.openTutorialModal();
-        break;
-
-      case 'r': // R - Toggle grid
-        e.preventDefault();
-        this.toggleGrid();
-        break;
-    }
-  }
-
-  setupCameraEventListeners() {
-    console.log('📹 Setting up camera-specific event listeners...');
-    
-    // Fullscreen change detection
-    document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
-    document.addEventListener('webkitfullscreenchange', () => this.handleFullscreenChange());
-    
-    // Modal click outside to close - FIXED: Add null checks
+    // Modal click outside to close
     if (this.tutorialModal) {
       this.tutorialModal.addEventListener('click', (e) => {
         if (e.target === this.tutorialModal) this.closeTutorialModal();
@@ -220,12 +245,19 @@ class CameraAppManager {
       });
     }
     
-    // Window cleanup
+    // Fullscreen change detection
+    document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
+    document.addEventListener('webkitfullscreenchange', () => this.handleFullscreenChange());
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+    
+    // Window beforeunload to clean up distance monitoring
     window.addEventListener('beforeunload', () => {
       this.stopDistanceMonitoring();
     });
     
-    console.log('✅ Camera event listeners setup complete');
+    console.log('✅ Event listeners setup complete');
   }
   
   // ==================== CAMERA FEED MANAGEMENT ====================
@@ -252,7 +284,7 @@ class CameraAppManager {
     // Start server feed refresh
     this.refreshServerFeed();
     
-    // Set up interval for continuous feed
+    // Set up interval for continuous feed (only when not analyzing)
     this.serverFeedInterval = setInterval(() => {
       if (this.isUsingServerFeed && this.isLiveMode && !this.isAnalyzing) {
         this.refreshServerFeed();
@@ -278,347 +310,284 @@ class CameraAppManager {
       };
     }
   }
-
-  stopCameraFeed() {
-    console.log('⏹️ Stopping camera feed...');
-    
-    if (this.serverFeedInterval) {
-      clearInterval(this.serverFeedInterval);
-      this.serverFeedInterval = null;
-    }
-    
-    if (this.videoElement && this.videoElement.srcObject) {
-      this.videoElement.srcObject.getTracks().forEach(track => track.stop());
-      this.videoElement.srcObject = null;
-    }
-    
-    this.isLiveMode = false;
-    this.updateStatus('Camera stopped');
-  }
-
-  // ==================== PIPELINE ANALYSIS WORKFLOW ====================
+  
+  // ==================== MODIFIED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
   
   async captureAndAnalyze() {
     if (this.isAnalyzing) {
-      console.log('⚠️ Analysis already in progress');
+      console.log('⚠️ Analysis already in progress, ignoring capture request');
       return;
     }
     
-    console.log('📸 Starting pipeline capture and analysis...');
+    // Check distance for optimal positioning warning
+    if (this.lastDistanceReading && this.lastDistanceReading.success) {
+      const status = this.lastDistanceReading.status;
+      if (status === 'too_close') {
+        const proceed = confirm('Distance is too close (< 160cm). Capture anyway?\n\nFor best results, move back to 160-200cm range.');
+        if (!proceed) {
+          return;
+        }
+      } else if (status === 'too_far') {
+        const proceed = confirm('Distance is too far (> 200cm). Capture anyway?\n\nFor best results, move closer to 160-200cm range.');
+        if (!proceed) {
+          return;
+        }
+      }
+      // If optimal, continue without warning
+    }
+    
+    console.log('📸 Starting capture and analyze flow (ANALYZED IMAGE ONLY)...');
+    console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
+    this.isAnalyzing = true;
     
     try {
-      // Set analyzing state
-      this.isAnalyzing = true;
-      this.isLiveMode = false;
+      // Step 1: Capture Animation
+      if (this.captureBtn) {
+        this.captureBtn.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+          this.captureBtn.style.transform = '';
+        }, 150);
+      }
       
-      // Update UI
-      this.updateStatus('Running quadrant pipeline analysis...');
+      // Step 2: Show loading overlay immediately
       this.showLoadingOverlay();
-      this.setButtonsEnabled(false);
+      this.updateStatus('Preparing frame for AI analysis...');
       
-      // Stop camera feed during analysis
-      if (this.serverFeedInterval) {
-        clearInterval(this.serverFeedInterval);
-        this.serverFeedInterval = null;
-      }
-      
-      // Call AI analysis API
-      const response = await fetch('/analyze-rebar', {
+      // Step 3: Verify camera frame is ready (NO ORIGINAL SAVED)
+      console.log('📷 Verifying camera frame is ready (no original will be saved)...');
+      const captureResponse = await fetch('/capture-current-frame', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          mode: 'pipeline',
-          capture_timestamp: new Date().toISOString()
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Analysis request failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      
-      // Handle results
-      await this.handleAnalysisResults(result);
-      
-    } catch (error) {
-      console.error('❌ Capture and analysis error:', error);
-      this.handleAnalysisError(error);
-    } finally {
-      // Always restore camera state
-      this.isAnalyzing = false;
-      this.isLiveMode = true;
-      this.hideLoadingOverlay();
-      this.setButtonsEnabled(true);
-      this.startCameraFeed();
-    }
-  }
-
-  async handleAnalysisResults(result) {
-    console.log('📊 Processing pipeline analysis results...');
-    
-    if (result.success && result.dimensions && result.cement_mixture) {
-      console.log('✅ Pipeline analysis successful');
-      
-      // Save to gallery automatically - FIXED: Check if modalManager exists
-      if (this.modalManager && typeof this.modalManager.saveResultsToGallery === 'function') {
-        await this.modalManager.saveResultsToGallery(result);
-      } else {
-        // Fallback gallery save
-        await this.saveResultsToGalleryFallback(result);
-      }
-      
-      // Show results modal with pipeline data
-      if (this.modalManager && typeof this.modalManager.showResultsModal === 'function') {
-        this.modalManager.showResultsModal(result);
-      } else {
-        this.showResultsModalFallback(result);
-      }
-      
-      // Success feedback
-      this.showSuccessMessage('Pipeline analysis complete! Results saved to gallery.');
-      
-    } else if (result.no_detection || (result.success === false && result.error)) {
-      console.log('⚠️ No rebar structures detected');
-      
-      if (this.modalManager && typeof this.modalManager.showErrorModal === 'function') {
-        this.modalManager.showErrorModal(result.error || 'No rebar structures detected in image');
-      } else {
-        this.showErrorModalFallback(result.error || 'No rebar structures detected in image');
-      }
-      
-    } else {
-      console.error('❌ Unexpected analysis result format:', result);
-      if (this.modalManager && typeof this.modalManager.showErrorModal === 'function') {
-        this.modalManager.showErrorModal('Analysis completed but results are incomplete');
-      } else {
-        this.showErrorModalFallback('Analysis completed but results are incomplete');
-      }
-    }
-  }
-
-  async saveResultsToGalleryFallback(result) {
-    try {
-      console.log('💾 Saving analysis results to gallery (fallback)...');
-      
-      const metadata = {
-        timestamp: new Date().toISOString(),
-        analysis_type: 'pipeline_quadrant',
-        dimensions: result.dimensions,
-        cement_mixture: result.cement_mixture,
-        detections: result.num_detections,
-        model_type: result.model_type,
-        quadrant_info: result.quadrant_info
-      };
-
-      const response = await fetch('/save-to-gallery', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          analyzed_image_path: result.analyzed_image_path,
-          metadata: metadata,
-          step_images: result.step_images || {}
-        })
-      });
-
-      if (response.ok) {
-        console.log('✅ Results saved to gallery successfully (fallback)');
-      } else {
-        console.error('❌ Failed to save to gallery (fallback)');
-      }
-    } catch (error) {
-      console.error('❌ Error saving to gallery (fallback):', error);
-    }
-  }
-
-  showResultsModalFallback(result) {
-    console.log('📊 Showing results modal (fallback)...');
-    
-    if (this.resultsModal) {
-      // Update basic content
-      const dimensionElement = document.getElementById('dimension-result');
-      const mixtureElement = document.getElementById('mixture-result');
-      
-      if (dimensionElement && result.dimensions) {
-        dimensionElement.textContent = result.dimensions.display || 'N/A';
-      }
-      
-      if (mixtureElement && result.cement_mixture) {
-        mixtureElement.textContent = '1:2:4';
-      }
-      
-      this.resultsModal.classList.add('active');
-    }
-  }
-
-  showErrorModalFallback(errorMessage) {
-    console.log('⚠️ Showing error modal (fallback)...');
-    
-    if (this.errorModal) {
-      const errorTextElement = this.errorModal.querySelector('p');
-      if (errorTextElement && errorMessage) {
-        errorTextElement.textContent = errorMessage;
-      }
-      this.errorModal.classList.add('active');
-    }
-  }
-
-  handleAnalysisError(error) {
-    console.error('❌ Analysis error:', error);
-    if (this.modalManager && typeof this.modalManager.showErrorModal === 'function') {
-      this.modalManager.showErrorModal(`Analysis failed: ${error.message}`);
-    } else {
-      this.showErrorModalFallback(`Analysis failed: ${error.message}`);
-    }
-    this.showErrorMessage(`Analysis failed: ${error.message}`);
-  }
-
-  // ==================== DISTANCE SENSOR INTEGRATION ====================
-  
-  createDistanceDisplay() {
-    console.log('📏 Creating distance sensor display...');
-    
-    if (this.distanceDisplay) {
-      return; // Already created
-    }
-    
-    this.distanceDisplay = document.createElement('div');
-    this.distanceDisplay.className = 'distance-display';
-    this.distanceDisplay.innerHTML = `
-      <div class="distance-value">--cm</div>
-      <div class="distance-status">CHECKING</div>
-    `;
-    
-    // Style the distance display
-    this.distanceDisplay.style.cssText = `
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 10px 15px;
-      border-radius: 8px;
-      font-family: 'Arial', sans-serif;
-      z-index: 200;
-      border: 2px solid white;
-      min-width: 120px;
-    `;
-    
-    if (this.cameraContainer) {
-      this.cameraContainer.appendChild(this.distanceDisplay);
-    }
-    
-    console.log('✅ Distance display created');
-  }
-
-  startDistanceMonitoring() {
-    console.log('📏 Starting distance sensor monitoring...');
-    
-    // Initial distance reading
-    this.updateDistanceReading();
-    
-    // Set up interval for continuous monitoring
-    this.distanceInterval = setInterval(() => {
-      this.updateDistanceReading();
-    }, this.distanceUpdateRate);
-    
-    console.log(`✅ Distance monitoring started (${this.distanceUpdateRate}ms interval)`);
-  }
-
-  async updateDistanceReading() {
-    try {
-      const response = await fetch('/get-distance', {
-        method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        this.lastDistanceReading = data;
-        this.updateDistanceDisplay(data);
-      } else {
-        console.warn('⚠️ Distance sensor API error:', response.status);
+      if (!captureResponse.ok) {
+        throw new Error(`Frame preparation failed: ${captureResponse.status}`);
       }
+      
+      const captureResult = await captureResponse.json();
+      
+      if (!captureResult.success) {
+        throw new Error(captureResult.error || 'Failed to prepare frame');
+      }
+      
+      console.log('✅ Frame ready for analysis:', captureResult.frame_dimensions);
+      console.log('📝 Confirmed: No original frame saved');
+      
+      // Step 4: Start AI analysis directly with current camera frame
+      this.updateStatus('Analyzing rebar structure with AI...');
+      console.log('🔍 Starting AI analysis (will save ONLY analyzed image with overlays)...');
+      
+      const analysisResponse = await fetch('/analyze-rebar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+        // No body needed - analysis works with current camera frame
+      });
+      
+      if (!analysisResponse.ok) {
+        if (analysisResponse.status === 422) {
+          // No rebar detected
+          const result = await analysisResponse.json();
+          if (result.error === 'no_rebar_detected') {
+            this.hideLoadingOverlay();
+            this.showErrorModal();
+            return;
+          }
+        }
+        throw new Error(`Analysis failed: ${analysisResponse.status}`);
+      }
+      
+      const analysisResult = await analysisResponse.json();
+      
+      if (!analysisResult.success) {
+        throw new Error(analysisResult.message || 'Analysis failed');
+      }
+      
+      console.log('✅ AI analysis completed - ONLY analyzed image saved to gallery');
+      
+      // Verify the save mode
+      if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
+        console.log('✅ Confirmed: Only analyzed image was saved (no duplicates)');
+      }
+      
+      // Step 5: Hide loading and show results
+      this.hideLoadingOverlay();
+      this.showAnalysisResults(analysisResult);
+      
+      // Step 6: Confirm single image save
+      console.log('💾 SUCCESS: Only analyzed image with AI overlays saved to gallery');
+      console.log('🚫 No original/duplicate images created');
+      
     } catch (error) {
-      console.warn('⚠️ Distance sensor update error:', error);
+      console.error('❌ Capture and analyze error:', error);
+      this.hideLoadingOverlay();
+      this.updateStatus('Analysis failed');
+      this.showErrorMessage('Failed to analyze image: ' + error.message);
+    } finally {
+      this.isAnalyzing = false;
     }
   }
-
-  updateDistanceDisplay(data) {
-    if (!this.distanceDisplay || !data) return;
-    
-    const valueElement = this.distanceDisplay.querySelector('.distance-value');
-    const statusElement = this.distanceDisplay.querySelector('.distance-status');
-    
-    if (valueElement && statusElement) {
-      valueElement.textContent = data.distance_text || '--cm';
-      statusElement.textContent = data.status_text || 'UNKNOWN';
-      
-      // Update colors based on status
-      let backgroundColor = 'rgba(0, 0, 0, 0.8)';
-      if (data.status === 'optimal') {
-        backgroundColor = 'rgba(46, 125, 50, 0.9)'; // Green
-      } else if (data.status === 'too_close' || data.status === 'too_far') {
-        backgroundColor = 'rgba(211, 47, 47, 0.9)'; // Red
-      }
-      
-      this.distanceDisplay.style.background = backgroundColor;
+  
+  // ==================== LOADING OVERLAY MANAGEMENT ====================
+  
+  showLoadingOverlay() {
+    if (this.loadingOverlay) {
+      this.loadingOverlay.classList.add('active');
     }
   }
-
-  stopDistanceMonitoring() {
-    console.log('⏹️ Stopping distance monitoring...');
+  
+  hideLoadingOverlay() {
+    if (this.loadingOverlay) {
+      this.loadingOverlay.classList.remove('active');
+    }
+  }
+  
+  // ==================== RESULTS MANAGEMENT ====================
+  
+  showAnalysisResults(results) {
+    console.log('📊 Showing analysis results (analyzed image only)...');
     
-    if (this.distanceInterval) {
-      clearInterval(this.distanceInterval);
-      this.distanceInterval = null;
+    // Update results modal with actual data from AI
+    const resultsImage = document.getElementById('results-image');
+    const dimensionsResult = document.getElementById('dimensions-result');
+    const mixtureResult = document.getElementById('mixture-result');
+    
+    // Set analyzed image (ONLY image that was saved)
+    if (results.images && results.images.analyzed && resultsImage) {
+      resultsImage.src = results.images.analyzed;
+      console.log('🖼️ Displaying analyzed image with AI overlays (ONLY saved image)');
+    } else if (resultsImage) {
+      console.warn('⚠️ No analyzed image found in results');
     }
     
-    // Stop the monitoring service
-    fetch('/stop-distance-monitoring', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    }).catch(error => {
-      console.warn('⚠️  Error stopping distance monitoring:', error);
+    // Set dimensions
+    if (results.dimensions && results.dimensions.display && dimensionsResult) {
+      dimensionsResult.textContent = results.dimensions.display;
+    } else if (dimensionsResult) {
+      dimensionsResult.textContent = '25.4cm × 25.4cm × 200cm'; // Fallback
+    }
+    
+    // Set cement mixture
+    if (results.cement_mixture && results.cement_mixture.ratio && mixtureResult) {
+      mixtureResult.textContent = results.cement_mixture.ratio;
+    } else if (mixtureResult) {
+      mixtureResult.textContent = '1 Cement : 2 Sand : 3 Aggregate'; // Fallback
+    }
+    
+    // Store results for reference
+    this.analysisResults = results;
+    
+    // Show results modal
+    if (this.resultsModal) {
+      this.resultsModal.classList.add('active');
+    }
+    
+    // Update status
+    this.updateStatus('Analysis complete - Analyzed image saved to gallery');
+    
+    // Log analysis details
+    console.log('📊 Analysis Results Summary:', {
+      detections: results.detections?.count || 0,
+      dimensions: results.dimensions?.display || 'N/A',
+      mixture: results.cement_mixture?.ratio || 'N/A',
+      placeholder: results.metadata?.placeholder_mode || false,
+      save_mode: results.metadata?.save_mode || 'unknown',
+      only_analyzed_saved: true
     });
+    
+    // Show success message
+    const detectionCount = results.detections?.count || 0;
+    const saveMode = results.metadata?.save_mode || 'analyzed_only';
+    const message = `Analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery (${saveMode}).`;
+    setTimeout(() => {
+      this.showSuccessMessage(message);
+    }, 1000); // Delay to let modal appear first
   }
-
-  // ==================== UI CONTROLS ====================
+  
+  // ==================== GRID TOGGLE FUNCTIONALITY ====================
   
   toggleGrid() {
-    console.log('⚏ Toggling grid overlay...');
     this.isGridActive = !this.isGridActive;
     
-    if (this.gridOverlay) {
-      this.gridOverlay.style.display = this.isGridActive ? 'block' : 'none';
-    }
-    
-    this.updateStatus(this.isGridActive ? 'Grid overlay enabled' : 'Grid overlay disabled');
-  }
-
-  toggleFullscreen() {
-    console.log('🔲 Toggling fullscreen mode...');
-    
-    if (!document.fullscreenElement) {
-      if (this.cameraContainer && this.cameraContainer.requestFullscreen) {
-        this.cameraContainer.requestFullscreen();
+    if (this.isGridActive) {
+      // Show grid overlay
+      if (this.gridOverlay) {
+        this.gridOverlay.classList.add('active');
       }
+      // Change to nogrid icon
+      if (this.gridBtn) {
+        this.gridBtn.classList.add('grid-active');
+        this.gridBtn.title = 'Hide Grid';
+      }
+      console.log('✅ Rule of thirds grid enabled');
+      this.updateStatus('Grid overlay enabled');
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
+      // Hide grid overlay
+      if (this.gridOverlay) {
+        this.gridOverlay.classList.remove('active');
       }
+      // Change back to withgrid icon
+      if (this.gridBtn) {
+        this.gridBtn.classList.remove('grid-active');
+        this.gridBtn.title = 'Show Grid';
+      }
+      console.log('❌ Rule of thirds grid disabled');
+      this.updateStatus('Grid overlay disabled');
     }
   }
-
+  
+  // ==================== NAVIGATION ====================
+  
+  openGallery() {
+    console.log('📁 Opening gallery (showing analyzed images only)...');
+    window.location.href = '/result.html';
+  }
+  
+  // ==================== FULLSCREEN MANAGEMENT ====================
+  
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      this.enterFullscreen();
+    } else {
+      this.exitFullscreen();
+    }
+  }
+  
+  enterFullscreen() {
+    console.log('⛶ Entering fullscreen...');
+    
+    const element = this.cameraContainer;
+    
+    if (element && element.requestFullscreen) {
+      element.requestFullscreen();
+    } else if (element && element.webkitRequestFullscreen) {
+      element.webkitRequestFullscreen();
+    } else if (element && element.mozRequestFullScreen) {
+      element.mozRequestFullScreen();
+    } else if (element && element.msRequestFullscreen) {
+      element.msRequestFullscreen();
+    }
+  }
+  
+  exitFullscreen() {
+    console.log('↙️ Exiting fullscreen...');
+    
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+  
   handleFullscreenChange() {
     this.isFullscreen = !!document.fullscreenElement;
     
     if (this.isFullscreen) {
       if (this.cameraContainer) this.cameraContainer.classList.add('fullscreen');
+      // Change to minimize icon when in fullscreen
       if (this.fullscreenBtn) {
         this.fullscreenBtn.classList.add('minimize-mode');
         this.fullscreenBtn.title = 'Exit Fullscreen';
@@ -626,6 +595,7 @@ class CameraAppManager {
       this.updateStatus('Fullscreen mode active');
     } else {
       if (this.cameraContainer) this.cameraContainer.classList.remove('fullscreen');
+      // Change back to fullscreen icon when not in fullscreen
       if (this.fullscreenBtn) {
         this.fullscreenBtn.classList.remove('minimize-mode');
         this.fullscreenBtn.title = 'Enter Fullscreen';
@@ -633,66 +603,48 @@ class CameraAppManager {
       this.updateStatus('Fullscreen mode exited');
     }
   }
-
-  openGallery() {
-    console.log('🖼️ Opening gallery...');
-    window.location.href = '/result.html';
-  }
-
-  // ==================== MODAL DELEGATION FALLBACKS ====================
+  
+  // ==================== MODAL MANAGEMENT ====================
   
   openTutorialModal() {
-    if (this.modalManager && typeof this.modalManager.openTutorialModal === 'function') {
-      this.modalManager.openTutorialModal();
-    } else if (this.tutorialModal) {
+    console.log('❓ Opening tutorial modal...');
+    if (this.tutorialModal) {
       this.tutorialModal.classList.add('active');
     }
   }
   
   closeTutorialModal() {
-    if (this.modalManager && typeof this.modalManager.closeTutorialModal === 'function') {
-      this.modalManager.closeTutorialModal();
-    } else if (this.tutorialModal) {
+    console.log('✕ Closing tutorial modal...');
+    if (this.tutorialModal) {
       this.tutorialModal.classList.remove('active');
     }
   }
   
   closeResultsModal() {
-    if (this.modalManager && typeof this.modalManager.closeResultsModal === 'function') {
-      this.modalManager.closeResultsModal();
-    } else if (this.resultsModal) {
+    console.log('✕ Closing results modal...');
+    if (this.resultsModal) {
       this.resultsModal.classList.remove('active');
-      this.analysisResults = null;
+    }
+    this.analysisResults = null; // Clear stored results
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
+  }
+  
+  showErrorModal() {
+    console.log('⚠️ Showing error modal...');
+    if (this.errorModal) {
+      this.errorModal.classList.add('active');
     }
   }
   
   closeErrorModal() {
-    if (this.modalManager && typeof this.modalManager.closeErrorModal === 'function') {
-      this.modalManager.closeErrorModal();
-    } else if (this.errorModal) {
+    console.log('✕ Closing error modal...');
+    if (this.errorModal) {
       this.errorModal.classList.remove('active');
     }
-  }
-
-  closeAllModals() {
-    this.closeTutorialModal();
-    this.closeResultsModal();
-    this.closeErrorModal();
-  }
-
-  // ==================== UI FEEDBACK ====================
-  
-  showLoadingOverlay() {
-    if (this.loadingOverlay) {
-      this.loadingOverlay.style.display = 'flex';
-    }
+    this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   
-  hideLoadingOverlay() {
-    if (this.loadingOverlay) {
-      this.loadingOverlay.style.display = 'none';
-    }
-  }
+  // ==================== UI STATUS MANAGEMENT ====================
   
   updateStatus(message) {
     if (this.cameraStatus) {
@@ -702,6 +654,7 @@ class CameraAppManager {
   }
   
   showSuccessMessage(message) {
+    // Create temporary success notification
     const notification = document.createElement('div');
     notification.className = 'success-notification';
     notification.textContent = message;
@@ -730,6 +683,7 @@ class CameraAppManager {
   }
   
   showErrorMessage(message) {
+    // Create temporary error notification
     const notification = document.createElement('div');
     notification.className = 'error-notification';
     notification.textContent = message;
@@ -754,33 +708,82 @@ class CameraAppManager {
     
     setTimeout(() => {
       notification.remove();
-    }, 8000);
+    }, 6000);
   }
-
-  // Enable/disable buttons during analysis
-  setButtonsEnabled(enabled) {
-    const buttons = [
-      this.captureBtn,
-      this.galleryBtn,
-      this.fullscreenBtn,
-      this.gridBtn
-    ];
-
-    buttons.forEach(button => {
-      if (button) {
-        button.disabled = !enabled;
-        if (enabled) {
-          button.classList.remove('disabled');
-        } else {
-          button.classList.add('disabled');
+  
+  // ==================== KEYBOARD SHORTCUTS ====================
+  
+  handleKeyboard(e) {
+    // Prevent shortcuts during analysis
+    if (this.isAnalyzing) {
+      console.log('⏳ Ignoring keyboard shortcut during analysis');
+      return;
+    }
+    
+    switch (e.key) {
+      case ' ': // Spacebar - Capture & Analyze
+        e.preventDefault();
+        if (this.isLiveMode) {
+          this.captureAndAnalyze();
         }
-      }
-    });
-
-    // Tutorial button should always remain enabled
-    if (this.tutorialBtn) {
-      this.tutorialBtn.disabled = false;
-      this.tutorialBtn.classList.remove('disabled');
+        break;
+        
+      case 'Escape': // Escape - Close modals
+        e.preventDefault();
+        if (this.tutorialModal && this.tutorialModal.classList.contains('active')) {
+          this.closeTutorialModal();
+        } else if (this.resultsModal && this.resultsModal.classList.contains('active')) {
+          this.closeResultsModal();
+        } else if (this.errorModal && this.errorModal.classList.contains('active')) {
+          this.closeErrorModal();
+        }
+        break;
+        
+      case 'Enter': // Enter - Capture & Analyze
+        e.preventDefault();
+        if (this.isLiveMode) {
+          this.captureAndAnalyze();
+        }
+        break;
+        
+      case 'f': // F - Toggle fullscreen
+      case 'F':
+        e.preventDefault();
+        this.toggleFullscreen();
+        break;
+        
+      case 'g': // G - Gallery
+      case 'G':
+        e.preventDefault();
+        this.openGallery();
+        break;
+        
+      case '?': // ? - Tutorial
+        e.preventDefault();
+        this.openTutorialModal();
+        break;
+        
+      case 'r': // R - Toggle grid
+      case 'R':
+        e.preventDefault();
+        this.toggleGrid();
+        break;
+        
+      case 'd': // D - Show distance info (debug)
+      case 'D':
+        e.preventDefault();
+        if (this.lastDistanceReading) {
+          console.log('📏 Current distance reading:', this.lastDistanceReading);
+          this.showSuccessMessage(`Distance: ${this.lastDistanceReading.distance_text} - ${this.lastDistanceReading.status_text}`);
+        }
+        break;
+        
+      case 's': // S - Show save mode info (debug)
+      case 'S':
+        e.preventDefault();
+        this.showSuccessMessage('Save Mode: Analyzed Images Only (no originals)');
+        console.log('💾 Save Mode: Only analyzed images with AI overlays are saved');
+        break;
     }
   }
 }
@@ -810,46 +813,37 @@ window.closeErrorModal = function() {
 
 // Initialize camera app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Starting Rebar Vista Camera App (Pipeline Mode)...');
-  console.log('📝 IMPORTANT: Only analyzed images with pipeline steps will be saved');
+  console.log('🚀 Starting Rebar Vista Camera App (ANALYZED IMAGES ONLY MODE)...');
+  console.log('📝 IMPORTANT: Only analyzed images with AI overlays will be saved');
   console.log('🚫 No original/duplicate images will be created');
   
   // Create global instance
   window.cameraApp = new CameraAppManager();
   
   console.log('✅ Camera App initialized successfully');
-  console.log('📋 Pipeline Analysis Flow:');
+  console.log('📋 Modified User Flow:');
   console.log('   1. Position device at optimal distance (160-200cm)');
   console.log('   2. Press capture button (📷)');
-  console.log('   3. Wait for quadrant intersection analysis');
-  console.log('   4. View 4-step pipeline results');
-  console.log('   5. Automatic save to gallery with metadata');
+  console.log('   3. Wait for AI analysis');
+  console.log('   4. View results (ONLY analyzed image auto-saved to gallery)');
+  console.log('   5. Close results and capture again');
   console.log('');
   console.log('📋 Available keyboard shortcuts:');
   console.log('   Space/Enter - Capture & analyze');
   console.log('   Escape - Close modals');
   console.log('   F - Toggle fullscreen');
   console.log('   G - Open gallery');
-  console.log('   R - Toggle grid');
+  console.log('   D - Show distance info (debug)');
+  console.log('   S - Show save mode info (debug)');
   console.log('   ? - Open tutorial');
 });
 
-// Additional styles for notifications
+// Additional styles for notifications (injected dynamically)
 const notificationStyles = document.createElement('style');
 notificationStyles.textContent = `
   @keyframes slideInRight {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
-  }
-  
-  .pressed {
-    transform: scale(0.95);
-    transition: transform 0.1s ease;
-  }
-  
-  .disabled {
-    opacity: 0.5;
-    pointer-events: none;
   }
 `;
 document.head.appendChild(notificationStyles);

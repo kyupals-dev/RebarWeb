@@ -12,7 +12,7 @@
 </head>
 
 <body>
-  <!-- Header Navigation -->
+  <!-- Header Navigation (exactly matching welcome page) -->
   <header class="header">
     <div class="nav-container">
       <div class="logo-section">
@@ -55,22 +55,22 @@
       
       <!-- Camera Controls Overlay -->
       <div class="camera-controls">
-        <!-- Tutorial Button -->
+        <!-- Tutorial Button with white ? symbol -->
         <button class="tutorial-btn" id="tutorial-btn" title="How to use">?</button>
         
         <!-- Bottom Controls -->
         <div class="bottom-controls">
-          <!-- Gallery Button -->
+          <!-- Gallery Button - Pure custom icon, no emoji -->
           <button class="gallery-btn" id="gallery-btn" title="View Gallery"></button>
           
-          <!-- Capture Button -->
+          <!-- Capture Button - Pure custom icon, no emoji -->
           <button class="capture-btn" id="capture-btn" title="Capture & Analyze"></button>
           
-          <!-- Grid Toggle Button -->
+          <!-- Grid Toggle Button - beside capture button -->
           <button class="grid-btn" id="grid-btn" title="Toggle Grid"></button>
         </div>
         
-        <!-- Fullscreen Button -->
+        <!-- Fullscreen Button - repositioned to bottom right corner -->
         <button class="fullscreen-btn" id="fullscreen-btn" title="Enter Fullscreen"></button>
       </div>
     </div>
@@ -100,39 +100,25 @@
       <div class="tutorial-step">
         <div class="tutorial-step-number">3</div>
         <div>
-          <strong>View pipeline results</strong><br>
-          See 4-step analysis: Detection → Quadrants → Polygon → Cement Mixture
+          <strong>Pipeline processing</strong><br>
+          Wait for AI to detect intersections, calculate polygons, and compute cement mixture (1:2:4)
         </div>
       </div>
       
       <div class="tutorial-step">
         <div class="tutorial-step-number">4</div>
         <div>
-          <strong>Automatic save</strong><br>
-          Results and analyzed images are automatically saved to gallery with metadata
+          <strong>View results</strong><br>
+          Results show exact dimensions and 1:2:4 cement mixture ratio
         </div>
       </div>
       
-      <div class="pipeline-requirements">
-        <h4>Pipeline Requirements:</h4>
-        <ul>
-          <li>2 front vertical rebars visible</li>
-          <li>11 front horizontal rebars visible</li>
-          <li>Clear intersection points</li>
-          <li>Good lighting conditions</li>
-          <li>160-200cm optimal distance</li>
-        </ul>
-      </div>
-      
-      <div class="keyboard-shortcuts">
-        <h4>Keyboard Shortcuts:</h4>
-        <ul>
-          <li><strong>Space/Enter:</strong> Capture & analyze</li>
-          <li><strong>Escape:</strong> Close modals</li>
-          <li><strong>F:</strong> Toggle fullscreen</li>
-          <li><strong>G:</strong> Open gallery</li>
-          <li><strong>R:</strong> Toggle grid</li>
-        </ul>
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">5</div>
+        <div>
+          <strong>Automatic saving</strong><br>
+          Pipeline analysis results are automatically saved to the gallery with metadata
+        </div>
       </div>
       
       <div class="modal-buttons">
@@ -141,29 +127,29 @@
     </div>
   </div>
 
-  <!-- Enhanced Results Modal with 4-Step Pipeline Visualization -->
+  <!-- UPDATED: Pipeline Results Modal with Exact Format -->
   <div class="modal-overlay results-modal" id="results-modal">
-    <div class="modal-content results-content">
-      <div class="modal-header results-header">
-        <h2>Pipeline Analysis Results</h2>
-        <div class="analysis-timestamp" id="analysis-timestamp"></div>
+    <div class="modal-content">
+      <div class="results-header">
+        <h2>Rebar Pipeline Analysis Results</h2>
       </div>
-      
-      <div class="modal-body results-body">
-        <!-- Main Results Cards -->
-        <div class="pipeline-results-grid">
-          <div class="pipeline-result-card dimension-card">
+      <div class="results-body">
+        <!-- Analysis Result Image -->
+        <img id="results-image" src="" alt="Pipeline Analysis Result" class="results-image">
+        
+        <!-- UPDATED: Pipeline Data Display with Exact Format -->
+        <div class="pipeline-results-data">
+          <div class="pipeline-result-card">
             <h3>Rebar Dimensions</h3>
-            <div class="pipeline-result-value" id="dimension-result">27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters</div>
+            <div class="pipeline-result-value" id="dimensions-result">27.36cm x 27.36cm x 200cm = 149,874 cubic centimeters</div>
           </div>
-          
-          <div class="pipeline-result-card mixture-card">
+          <div class="pipeline-result-card">
             <h3>Cement Mixture Ratio</h3>
             <div class="pipeline-result-value" id="mixture-result">1:2:4</div>
           </div>
         </div>
         
-        <!-- Pipeline Details -->
+        <!-- UPDATED: Additional Pipeline Details -->
         <div class="pipeline-details">
           <div class="pipeline-detail-row">
             <span class="pipeline-detail-label">Analysis Method:</span>
@@ -183,7 +169,7 @@
           </div>
         </div>
         
-        <!-- 4-Step Pipeline Visualization -->
+        <!-- UPDATED: Pipeline Visualization Steps (4 Images as requested) -->
         <div class="pipeline-visualization-steps">
           <h4>Pipeline Analysis Steps</h4>
           <div class="pipeline-step-images">
@@ -202,37 +188,6 @@
             <div class="pipeline-step-image">
               <img id="step4-cement" src="" alt="Step 4: Cement Estimation" class="step-image">
               <p class="step-label">4. Cement Estimation</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Detailed Breakdown -->
-        <div class="pipeline-breakdown">
-          <h4>Detailed Breakdown</h4>
-          <div class="breakdown-grid">
-            <div class="breakdown-item">
-              <span class="breakdown-label">Length:</span>
-              <span class="breakdown-value" id="breakdown-length">27.36 cm</span>
-            </div>
-            <div class="breakdown-item">
-              <span class="breakdown-label">Width:</span>
-              <span class="breakdown-value" id="breakdown-width">27.36 cm</span>
-            </div>
-            <div class="breakdown-item">
-              <span class="breakdown-label">Height:</span>
-              <span class="breakdown-value" id="breakdown-height">200 cm</span>
-            </div>
-            <div class="breakdown-item">
-              <span class="breakdown-label">Volume:</span>
-              <span class="breakdown-value" id="breakdown-volume">149,874 cm³</span>
-            </div>
-            <div class="breakdown-item">
-              <span class="breakdown-label">Cement Bags:</span>
-              <span class="breakdown-value" id="breakdown-cement">0.67 bags</span>
-            </div>
-            <div class="breakdown-item">
-              <span class="breakdown-label">Water:</span>
-              <span class="breakdown-value" id="breakdown-water">14.1 liters</span>
             </div>
           </div>
         </div>
@@ -266,9 +221,7 @@
     </div>
   </div>
 
-  <!-- JavaScript Files - Load in correct order -->
-  <script src="{{ url_for('static', filename='javascript/buttons.js') }}"></script>
-  <script src="{{ url_for('static', filename='javascript/modal.js') }}"></script>
+  <!-- JavaScript Files -->
   <script src="{{ url_for('static', filename='javascript/camera.js') }}"></script>
 </body>
 </html>

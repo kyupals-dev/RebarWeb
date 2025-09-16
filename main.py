@@ -1,15 +1,15 @@
-# main.py - Fixed Pipeline Implementation for Raspberry Pi 5
-# FIXED: Corrected method names and error handling
+# main.py - Complete implementation with AI service and Distance Sensor integration
+# MODIFIED: AI routes now receive camera manager for direct frame access
 
 from app import create_app
 from app.services.camera_service import CameraManager, camera_thread_worker
 from app.services.image_service import ImageService
 from app.services.ai_service import AIService
-from app.services.distance_service import DistanceService
+from app.services.distance_service import DistanceService  # Import Distance Service
 from app.routes.camera_routes import init_camera_routes
 from app.routes.image_routes import init_image_routes
 from app.routes.ai_routes import init_ai_routes
-from app.routes.sensor_routes import init_sensor_routes
+from app.routes.sensor_routes import init_sensor_routes  # Import Sensor Routes
 from app.utils.config import config
 import threading
 import tkinter as tk
@@ -20,22 +20,22 @@ import os
 from datetime import datetime
 
 class TkinterCameraFrame:
-    """Tkinter camera display window for 480 x 640 portrait format with pipeline status"""
+    """Tkinter camera display window for 480 x 640 portrait format with distance sensor"""
     def __init__(self, camera_manager, distance_service):
         self.camera_manager = camera_manager
         self.distance_service = distance_service
         self.root = tk.Tk()
-        self.root.title("Rebar Vista Camera Feed - Pipeline Mode (480x640)")
-        self.root.geometry("520x820")  # Taller for pipeline status
+        self.root.title("Rebar Vista Camera Feed - 480x640 (Analyzed Images Only)")
+        self.root.geometry("520x780")  # Slightly taller for distance display
         self.root.configure(bg='#2c3e50')
         
         # Create main frame
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Title label with pipeline mode indicator
+        # Title label with save mode indicator
         title_label = tk.Label(main_frame, 
-                              text="Rebar Vista Camera (480x640) - Pipeline Mode\nSave Mode: Analyzed Images with 4-Step Visualization", 
+                              text="Rebar Vista Camera (480x640) + Distance\nSave Mode: Analyzed Images Only", 
                               font=('Arial', 14, 'bold'), 
                               bg='#2c3e50', fg='white')
         title_label.pack(pady=(0, 5))
@@ -53,350 +53,234 @@ class TkinterCameraFrame:
         self.distance_status_label = tk.Label(distance_frame, text="CHECKING", 
                                             font=('Arial', 11, 'bold'), 
                                             bg='#95a5a6', fg='white',
-                                            padx=10, pady=5, relief='raised')
+                                            padx=10, pady=2)
         self.distance_status_label.pack(side=tk.LEFT)
         
-        # Pipeline status frame
-        pipeline_frame = tk.LabelFrame(main_frame, text="Pipeline Status", 
-                                     font=('Arial', 10, 'bold'),
-                                     bg='#2c3e50', fg='white')
-        pipeline_frame.pack(pady=5, fill=tk.X)
+        # Camera display label - PORTRAIT 480x640
+        self.camera_label = tk.Label(main_frame, bg='black', 
+                                   width=480, height=640)
+        self.camera_label.pack(pady=5)
         
-        # Pipeline status labels
-        self.pipeline_status_label = tk.Label(pipeline_frame, text="Ready for Analysis", 
-                                            font=('Arial', 10), 
-                                            bg='#2c3e50', fg='white')
-        self.pipeline_status_label.pack(pady=2)
+        # Status label with save mode info
+        self.status_label = tk.Label(main_frame, 
+                                   text="Initializing camera and distance sensor (analyzed images only)...", 
+                                   font=('Arial', 10), 
+                                   bg='#2c3e50', fg='#ecf0f1')
+        self.status_label.pack(pady=5)
         
-        self.detection_count_label = tk.Label(pipeline_frame, text="Expected: 2 verticals + 11 horizontals", 
-                                            font=('Arial', 9), 
-                                            bg='#2c3e50', fg='#bdc3c7')
-        self.detection_count_label.pack(pady=1)
+        # Button frame
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(pady=10)
         
-        # Camera display frame
-        camera_frame = tk.Frame(main_frame, bg='black', relief='sunken', bd=2)
-        camera_frame.pack(pady=10, fill=tk.BOTH, expand=True)
+        # Note: Capture button removed since we don't save originals via Tkinter
+        # The web interface handles capture + AI analysis
         
-        # Camera label (480x640 aspect ratio)
-        self.camera_label = tk.Label(camera_frame, bg='black', text="Initializing Camera...", 
-                                   fg='white', font=('Arial', 16))
-        self.camera_label.pack(fill=tk.BOTH, expand=True)
+        # Toggle camera button
+        self.toggle_btn = tk.Button(button_frame, text="Stop Camera", 
+                                  command=self.toggle_camera,
+                                  bg='#e74c3c', fg='white', 
+                                  font=('Arial', 12, 'bold'),
+                                  padx=20, pady=5)
+        self.toggle_btn.pack(side=tk.LEFT, padx=5)
         
-        # Control buttons frame
-        controls_frame = tk.Frame(main_frame, bg='#2c3e50')
-        controls_frame.pack(pady=10, fill=tk.X)
+        # Distance test button
+        self.distance_btn = tk.Button(button_frame, text="Test Distance", 
+                                    command=self.test_distance,
+                                    bg='#f39c12', fg='white', 
+                                    font=('Arial', 12, 'bold'),
+                                    padx=20, pady=5)
+        self.distance_btn.pack(side=tk.LEFT, padx=5)
         
-        # Pipeline analysis button
-        self.analyze_button = tk.Button(controls_frame, text="Run Pipeline Analysis", 
-                                      font=('Arial', 12, 'bold'),
-                                      bg='#27ae60', fg='white', 
-                                      activebackground='#2ecc71',
-                                      command=self.trigger_pipeline_analysis,
-                                      relief='raised', bd=3, padx=20, pady=8)
-        self.analyze_button.pack(side=tk.LEFT, padx=5)
+        # AI test button
+        self.ai_test_btn = tk.Button(button_frame, text="Test AI", 
+                                   command=self.test_ai,
+                                   bg='#9b59b6', fg='white', 
+                                   font=('Arial', 12, 'bold'),
+                                   padx=20, pady=5)
+        self.ai_test_btn.pack(side=tk.LEFT, padx=5)
         
-        # Status display button
-        self.status_button = tk.Button(controls_frame, text="Show Status", 
-                                     font=('Arial', 10),
-                                     bg='#3498db', fg='white',
-                                     activebackground='#5dade2',
-                                     command=self.show_status,
-                                     relief='raised', bd=2, padx=15, pady=5)
-        self.status_button.pack(side=tk.LEFT, padx=5)
+        # Info display with save mode
+        self.info_label = tk.Label(main_frame, 
+                                 text="Format: 480x640 Portrait | Distance: Checking | Save: Analyzed Only", 
+                                 font=('Arial', 9), 
+                                 bg='#2c3e50', fg='#bdc3c7')
+        self.info_label.pack(pady=(5, 0))
         
-        # Gallery button
-        self.gallery_button = tk.Button(controls_frame, text="Open Gallery", 
-                                      font=('Arial', 10),
-                                      bg='#9b59b6', fg='white',
-                                      activebackground='#bb8fce',
-                                      command=self.open_gallery,
-                                      relief='raised', bd=2, padx=15, pady=5)
-        self.gallery_button.pack(side=tk.LEFT, padx=5)
-        
-        # Initialize variables
-        self.current_frame = None
-        self.is_running = False
-        self.pipeline_analyzing = False
-        
-    def start(self):
-        """Start the camera display loop"""
-        print("🖥️ Starting Tkinter camera display with pipeline status...")
         self.is_running = True
-        self.update_display()
+        self.frame_count = 0
+        self.last_distance_update = 0
+        self.update_frame()
         self.update_distance()
-        self.update_pipeline_status()
-        self.root.mainloop()
-    
-    def update_display(self):
-        """Update camera display with current frame"""
-        if not self.is_running:
-            return
         
-        try:
-            # FIXED: Check if camera_manager has is_running attribute
-            if self.camera_manager and hasattr(self.camera_manager, 'is_running') and self.camera_manager.is_running:
-                # Get current frame
-                frame = self.camera_manager.get_current_frame()
+    def update_distance(self):
+        """Update distance display"""
+        if self.is_running and self.distance_service:
+            try:
+                reading = self.distance_service.get_current_reading()
                 
-                if frame is not None:
-                    self.current_frame = frame
+                if reading['success']:
+                    # Update distance text
+                    distance_text = f"Distance: {reading['distance_text']}"
+                    self.distance_label.configure(text=distance_text)
                     
-                    # Convert frame for Tkinter display
-                    # Resize for display (maintain aspect ratio)
-                    display_height = 480  # Fixed display height
-                    aspect_ratio = frame.shape[1] / frame.shape[0]  # width/height
-                    display_width = int(display_height * aspect_ratio)
+                    # Update status with color coding
+                    status_text = reading['status_text']
+                    status_color = reading['status_color']
                     
-                    # Resize frame
-                    display_frame = cv2.resize(frame, (display_width, display_height))
+                    self.distance_status_label.configure(text=status_text)
                     
+                    # Set background color based on status
+                    if status_color == 'green':
+                        self.distance_status_label.configure(bg='#2ecc71')  # Optimal
+                    elif status_color == 'red':
+                        self.distance_status_label.configure(bg='#e74c3c')  # Too close/Error
+                    elif status_color == 'yellow':
+                        self.distance_status_label.configure(bg='#f1c40f', fg='#2c3e50')  # Too far
+                    else:
+                        self.distance_status_label.configure(bg='#95a5a6', fg='white')  # Unknown
+                    
+                    # Update info label
+                    optimal_range = reading.get('optimal_range', '160-200cm')
+                    self.info_label.configure(
+                        text=f"Format: 480x640 | Distance: {reading['distance_text']} | Range: {optimal_range} | Save: Analyzed Only"
+                    )
+                    
+                else:
+                    # Error case
+                    self.distance_label.configure(text="Distance: ERROR")
+                    self.distance_status_label.configure(text="ERROR", bg='#e74c3c', fg='white')
+                    self.info_label.configure(
+                        text="Format: 480x640 | Distance: ERROR | Save: Analyzed Only"
+                    )
+                    
+            except Exception as e:
+                print(f"Tkinter distance update error: {e}")
+                self.distance_label.configure(text="Distance: ERROR")
+                self.distance_status_label.configure(text="ERROR", bg='#e74c3c', fg='white')
+        
+        if self.is_running:
+            # Update every 500ms (matching the distance service update rate)
+            self.root.after(500, self.update_distance)
+    
+    def test_distance(self):
+        """Test distance sensor functionality"""
+        if self.distance_service:
+            try:
+                test_result = self.distance_service.test_sensor()
+                
+                if test_result['success']:
+                    avg_distance = test_result.get('average_distance', 0)
+                    readings_count = test_result.get('readings_count', 0)
+                    simulation_mode = test_result.get('simulation_mode', False)
+                    
+                    mode_text = " (SIMULATION)" if simulation_mode else ""
+                    self.status_label.configure(
+                        text=f"Distance test passed: {avg_distance:.1f}cm average from {readings_count} readings{mode_text}"
+                    )
+                else:
+                    error = test_result.get('error', 'Unknown error')
+                    self.status_label.configure(text=f"Distance test failed: {error}")
+                    
+            except Exception as e:
+                self.status_label.configure(text=f"Distance test error: {str(e)}")
+        else:
+            self.status_label.configure(text="Distance service not available")
+    
+    def test_ai(self):
+        """Test AI service with current camera frame"""
+        if self.camera_manager:
+            current_frame = self.camera_manager.get_current_frame()
+            
+            if current_frame is not None:
+                self.status_label.configure(text="Testing AI with current frame (analyzed image only)...")
+                print("🧪 Testing AI service with current camera frame")
+                print("📝 NOTE: AI test will save only analyzed image if successful")
+            else:
+                self.status_label.configure(text="No camera frame available for AI test")
+        else:
+            self.status_label.configure(text="Camera manager not available for AI test")
+    
+    def update_frame(self):
+        if self.is_running and self.camera_manager:
+            current_frame = self.camera_manager.get_current_frame()
+            
+            if current_frame is not None:
+                self.frame_count += 1
+                
+                # Validate and ensure frame is 480x640
+                height, width = current_frame.shape[:2]
+                
+                if width != 480 or height != 640:
+                    # Resize to 480x640 if not already
+                    current_frame = cv2.resize(current_frame, (480, 640))
+                    if self.frame_count % 100 == 1:  # Log occasionally
+                        print(f"Tkinter: Resized frame from {width}x{height} to 480x640")
+                
+                try:
                     # Convert BGR to RGB
-                    rgb_frame = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
+                    rgb_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2RGB)
                     
                     # Convert to PIL Image
                     pil_image = Image.fromarray(rgb_frame)
                     
-                    # Convert to PhotoImage
+                    # Convert to PhotoImage (already 480x640)
                     photo = ImageTk.PhotoImage(pil_image)
                     
-                    # Update label
-                    self.camera_label.configure(image=photo, text="")
-                    self.camera_label.image = photo  # Keep a reference
-                else:
-                    self.camera_label.configure(image="", text="No Camera Frame", 
-                                              fg='red', font=('Arial', 14))
-            else:
-                self.camera_label.configure(image="", text="Camera Not Running", 
-                                          fg='orange', font=('Arial', 14))
-        
-        except Exception as e:
-            print(f"⚠️ Tkinter display error: {e}")
-            self.camera_label.configure(image="", text="Display Error", 
-                                      fg='red', font=('Arial', 12))
-        
-        # Schedule next update
-        if self.is_running:
-            self.root.after(100, self.update_display)  # 10 FPS
-    
-    def update_distance(self):
-        """Update distance sensor display"""
-        if not self.is_running:
-            return
-        
-        try:
-            if self.distance_service:
-                # FIXED: Use correct method name
-                if hasattr(self.distance_service, 'get_current_reading'):
-                    reading = self.distance_service.get_current_reading()
-                elif hasattr(self.distance_service, 'get_latest_reading'):
-                    reading = self.distance_service.get_latest_reading()
-                else:
-                    # Fallback: try to get status
-                    reading = None
-                    print("⚠️ Distance service method not found")
-                
-                if reading and reading.get('success'):
-                    distance_text = reading.get('distance_text', '--cm')
-                    status_text = reading.get('status_text', 'UNKNOWN')
-                    status = reading.get('status', 'unknown')
+                    # Update the label
+                    self.camera_label.configure(image=photo)
+                    self.camera_label.image = photo
                     
-                    # Update distance label
-                    self.distance_label.config(text=f"Distance: {distance_text}")
+                    # Update status
+                    self.status_label.configure(text="Rebar Vista Active - 480x640 (Analyzed Images Only Mode)")
                     
-                    # Update status label with color coding
-                    self.distance_status_label.config(text=status_text)
-                    
-                    if status == 'optimal':
-                        self.distance_status_label.config(bg='#27ae60')  # Green
-                    elif status in ['too_close', 'too_far']:
-                        self.distance_status_label.config(bg='#e74c3c')  # Red
-                    else:
-                        self.distance_status_label.config(bg='#f39c12')  # Orange
-                else:
-                    self.distance_label.config(text="Distance: --cm")
-                    self.distance_status_label.config(text="NO SIGNAL", bg='#95a5a6')
-            else:
-                self.distance_label.config(text="Distance: UNAVAILABLE")
-                self.distance_status_label.config(text="DISABLED", bg='#7f8c8d')
-        
-        except Exception as e:
-            print(f"⚠️ Distance update error: {e}")
-            self.distance_label.config(text="Distance: ERROR")
-            self.distance_status_label.config(text="ERROR", bg='#e74c3c')
-        
-        # Schedule next update
-        if self.is_running:
-            self.root.after(500, self.update_distance)  # 2 Hz
-    
-    def update_pipeline_status(self):
-        """Update pipeline analysis status"""
-        if not self.is_running:
-            return
-        
-        try:
-            # Update pipeline status based on current state
-            if self.pipeline_analyzing:
-                self.pipeline_status_label.config(text="Running Pipeline Analysis...", fg='#f39c12')
-                self.detection_count_label.config(text="Processing: Detection → Quadrants → Polygon → Cement")
-            else:
-                self.pipeline_status_label.config(text="Ready for Pipeline Analysis", fg='#27ae60')
-                self.detection_count_label.config(text="Expected: 2 verticals + 11 horizontals")
-        
-        except Exception as e:
-            print(f"⚠️ Pipeline status update error: {e}")
-        
-        # Schedule next update
-        if self.is_running:
-            self.root.after(1000, self.update_pipeline_status)  # 1 Hz
-    
-    def trigger_pipeline_analysis(self):
-        """Trigger pipeline analysis via web API"""
-        try:
-            print("🔄 Triggering pipeline analysis from Tkinter interface...")
-            self.pipeline_analyzing = True
-            self.analyze_button.config(state='disabled', text="Analyzing...", bg='#f39c12')
-            
-            # Use threading to avoid blocking UI
-            import requests
-            import threading
-            
-            def run_analysis():
-                try:
-                    # Get the server URL from config
-                    server_url = config.get_server_url() if hasattr(config, 'get_server_url') else f"https://localhost:{config.PORT}"
-                    
-                    # Call the web API for pipeline analysis
-                    response = requests.post(f'{server_url}/analyze-rebar', 
-                                           json={'source': 'tkinter_interface'},
-                                           verify=False, timeout=30)
-                    
-                    if response.ok:
-                        result = response.json()
-                        if result.get('success'):
-                            self.show_analysis_result(result)
-                        else:
-                            self.show_analysis_error(result.get('error', 'Analysis failed'))
-                    else:
-                        self.show_analysis_error(f"Request failed: {response.status_code}")
-                
                 except Exception as e:
-                    self.show_analysis_error(f"Analysis request error: {str(e)}")
-                
-                finally:
-                    # Re-enable button
-                    self.root.after(0, lambda: (
-                        setattr(self, 'pipeline_analyzing', False),
-                        self.analyze_button.config(state='normal', text="Run Pipeline Analysis", bg='#27ae60')
-                    ))
-            
-            # Start analysis in background thread
-            analysis_thread = threading.Thread(target=run_analysis, daemon=True)
-            analysis_thread.start()
-            
-        except Exception as e:
-            print(f"❌ Pipeline analysis trigger error: {e}")
-            self.pipeline_analyzing = False
-            self.analyze_button.config(state='normal', text="Run Pipeline Analysis", bg='#27ae60')
-    
-    def show_analysis_result(self, result):
-        """Show analysis result in popup"""
-        def show_popup():
-            import tkinter.messagebox as msgbox
-            
-            dimensions = result.get('dimensions', {})
-            mixture = result.get('cement_mixture', {})
-            
-            message = f"""Pipeline Analysis Complete!
-            
-Dimensions: {dimensions.get('display', 'N/A')}
-Cement Mixture: {mixture.get('ratio_string', 'N/A')}
-Detections: {result.get('num_detections', 0)}
-Model: {result.get('model_type', 'Unknown')}
-
-Results saved to gallery with 4-step visualization."""
-            
-            msgbox.showinfo("Pipeline Analysis Results", message)
-        
-        self.root.after(0, show_popup)
-    
-    def show_analysis_error(self, error_msg):
-        """Show analysis error in popup"""
-        def show_popup():
-            import tkinter.messagebox as msgbox
-            msgbox.showerror("Pipeline Analysis Error", f"Analysis failed:\n\n{error_msg}")
-        
-        self.root.after(0, show_popup)
-    
-    def show_status(self):
-        """Show system status"""
-        try:
-            import tkinter.messagebox as msgbox
-            
-            # FIXED: Check camera status properly
-            camera_status = "Unknown"
-            if self.camera_manager:
-                if hasattr(self.camera_manager, 'is_running'):
-                    camera_status = "Running" if self.camera_manager.is_running else "Stopped"
-                else:
-                    camera_status = "Available"
+                    print(f"Tkinter display error: {e}")
+                    self.status_label.configure(text="Display error - check camera")
             else:
-                camera_status = "Not Available"
-            
-            distance_status = "Available" if self.distance_service else "Unavailable"
-            
-            status_msg = f"""System Status:
-
-Camera: {camera_status}
-Distance Sensor: {distance_status}
-Pipeline Mode: Active
-Save Mode: Analyzed Images Only
-Expected Classes: front_horizontal, front_vertical
-Expected Detections: 2 verticals + 11 horizontals
-
-Current Frame: {'Available' if self.current_frame is not None else 'None'}
-Display: {'Running' if self.is_running else 'Stopped'}"""
-            
-            msgbox.showinfo("System Status", status_msg)
-            
-        except Exception as e:
-            print(f"❌ Status display error: {e}")
+                self.status_label.configure(text="No Rebar Vista camera feed available")
+        
+        if self.is_running:
+            # Schedule next update - 30ms for smooth display
+            self.root.after(30, self.update_frame)
     
-    def open_gallery(self):
-        """Open gallery in web browser"""
-        try:
-            import webbrowser
-            server_url = config.get_server_url() if hasattr(config, 'get_server_url') else f"https://localhost:{config.PORT}"
-            webbrowser.open(f'{server_url}/result.html')
-        except Exception as e:
-            print(f"❌ Gallery open error: {e}")
+    def toggle_camera(self):
+        if self.camera_manager.is_running:
+            self.camera_manager.stop_camera()
+            self.toggle_btn.configure(text="Start Camera", bg='#27ae60')
+            self.status_label.configure(text="Rebar Vista camera stopped")
+        else:
+            if self.camera_manager.start_camera():
+                self.toggle_btn.configure(text="Stop Camera", bg='#e74c3c')
+                self.status_label.configure(text="Rebar Vista camera started (480x640, analyzed images only)")
+            else:
+                self.status_label.configure(text="Failed to start Rebar Vista camera")
     
-    def stop(self):
-        """Stop the display"""
+    def on_closing(self):
+        print("Closing Tkinter camera window...")
         self.is_running = False
-        if self.root:
-            try:
-                self.root.quit()
-                self.root.destroy()
-            except:
-                pass
+        if self.camera_manager:
+            # Don't stop camera manager here - let main process handle it
+            pass
+        self.root.destroy()
+    
+    def start(self):
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        print("Starting Tkinter 480x640 camera window (analyzed images only mode)...")
+        self.root.mainloop()
 
 def start_tkinter_window(camera_manager, distance_service):
-    """Start the tkinter camera window for 480x640 display with enhanced pipeline status"""
+    """Start the tkinter camera window for 480x640 display with distance sensor"""
     try:
-        print("Initializing Tkinter 480x640 camera interface with pipeline support...")
+        print("Initializing Tkinter 480x640 camera interface (analyzed images only)...")
         tk_camera = TkinterCameraFrame(camera_manager, distance_service)
         tk_camera.start()
     except Exception as e:
         print(f"Error starting Tkinter window: {e}")
 
 def main():
-    distance_service = None
-    camera_manager = None
-    
     try:
-        print("Starting Rebar Vista with Enhanced Pipeline Integration...")
-        print("📝 PIPELINE MODE: 4-step visualization with exact formulas")
-        print("🔧 SAVE MODE: Only analyzed images with overlays will be saved")
+        print("Starting Rebar Vista with AI and Distance Sensor Integration...")
+        print("📝 SAVE MODE: Only analyzed images with AI overlays will be saved")
         print("=" * 70)
         
         # Initialize services
@@ -404,7 +288,7 @@ def main():
         camera_manager = CameraManager()
         image_service = ImageService()
         ai_service = AIService()
-        distance_service = DistanceService()
+        distance_service = DistanceService()  # Initialize Distance Service
         
         # Create Flask app with services
         print("Creating Flask web application...")
@@ -414,26 +298,21 @@ def main():
         with app.app_context():
             init_camera_routes(camera_manager, image_service)
             init_image_routes(image_service)
-            init_ai_routes(ai_service, camera_manager)
-            init_sensor_routes(distance_service)
-            print("✅ Flask routes initialized with enhanced pipeline support")
+            init_ai_routes(ai_service, camera_manager)  # MODIFIED: Pass camera_manager to AI routes
+            init_sensor_routes(distance_service)  # Initialize Sensor Routes
+            print("Flask routes initialized (AI routes have camera access)")
         
         # Ensure upload folder exists
         config.ensure_upload_folder()
-        print(f"📁 Upload folder ready: {config.UPLOAD_FOLDER}")
-        
-        # Ensure gallery metadata folder exists
-        gallery_metadata_dir = os.path.join(config.UPLOAD_FOLDER, 'gallery_metadata')
-        os.makedirs(gallery_metadata_dir, exist_ok=True)
-        print(f"📁 Gallery metadata folder ready: {gallery_metadata_dir}")
+        print(f"Upload folder ready: {config.UPLOAD_FOLDER}")
         
         # Ensure model folder exists
         model_folder = "/home/team10/RebarWeb/app/model"
         if not os.path.exists(model_folder):
             os.makedirs(model_folder)
-            print(f"📁 Created model folder: {model_folder}")
+            print(f"Created model folder: {model_folder}")
         else:
-            print(f"📁 Model folder ready: {model_folder}")
+            print(f"Model folder ready: {model_folder}")
         
         print("Starting camera thread for 480x640 capture...")
         # Start camera thread
@@ -448,7 +327,7 @@ def main():
         # Start distance monitoring
         distance_service.start_monitoring()
         
-        print("Starting Tkinter 480x640 display window with pipeline status...")
+        print("Starting Tkinter 480x640 display window (analyzed images only)...")
         # Start tkinter window in separate thread
         tkinter_thread = threading.Thread(
             target=start_tkinter_window, 
@@ -457,21 +336,20 @@ def main():
         )
         tkinter_thread.start()
         
-        print("Starting Flask web server with HTTPS...")
+        print("Starting Flask web server...")
         print("Available routes:")
         for rule in app.url_map.iter_rules():
             methods = ', '.join(rule.methods - {'HEAD', 'OPTIONS'})
             print(f"  {rule.endpoint}: {rule.rule} [{methods}]")
         
         print("=" * 70)
-        print("REBAR VISTA READY - ENHANCED PIPELINE MODE")
-        print("Web interface: HTTPS camera display with 4-step pipeline analysis")
-        print("Tkinter window: Live 480x640 camera feed with pipeline controls")
-        print("AI Analysis: Detectron2 with exact pipeline formulas")
+        print("REBAR VISTA READY - AI-POWERED ANALYSIS (ANALYZED IMAGES ONLY)")
+        print("Web interface: Camera display with AI analysis (saves analyzed images only)")
+        print("Tkinter window: Live 480x640 camera feed with distance overlay")
+        print("AI Analysis: Detectron2 rebar detection and measurement")
         print("Distance Sensor: HC-SR04 optimal positioning (160-200cm)")
-        print("Pipeline Steps: Detection → Quadrants → Polygon → Cement")
-        print("Save Mode: ONLY analyzed images with 4-step visualization")
-        print("Gallery: Enhanced with pipeline metadata and step images")
+        print("Save Mode: ONLY analyzed images with AI overlays are saved")
+        print("Gallery: Shows only analyzed images (no duplicates)")
         print("=" * 70)
         
         # Print AI service status
@@ -481,10 +359,8 @@ def main():
         print(f"Model Loaded: {'✅' if ai_status['model_loaded'] else '❌'}")
         print(f"Model Path: {ai_status['model_path']}")
         print(f"Model Exists: {'✅' if ai_status['model_exists'] else '❌'}")
-        print(f"Classes: {ai_status['class_names']} (2 classes)")
+        print(f"Classes: {ai_status['class_names']}")
         print(f"Detection Threshold: {ai_status['threshold']}")
-        print(f"Pipeline Constants: PX_TO_CM={getattr(ai_service, 'PX_TO_CM', 'N/A')}, OFFSET_CM={getattr(ai_service, 'OFFSET_CM', 'N/A')}")
-        print(f"Mix Ratio: {getattr(ai_service, 'MIX_RATIO', 'N/A')}")
         print(f"Save Mode: {ai_status.get('save_mode', 'analyzed_images_only')}")
         if not ai_status['model_loaded']:
             print("⚠️  AI will use placeholder results until model is available")
@@ -499,82 +375,78 @@ def main():
         print(f"Simulation Mode: {'✅' if distance_status['simulation_mode'] else '❌'}")
         print(f"GPIO Pins: TRIG={distance_status['gpio_pins']['trigger']}, ECHO={distance_status['gpio_pins']['echo']}")
         print(f"Optimal Range: {distance_status['optimal_range']['min']}-{distance_status['optimal_range']['max']}{distance_status['optimal_range']['unit']}")
-        print("===============================")
+        if distance_status['last_error']:
+            print(f"⚠️  Last Error: {distance_status['last_error']}")
+        if distance_status['simulation_mode']:
+            print("⚠️  Distance sensor using simulation mode")
+        print("==============================")
         
-        # Print SSL/HTTPS status
-        print("\n=== HTTPS Configuration ===")
-        print(f"Host: {config.HOST}")
-        print(f"Port: {config.PORT}")
-        if hasattr(config, 'SSL_CERT_PATH'):
-            print(f"SSL Cert: {config.SSL_CERT_PATH}")
-            print(f"SSL Key: {config.SSL_KEY_PATH}")
-        if hasattr(config, 'get_local_ip'):
-            print(f"Local IP: {config.get_local_ip()}")
-            print(f"HTTPS URL: https://{config.get_local_ip()}:{config.PORT}")
-        print("============================")
+        # Print image service info
+        image_stats = image_service.get_storage_stats()
+        if image_stats['success']:
+            stats = image_stats['stats']
+            print("\n=== Image Storage Status ===")
+            print(f"Total Files: {stats['total_files']}")
+            print(f"Analyzed Images (Gallery): {stats['analyzed_files']} ({stats['analyzed_size_kb']} KB)")
+            print(f"Original Images (Hidden): {stats['original_files']} ({stats['original_size_kb']} KB)")
+            print(f"Total Storage: {stats['total_size_kb']} KB")
+            if stats['original_files'] > 0:
+                print(f"💡 Tip: Use /cleanup-originals endpoint to remove {stats['original_files']} hidden original images")
+            print("============================\n")
         
-        # Start Flask app with SSL (HTTPS) if available
-        print(f"\n🚀 Starting server on {config.HOST}:{config.PORT}")
-        
-        # Check if SSL is configured
-        ssl_context = None
-        if hasattr(config, 'get_ssl_context'):
-            ssl_context = config.get_ssl_context()
-        
-        if ssl_context:
-            print(f"🔒 HTTPS enabled - Access via: https://{config.get_local_ip()}:{config.PORT}")
+        # Check SSL certificates and start server
+        if not os.path.exists(config.SSL_CERT_PATH):
+            print(f"SSL certificate not found at {config.SSL_CERT_PATH}")
+            print("Running HTTP server (no SSL)...")
             app.run(
                 host=config.HOST,
                 port=config.PORT,
-                debug=config.DEBUG,
-                ssl_context=ssl_context,
-                threaded=True
+                use_reloader=False,
+                threaded=True,
+                debug=config.DEBUG
             )
         else:
-            print(f"🌐 HTTP mode - Access via: http://{config.HOST}:{config.PORT}")
+            print(f"Using SSL certificates from {config.SSL_CERT_PATH}")
+            print("Running HTTPS server...")
             app.run(
                 host=config.HOST,
                 port=config.PORT,
-                debug=config.DEBUG,
-                threaded=True
+                ssl_context=config.ssl_context,
+                use_reloader=False,
+                threaded=True,
+                debug=config.DEBUG
             )
-        
+            
     except KeyboardInterrupt:
-        print("\n🛑 Application interrupted by user")
+        print("\nShutting down Rebar Vista...")
+        
+        # Clean shutdown of services
+        try:
+            if 'distance_service' in locals():
+                distance_service.stop_monitoring()
+                print("Distance sensor monitoring stopped")
+        except Exception as e:
+            print(f"Error stopping distance service: {e}")
+        
+        try:
+            if 'camera_manager' in locals():
+                camera_manager.stop_camera()
+                print("Camera stopped")
+        except Exception as e:
+            print(f"Error stopping camera: {e}")
+        
+        print("Goodbye!")
+        
     except Exception as e:
-        print(f"\n❌ Application error: {e}")
+        print(f"Error starting application: {e}")
         import traceback
         traceback.print_exc()
-    finally:
-        print("\n🔄 Cleaning up services...")
-        
-        # Stop distance monitoring
-        try:
-            if distance_service:
-                if hasattr(distance_service, 'stop_monitoring'):
-                    distance_service.stop_monitoring()
-                    print("✅ Distance service stopped")
-                else:
-                    print("⚠️ Distance service stop method not found")
-        except Exception as e:
-            print(f"⚠️ Error stopping distance service: {e}")
-        
-        # Stop camera
-        try:
-            if camera_manager:
-                # FIXED: Check for available stop methods
-                if hasattr(camera_manager, 'stop'):
-                    camera_manager.stop()
-                    print("✅ Camera service stopped")
-                elif hasattr(camera_manager, 'cleanup'):
-                    camera_manager.cleanup()
-                    print("✅ Camera service cleaned up")
-                else:
-                    print("⚠️ Camera service stop method not found")
-        except Exception as e:
-            print(f"⚠️ Error stopping camera service: {e}")
-        
-        print("👋 Rebar Vista shutdown complete")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    print("REBAR VISTA - AI-POWERED REBAR DETECTION (ANALYZED IMAGES ONLY)")
+    print("AI-powered rebar detection with optimal positioning system")
+    print("Portrait 480x640 image processing with Detectron2 and HC-SR04")
+    print("Optimal distance range: 160-200cm for best analysis results")
+    print("Save Mode: Only analyzed images with AI overlays are saved")
+    print("")
     main()

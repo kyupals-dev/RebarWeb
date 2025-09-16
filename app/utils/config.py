@@ -1,9 +1,3 @@
-"""
-Enhanced Configuration for Pipeline Mode Rebar Vista
-UPDATED: Complete pipeline constants and HTTPS SSL support
-FIXED: Matches training config with exact 2 classes
-"""
-
 import os
 import socket
 import subprocess
@@ -38,8 +32,8 @@ def get_local_ip():
 
 class Config:
     """
-    Enhanced Application Configuration for Pipeline Mode
-    UPDATED: Complete SSL, pipeline constants, and 2-class model support
+    Application configuration settings for PIPELINE MODE
+    UPDATED: Enhanced SSL certificate management for IP changes + Pipeline Constants
     """
     
     def __init__(self):
@@ -57,14 +51,14 @@ class Config:
         self.CAMERA_HEIGHT = int(os.getenv('CAMERA_HEIGHT', 640))  # Training height
         self.CAMERA_FPS = float(os.getenv('CAMERA_FPS', 30.0))
         
-        # PIPELINE CONSTANTS - EXACT FROM PROJECT KNOWLEDGE
+        # PIPELINE CONSTANTS - EXACT MATCH TO YOUR TRAINING CODE
         self.PIPELINE_MODE = True
         self.PX_TO_CM = 1 / 3.54  # conversion factor (3.54 px = 1 cm)
         self.OFFSET_CM = 4.5      # allowance for formworks per side
         
         # Cement mixture constants - EXACT FROM PIPELINE
         self.CEMENT_BAG_WEIGHT = 40      # kg
-        self.MIX_RATIO = (1, 2, 4)      # cement : sand : gravel (aggregate)
+        self.MIX_RATIO = (1, 2, 4)       # cement : sand : gravel
         self.WATER_CEMENT_RATIO = 0.53
         self.DRY_VOLUME_FACTOR = 1.54
         
@@ -73,10 +67,10 @@ class Config:
         self.SAND_DENSITY = 1600
         self.GRAVEL_DENSITY = 1500
         
-        # Model configuration - EXACT MATCH TO TRAINING CONFIG (2 CLASSES ONLY)
+        # Model configuration - EXACT MATCH TO YOUR TRAINING CONFIG
         self.MODEL_CONFIG = {
             'config_file': "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml",
-            'num_classes': 2,  # FIXED: Only front_horizontal, front_vertical
+            'num_classes': 2,  # front_horizontal, front_vertical
             'class_names': ["front_horizontal", "front_vertical"],
             'score_thresh_test': 0.3,
             'device': 'cpu',  # Raspberry Pi 5
@@ -91,23 +85,15 @@ class Config:
         self.DISTANCE_OPTIMAL_MIN = 160  # cm
         self.DISTANCE_OPTIMAL_MAX = 200  # cm
         
-        # Get current IP for SSL certificate generation
-        self.current_ip = get_local_ip()
-        
         print("🔧 PIPELINE Config initialized:")
         print(f"   Camera: {self.CAMERA_WIDTH}x{self.CAMERA_HEIGHT}")
-        print(f"   Classes: {self.MODEL_CONFIG['class_names']} (2 classes)")
+        print(f"   Classes: {self.MODEL_CONFIG['class_names']}")
         print(f"   PX_TO_CM: {self.PX_TO_CM}")
         print(f"   Mix ratio: {self.MIX_RATIO}")
         print(f"   Expected detections: {self.MODEL_CONFIG['expected_detections']}")
-        print(f"   Local IP: {self.current_ip}")
         
-        # Setup SSL paths and generate certificates
-        self._setup_ssl_configuration()
-    
-    def get_local_ip(self):
-        """Return the current local IP"""
-        return self.current_ip
+        # Setup SSL paths
+        self._setup_ssl_paths()
     
     def _find_available_port(self, ports):
         """Find an available port from the list"""
@@ -121,175 +107,405 @@ class Config:
                 print(f"⚠️  Port {port} is busy")
                 continue
         
-        # If all ports busy, default to 8000
+        # If all ports busy, default to 8000 and let it fail with clear message
         print("❌ All preferred ports busy, using 8000")
         return 8000
     
-    def _setup_ssl_configuration(self):
-        """Setup SSL certificate paths and generate certificates if needed"""
-        # SSL certificate directory
-        self.SSL_DIR = "/home/team10/RebarWeb/ssl"
-        self.SSL_CERT_PATH = os.path.join(self.SSL_DIR, f"cert_{self.current_ip}.pem")
-        self.SSL_KEY_PATH = os.path.join(self.SSL_DIR, f"key_{self.current_ip}.pem")
+    def _setup_ssl_paths(self):
+        """Setup SSL certificate paths dynamically based on current IP"""
+        # Get current IP address
+        self.current_ip = get_local_ip()
         
-        # Ensure SSL directory exists
-        os.makedirs(self.SSL_DIR, exist_ok=True)
+        # Define certificate directory (relative to project root)
+        # Go up from app/utils to project root
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        cert_dir = os.path.join(project_root, 'certificates')
         
-        # Check if certificates exist for current IP
-        if not os.path.exists(self.SSL_CERT_PATH) or not os.path.exists(self.SSL_KEY_PATH):
-            print(f"🔐 Generating SSL certificates for IP: {self.current_ip}")
-            self._generate_ssl_certificates()
-        else:
-            print(f"🔐 Using existing SSL certificates for IP: {self.current_ip}")
+        # Set SSL paths
+        self.SSL_CERT_PATH = os.getenv('SSL_CERT_PATH', 
+                                      os.path.join(cert_dir, f'{self.current_ip}.pem'))
+        self.SSL_KEY_PATH = os.getenv('SSL_KEY_PATH', 
+                                     os.path.join(cert_dir, f'{self.current_ip}-key.pem'))
         
-        # Verify certificate files
-        if os.path.exists(self.SSL_CERT_PATH) and os.path.exists(self.SSL_KEY_PATH):
-            print(f"✅ SSL certificates ready:")
-            print(f"   Cert: {self.SSL_CERT_PATH}")
-            print(f"   Key: {self.SSL_KEY_PATH}")
-        else:
-            print("❌ SSL certificate generation failed, using HTTP mode")
-            self.SSL_CERT_PATH = None
-            self.SSL_KEY_PATH = None
+        print(f"Device IP: {self.current_ip}")
+        print(f"SSL Certificate Path: {self.SSL_CERT_PATH}")
+        print(f"SSL Key Path: {self.SSL_KEY_PATH}")
     
-    def _generate_ssl_certificates(self):
-        """Generate self-signed SSL certificates for HTTPS"""
-        try:
-            # Check if openssl is available
-            result = subprocess.run(['which', 'openssl'], capture_output=True, text=True)
-            if result.returncode != 0:
-                print("❌ OpenSSL not found, cannot generate SSL certificates")
-                return False
-            
-            # Generate private key
-            key_cmd = [
-                'openssl', 'genrsa', 
-                '-out', self.SSL_KEY_PATH, 
-                '2048'
-            ]
-            
-            result = subprocess.run(key_cmd, capture_output=True, text=True, timeout=30)
-            if result.returncode != 0:
-                print(f"❌ Failed to generate private key: {result.stderr}")
-                return False
-            
-            # Generate certificate
-            cert_cmd = [
-                'openssl', 'req', 
-                '-new', '-x509', 
-                '-key', self.SSL_KEY_PATH,
-                '-out', self.SSL_CERT_PATH,
-                '-days', '365',
-                '-subj', f'/C=PH/ST=Metro Manila/L=Pasay/O=Rebar Vista/OU=AI Team/CN={self.current_ip}'
-            ]
-            
-            result = subprocess.run(cert_cmd, capture_output=True, text=True, timeout=30)
-            if result.returncode != 0:
-                print(f"❌ Failed to generate certificate: {result.stderr}")
-                return False
-            
-            print(f"✅ SSL certificates generated successfully for {self.current_ip}")
-            return True
-            
-        except Exception as e:
-            print(f"❌ SSL certificate generation error: {e}")
-            return False
+    @property
+    def ssl_context(self):
+        """Get SSL context tuple"""
+        return (self.SSL_CERT_PATH, self.SSL_KEY_PATH)
     
     def ensure_upload_folder(self):
-        """Ensure upload folder exists with proper permissions"""
+        """Create upload folder if it doesn't exist"""
+        if not os.path.exists(self.UPLOAD_FOLDER):
+            os.makedirs(self.UPLOAD_FOLDER)
+            print(f"Created upload folder: {self.UPLOAD_FOLDER}")
+    
+    def ensure_certificate_folder(self):
+        """Create certificate folder if it doesn't exist"""
+        cert_dir = os.path.dirname(self.SSL_CERT_PATH)
+        if not os.path.exists(cert_dir):
+            os.makedirs(cert_dir)
+            print(f"Created certificate folder: {cert_dir}")
+    
+    def _check_openssl_available(self):
+        """Check if OpenSSL is available on the system"""
+        return shutil.which('openssl') is not None
+    
+    def force_ssl_regeneration(self):
+        """Force regeneration of SSL certificates for current IP"""
+        print(f"🔄 Force regenerating SSL certificates for IP: {self.current_ip}")
+        
+        # Remove existing certificates
         try:
-            if not os.path.exists(self.UPLOAD_FOLDER):
-                os.makedirs(self.UPLOAD_FOLDER, mode=0o755)
-                print(f"📁 Created upload folder: {self.UPLOAD_FOLDER}")
-            
-            # Ensure gallery metadata subfolder exists
-            gallery_metadata_dir = os.path.join(self.UPLOAD_FOLDER, 'gallery_metadata')
-            if not os.path.exists(gallery_metadata_dir):
-                os.makedirs(gallery_metadata_dir, mode=0o755)
-                print(f"📁 Created gallery metadata folder: {gallery_metadata_dir}")
-            
-            # Test write permissions
-            test_file = os.path.join(self.UPLOAD_FOLDER, 'test_write.tmp')
-            try:
-                with open(test_file, 'w') as f:
-                    f.write('test')
-                os.remove(test_file)
-                print(f"✅ Upload folder writable: {self.UPLOAD_FOLDER}")
-            except Exception as e:
-                print(f"❌ Upload folder not writable: {e}")
-                
+            if os.path.exists(self.SSL_CERT_PATH):
+                os.remove(self.SSL_CERT_PATH)
+                print(f"   Removed old certificate: {self.SSL_CERT_PATH}")
+            if os.path.exists(self.SSL_KEY_PATH):
+                os.remove(self.SSL_KEY_PATH)
+                print(f"   Removed old key: {self.SSL_KEY_PATH}")
         except Exception as e:
-            print(f"❌ Error setting up upload folder: {e}")
+            print(f"   Warning: Could not remove old certificates: {e}")
+        
+        # Generate new certificates
+        return self.generate_ssl_certificates()
     
-    def get_ssl_context(self):
-        """Get SSL context for Flask app"""
-        if self.SSL_CERT_PATH and self.SSL_KEY_PATH:
-            if os.path.exists(self.SSL_CERT_PATH) and os.path.exists(self.SSL_KEY_PATH):
-                return (self.SSL_CERT_PATH, self.SSL_KEY_PATH)
-        return None
-    
-    def get_server_url(self):
-        """Get the complete server URL with protocol"""
-        protocol = "https" if self.get_ssl_context() else "http"
-        return f"{protocol}://{self.current_ip}:{self.PORT}"
-    
-    def get_pipeline_constants(self):
-        """Get all pipeline constants for reference"""
+    def get_ssl_status_for_ip(self):
+        """Get detailed SSL status for current IP"""
         return {
-            'PX_TO_CM': self.PX_TO_CM,
-            'OFFSET_CM': self.OFFSET_CM,
-            'CEMENT_BAG_WEIGHT': self.CEMENT_BAG_WEIGHT,
-            'MIX_RATIO': self.MIX_RATIO,
-            'WATER_CEMENT_RATIO': self.WATER_CEMENT_RATIO,
-            'DRY_VOLUME_FACTOR': self.DRY_VOLUME_FACTOR,
-            'CEMENT_DENSITY': self.CEMENT_DENSITY,
-            'SAND_DENSITY': self.SAND_DENSITY,
-            'GRAVEL_DENSITY': self.GRAVEL_DENSITY,
-            'DISTANCE_OPTIMAL_MIN': self.DISTANCE_OPTIMAL_MIN,
-            'DISTANCE_OPTIMAL_MAX': self.DISTANCE_OPTIMAL_MAX
+            'current_ip': self.current_ip,
+            'cert_path': self.SSL_CERT_PATH,
+            'key_path': self.SSL_KEY_PATH,
+            'cert_exists': os.path.exists(self.SSL_CERT_PATH),
+            'key_exists': os.path.exists(self.SSL_KEY_PATH),
+            'cert_dir_exists': os.path.exists(os.path.dirname(self.SSL_CERT_PATH)),
+            'openssl_available': self._check_openssl_available(),
+            'expected_cert_name': f'{self.current_ip}.pem',
+            'expected_key_name': f'{self.current_ip}-key.pem'
         }
     
-    def validate_model_config(self):
-        """Validate model configuration matches training setup"""
-        required_classes = ["front_horizontal", "front_vertical"]
+    def clean_old_certificates(self):
+        """Remove certificates for old IP addresses"""
+        cert_dir = os.path.dirname(self.SSL_CERT_PATH)
         
-        if self.MODEL_CONFIG['class_names'] != required_classes:
-            print(f"⚠️  Model class mismatch!")
-            print(f"   Expected: {required_classes}")
-            print(f"   Configured: {self.MODEL_CONFIG['class_names']}")
-            return False
+        if not os.path.exists(cert_dir):
+            return
         
-        if self.MODEL_CONFIG['num_classes'] != 2:
-            print(f"⚠️  Model class count mismatch! Expected: 2, Got: {self.MODEL_CONFIG['num_classes']}")
-            return False
+        print("🧹 Cleaning old certificates...")
         
-        print("✅ Model configuration matches training setup")
-        return True
+        try:
+            # List all certificate files
+            for filename in os.listdir(cert_dir):
+                if filename.endswith(('.pem', '.crt', '.key', '.csr')):
+                    filepath = os.path.join(cert_dir, filename)
+                    
+                    # Skip current IP certificates
+                    if self.current_ip in filename:
+                        continue
+                    
+                    # Remove old certificates
+                    try:
+                        os.remove(filepath)
+                        print(f"   🗑️ Removed old certificate: {filename}")
+                    except Exception as e:
+                        print(f"   ⚠️ Could not remove {filename}: {e}")
+                        
+        except Exception as e:
+            print(f"⚠️ Error cleaning old certificates: {e}")
     
-    def print_configuration_summary(self):
-        """Print complete configuration summary"""
-        print("\n" + "=" * 60)
-        print("REBAR VISTA PIPELINE CONFIGURATION SUMMARY")
-        print("=" * 60)
-        print(f"Server: {self.get_server_url()}")
-        print(f"Camera: {self.CAMERA_WIDTH}x{self.CAMERA_HEIGHT} @ {self.CAMERA_FPS}fps")
-        print(f"Upload: {self.UPLOAD_FOLDER}")
-        print(f"SSL: {'✅' if self.get_ssl_context() else '❌'}")
-        print("\nPipeline Constants:")
-        constants = self.get_pipeline_constants()
-        for key, value in constants.items():
-            print(f"  {key}: {value}")
-        print("\nModel Configuration:")
-        print(f"  Classes: {self.MODEL_CONFIG['class_names']}")
-        print(f"  Count: {self.MODEL_CONFIG['num_classes']}")
-        print(f"  Threshold: {self.MODEL_CONFIG['score_thresh_test']}")
-        print(f"  Expected Detections: {self.MODEL_CONFIG['expected_detections']}")
-        print("=" * 60)
+    def generate_ssl_certificates(self):
+        """Generate mobile-compatible SSL certificates for the current IP address"""
+        try:
+            if not self._check_openssl_available():
+                print("Error: OpenSSL not found. Please install it with:")
+                print("sudo apt install openssl")
+                return False
+            
+            current_ip = self.current_ip
+            cert_dir = os.path.dirname(self.SSL_CERT_PATH)
+            
+            self.ensure_certificate_folder()
+            
+            print(f"Generating mobile-compatible SSL certificates for IP: {current_ip}")
+            
+            # Enhanced certificate configuration with proper key usage for mobile devices
+            cert_config = f"""[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+req_extensions = v3_req
 
-# Create global config instance
+[dn]
+CN = {current_ip}
+O = Rebar Vista Pipeline
+OU = Development
+C = PH
+L = Quezon City
+ST = Metro Manila
+
+[v3_req]
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = @alt_names
+extendedKeyUsage = serverAuth, clientAuth
+
+[alt_names]
+DNS.1 = localhost
+DNS.2 = raspberrypi
+DNS.3 = raspberrypi.local
+DNS.4 = *.local
+DNS.5 = rebar-vista.local
+IP.1 = 127.0.0.1
+IP.2 = {current_ip}
+IP.3 = ::1
+"""
+            
+            config_file = os.path.join(cert_dir, 'ssl.conf')
+            
+            with open(config_file, 'w') as f:
+                f.write(cert_config)
+            
+            print("Generating private key...")
+            result = subprocess.run([
+                'openssl', 'genrsa', '-out', self.SSL_KEY_PATH, '2048'
+            ], capture_output=True, text=True, cwd=cert_dir)
+            
+            if result.returncode != 0:
+                print(f"Error generating private key: {result.stderr}")
+                return False
+            
+            print("Generating certificate signing request...")
+            csr_path = os.path.join(cert_dir, f'{current_ip}.csr')
+            result = subprocess.run([
+                'openssl', 'req', '-new', 
+                '-key', self.SSL_KEY_PATH,
+                '-out', csr_path,
+                '-config', config_file
+            ], capture_output=True, text=True, cwd=cert_dir)
+            
+            if result.returncode != 0:
+                print(f"Error generating CSR: {result.stderr}")
+                return False
+            
+            print("Generating mobile-compatible certificate...")
+            result = subprocess.run([
+                'openssl', 'x509', '-req',
+                '-in', csr_path,
+                '-signkey', self.SSL_KEY_PATH,
+                '-out', self.SSL_CERT_PATH,
+                '-days', '365',
+                '-extensions', 'v3_req',
+                '-extfile', config_file
+            ], capture_output=True, text=True, cwd=cert_dir)
+            
+            if result.returncode != 0:
+                print(f"Error generating certificate: {result.stderr}")
+                return False
+            
+            # Set proper permissions
+            os.chmod(self.SSL_KEY_PATH, 0o600)
+            os.chmod(self.SSL_CERT_PATH, 0o644)
+            
+            # Clean up temporary files
+            if os.path.exists(csr_path):
+                os.remove(csr_path)
+            if os.path.exists(config_file):
+                os.remove(config_file)
+            
+            print(f"✅ Mobile-compatible SSL certificates generated!")
+            print(f"Certificate: {self.SSL_CERT_PATH}")
+            print(f"Private Key: {self.SSL_KEY_PATH}")
+            print(f"Valid for 365 days")
+            
+            # Verify certificate extensions
+            print("Verifying certificate compatibility...")
+            try:
+                result = subprocess.run([
+                    'openssl', 'x509', '-in', self.SSL_CERT_PATH, '-text', '-noout'
+                ], capture_output=True, text=True)
+                
+                if 'serverAuth' in result.stdout:
+                    print("✅ Certificate includes serverAuth extension (required for HTTPS)")
+                if 'digitalSignature' in result.stdout:
+                    print("✅ Certificate includes digitalSignature (required for mobile)")
+                if 'keyEncipherment' in result.stdout:
+                    print("✅ Certificate includes keyEncipherment (required for SSL)")
+                
+                # Check for subject alternative names
+                if f'IP Address:{current_ip}' in result.stdout:
+                    print(f"✅ Certificate includes IP SAN: {current_ip}")
+                
+            except Exception as e:
+                print(f"⚠️  Could not verify certificate: {e}")
+            
+            return True
+            
+        except subprocess.CalledProcessError as e:
+            print(f"Error running OpenSSL command: {e}")
+            return False
+        except Exception as e:
+            print(f"Unexpected error generating SSL certificates: {e}")
+            return False
+    
+    def validate_ssl_certificates(self):
+        """Check if SSL certificates exist and are valid for current IP - ENHANCED VERSION"""
+        cert_exists = os.path.exists(self.SSL_CERT_PATH)
+        key_exists = os.path.exists(self.SSL_KEY_PATH)
+        
+        print(f"🔍 Validating SSL certificates for IP: {self.current_ip}")
+        print(f"   Certificate exists: {cert_exists}")
+        print(f"   Key exists: {key_exists}")
+        
+        # Check if certificates exist
+        if not (cert_exists and key_exists):
+            print(f"❌ SSL certificates missing for IP {self.current_ip}")
+            print("🔄 Generating new certificates...")
+            return self.generate_ssl_certificates()
+        
+        # Verify certificate is for current IP
+        try:
+            print("🔍 Verifying certificate matches current IP...")
+            result = subprocess.run([
+                'openssl', 'x509', '-in', self.SSL_CERT_PATH, '-text', '-noout'
+            ], capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0:
+                cert_content = result.stdout
+                
+                # Check if certificate contains current IP
+                ip_in_cert = f'IP Address:{self.current_ip}' in cert_content
+                
+                if ip_in_cert:
+                    print(f"✅ SSL certificates valid for IP {self.current_ip}")
+                    
+                    # Additional check: verify certificate is not expired
+                    expiry_result = subprocess.run([
+                        'openssl', 'x509', '-in', self.SSL_CERT_PATH, '-checkend', '86400'  # Check if expires in 24h
+                    ], capture_output=True, text=True, timeout=5)
+                    
+                    if expiry_result.returncode == 0:
+                        print("✅ Certificate is not expired")
+                        return True
+                    else:
+                        print("⚠️ Certificate is expired or expiring soon, regenerating...")
+                        return self.force_ssl_regeneration()
+                else:
+                    print(f"⚠️ Certificate is for different IP, regenerating for {self.current_ip}")
+                    
+                    # Show what IPs are in the certificate
+                    ip_lines = [line.strip() for line in cert_content.split('\n') if 'IP Address:' in line]
+                    if ip_lines:
+                        print(f"   Certificate currently contains: {ip_lines}")
+                    
+                    return self.force_ssl_regeneration()
+            else:
+                print(f"⚠️ Could not read certificate: {result.stderr}")
+                return self.force_ssl_regeneration()
+                
+        except subprocess.TimeoutExpired:
+            print("⚠️ Certificate verification timed out, regenerating...")
+            return self.force_ssl_regeneration()
+        except Exception as e:
+            print(f"⚠️ Error verifying certificate: {e}")
+            return self.force_ssl_regeneration()
+        
+        # Fallback: regenerate certificates
+        return self.generate_ssl_certificates()
+    
+    def get_pipeline_config(self):
+        """Get pipeline-specific configuration"""
+        return {
+            'pipeline_mode': self.PIPELINE_MODE,
+            'px_to_cm': self.PX_TO_CM,
+            'offset_cm': self.OFFSET_CM,
+            'mix_ratio': self.MIX_RATIO,
+            'cement_bag_weight': self.CEMENT_BAG_WEIGHT,
+            'water_cement_ratio': self.WATER_CEMENT_RATIO,
+            'dry_volume_factor': self.DRY_VOLUME_FACTOR,
+            'material_densities': {
+                'cement': self.CEMENT_DENSITY,
+                'sand': self.SAND_DENSITY,
+                'gravel': self.GRAVEL_DENSITY
+            },
+            'model_config': self.MODEL_CONFIG,
+            'distance_range': {
+                'min': self.DISTANCE_OPTIMAL_MIN,
+                'max': self.DISTANCE_OPTIMAL_MAX,
+                'unit': 'cm'
+            }
+        }
+    
+    def get_status(self):
+        """Get current configuration status"""
+        return {
+            'ip_address': self.current_ip,
+            'ssl_cert_exists': os.path.exists(self.SSL_CERT_PATH),
+            'ssl_key_exists': os.path.exists(self.SSL_KEY_PATH),
+            'upload_folder_exists': os.path.exists(self.UPLOAD_FOLDER),
+            'openssl_available': self._check_openssl_available(),
+            'ssl_cert_path': self.SSL_CERT_PATH,
+            'ssl_key_path': self.SSL_KEY_PATH,
+            'pipeline_mode': self.PIPELINE_MODE,
+            'camera_resolution': f"{self.CAMERA_WIDTH}x{self.CAMERA_HEIGHT}",
+            'expected_classes': self.MODEL_CONFIG['class_names'],
+            'mix_ratio': f"{self.MIX_RATIO[0]}:{self.MIX_RATIO[1]}:{self.MIX_RATIO[2]}"
+        }
+    
+    def print_status(self):
+        """Print current configuration status"""
+        status = self.get_status()
+        print("\n=== Rebar Vista PIPELINE Configuration Status ===")
+        print(f"Mode: PIPELINE ANALYSIS (Quadrant Intersections)")
+        print(f"IP Address: {status['ip_address']}")
+        print(f"Server Host: {self.HOST}")
+        print(f"Server Port: {self.PORT}")
+        print(f"Camera Resolution: {status['camera_resolution']} (Training Match)")
+        print(f"Expected Classes: {status['expected_classes']}")
+        print(f"Mix Ratio: {status['mix_ratio']}")
+        print(f"PX_TO_CM Factor: {self.PX_TO_CM}")
+        print(f"Offset per side: {self.OFFSET_CM}cm")
+        print(f"Distance Range: {self.DISTANCE_OPTIMAL_MIN}-{self.DISTANCE_OPTIMAL_MAX}cm")
+        print(f"OpenSSL Available: {'✅' if status['openssl_available'] else '❌'}")
+        print(f"SSL Certificate: {'✅' if status['ssl_cert_exists'] else '❌'}")
+        print(f"  Path: {status['ssl_cert_path']}")
+        print(f"SSL Private Key: {'✅' if status['ssl_key_exists'] else '❌'}")
+        print(f"  Path: {status['ssl_key_path']}")
+        print(f"Upload Folder: {'✅' if status['upload_folder_exists'] else '❌'}")
+        print(f"  Path: {self.UPLOAD_FOLDER}")
+        print("\n=== Network Access URLs ===")
+        print(f"🏠 Local access: https://localhost:{self.PORT}")
+        print(f"🌐 Network access: https://{self.current_ip}:{self.PORT}")
+        print(f"📱 Mobile/Tablet: https://{self.current_ip}:{self.PORT}")
+        print(f"🦊 Firefox: https://{self.current_ip}:{self.PORT}")
+        print("========================================\n")
+    
+    def regenerate_certificates(self):
+        """Force regeneration of SSL certificates"""
+        print("🔄 Force regenerating SSL certificates...")
+        
+        # Delete existing certificates
+        try:
+            if os.path.exists(self.SSL_CERT_PATH):
+                os.remove(self.SSL_CERT_PATH)
+                print(f"Deleted old certificate: {self.SSL_CERT_PATH}")
+            if os.path.exists(self.SSL_KEY_PATH):
+                os.remove(self.SSL_KEY_PATH)
+                print(f"Deleted old key: {self.SSL_KEY_PATH}")
+        except Exception as e:
+            print(f"Warning: Could not delete old certificates: {e}")
+        
+        # Generate new certificates
+        return self.generate_ssl_certificates()
+
+# Create a global config instance
 config = Config()
 
-# Validate configuration on import
+# Print status when module is imported (helpful for debugging)
 if __name__ == "__main__":
-    config.print_configuration_summary()
-    config.validate_model_config()
+    config.print_status()
+else:
+    # Only print brief status when imported
+    print(f"PIPELINE Config loaded - IP: {config.current_ip}")
+    print(f"Camera: {config.CAMERA_WIDTH}x{config.CAMERA_HEIGHT}, Mix: {config.MIX_RATIO}")
