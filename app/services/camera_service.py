@@ -176,7 +176,7 @@ class CameraManager:
                 height_set = self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
                 
                 # Use stable frame rate
-                fps_set = self.cap.set(cv2.CAP_PROP_FPS, 30)
+                fps_set = self.cap.set(cv2.CAP_PROP_FPS, 20)
                 
                 # Minimal buffer for lower latency
                 self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -284,7 +284,7 @@ class CameraManager:
                 return None
                 
         except Exception as e:
-            if self.frame_count % 100 == 0:  # Don't spam errors
+            if self.frame_count % 2 == 0:  # Don't spam errors
                 print(f"⚠️  A4Tech camera frame error: {e}")
             return None
     
@@ -432,7 +432,7 @@ def camera_thread_worker(camera_manager):
                         break
             
             # Higher FPS timing for lower latency
-            threading.Event().wait(1.0 / 30.0)  # 30 FPS for real-time feel
+            threading.Event().wait(1.0 / 20.0)  # 30 FPS for real-time feel
             
         except KeyboardInterrupt:
             print("🛑 A4Tech camera thread interrupted")

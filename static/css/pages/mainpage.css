@@ -460,35 +460,19 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100vw;  /* Force viewport width */
+  height: 100vh; /* Force viewport height */
   background: rgba(0, 0, 0, 0.8);
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 300;
-  backdrop-filter: blur(10px);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  z-index: 9999 !important;
 }
 
 .modal-overlay.active {
-  display: flex;
-  opacity: 1;
+  display: flex !important;
 }
 
-.modal-content {
-  background: white;
-  border-radius: 20px;
-  max-width: 90%;
-  max-height: 90%;
-  overflow: auto;
-  color: #333;
-  transform: scale(0.9);
-  transition: transform 0.3s ease;
-}
-
-.modal-overlay.active .modal-content {
-  transform: scale(1);
-}
 
 /* ==================== TUTORIAL MODAL ==================== */
 
@@ -536,6 +520,8 @@ body {
 /* ==================== UPDATED PIPELINE RESULTS MODAL ==================== */
 
 .results-modal .modal-content {
+  background: white !important;
+  background-color: #ffffff;
   width: 900px;
   max-width: 95vw;
   padding: 0;
@@ -694,9 +680,16 @@ body {
 /* ==================== ERROR MODAL ==================== */
 
 .error-modal .modal-content {
-  width: 500px;
+  background: white;
   padding: 40px;
+  border-radius: 12px;
+  max-width: 500px;
+  min-width: 400px;
+  min-height: 300px;
+  width: 90%;
   text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  display: block;
 }
 
 .error-modal .error-icon {

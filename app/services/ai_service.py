@@ -138,6 +138,11 @@ class AIService:
             else:
                 print("⚠️  Model not available, using placeholder")
                 result = self._run_4step_placeholder(image)
+                
+            if not result.get('success', False):
+                
+                print("❌ Analysis failed or no detections - NOT saving any images")
+                return result
             
             # Finalize results and save metadata
             result = self._finalize_analysis_results(result)
@@ -190,6 +195,15 @@ class AIService:
             print(f"Found {len(detections)} detections")
             print(f"Front horizontal: {horizontal_count}, Front vertical: {vertical_count}")
             
+            if len(detections) == 0:
+                print("⚠️  NO DETECTIONS FOUND - Returning error (will NOT save images)")
+                return {
+                    'success': False,
+                    'error': 'no_rebar_detected',
+                    'message': 'No rebar structures detected in the image',
+                    'num_detections': 0
+                }
+                
             # STEP 1 Visualization
             step1_image = self._create_step1_visualization(image, detections)
             
@@ -592,178 +606,6 @@ class AIService:
                 'step4': None,
                 'final': None
             }
-
-    def _run_4step_placeholder(self, image):
-        """Run placeholder 4-step pipeline when model not available"""
-        try:
-            print("📝 Running 4-Step PLACEHOLDER Pipeline...")
-            
-            # Create placeholder step images
-            step1_image = self._create_placeholder_step1(image)
-            step2_image = self._create_placeholder_step2(image)
-            step3_image = self._create_placeholder_step3(image)
-            step4_image = self._create_placeholder_step4(image)
-            
-            # Save step images
-            step_images = self._save_4step_images(step1_image, step2_image, step3_image, step4_image)
-            
-            # Default polygon data
-            polygon_data = {
-                'width_cm': 28.2,
-                'length_cm': 28.2,
-                'height_cm': 56.5,
-                'volume_cm3': 45000,
-                'volume_m3': 0.045
-            }
-            
-            # Default cement data
-            cement_data = {
-                'cement_bags': 2.5,
-                'sand_m3': 0.005,
-                'gravel_m3': 0.010,
-                'water_liters': 53.0
-            }
-            
-            # Format results
-            dimensions = {
-                'length': polygon_data['length_cm'],
-                'width': polygon_data['width_cm'],
-                'height': polygon_data['height_cm'],
-                'unit': 'cm',
-                'volume': polygon_data['volume_cm3'],
-                'display': f"{polygon_data['width_cm']:.0f}cm x {polygon_data['width_cm']:.0f}cm x {polygon_data['height_cm']:.0f}cm = {polygon_data['volume_cm3']:.0f}cm³"
-            }
-            
-            mixture = {
-                'cement': self.MIX_RATIO[0],
-                'sand': self.MIX_RATIO[1],
-                'aggregate': self.MIX_RATIO[2],
-                'ratio_string': f'{self.MIX_RATIO[0]} Cement : {self.MIX_RATIO[1]} Sand : {self.MIX_RATIO[2]} Aggregate',
-                'cement_bags': cement_data['cement_bags'],
-                'sand_volume_m3': cement_data['sand_m3'],
-                'aggregate_volume_m3': cement_data['gravel_m3'],
-                'total_concrete_volume_m3': polygon_data['volume_m3'] * self.DRY_VOLUME_FACTOR
-            }
-            
-            return {
-                'success': True,
-                'placeholder': True,
-                'detections': [
-                    {'class_name': 'front_vertical', 'confidence': 0.85, 'bbox': [100, 50, 120, 300]},
-                    {'class_name': 'front_vertical', 'confidence': 0.82, 'bbox': [180, 50, 200, 300]},
-                    {'class_name': 'front_horizontal', 'confidence': 0.78, 'bbox': [80, 60, 220, 80]}
-                ],
-                'num_detections': 13,  # Expected: 2 verticals + 11 horizontals
-                'dimensions': dimensions,
-                'cement_mixture': mixture,
-                'analyzed_image_path': step_images['final'],
-                'step_images': step_images,
-                'model_type': 'placeholder_4step_pipeline',
-                'pipeline_data': {
-                    'front_horizontal_count': 11,
-                    'front_vertical_count': 2,
-                    'intersection_count': 22,
-                    'polygon_corners': 4
-                }
-            }
-            
-        except Exception as e:
-            print(f"❌ Placeholder pipeline error: {str(e)}")
-            return {
-                'success': False,
-                'error': f'Placeholder pipeline failed: {str(e)}'
-            }
-
-    def _create_placeholder_step1(self, image):
-        """Create placeholder Step 1: Detection"""
-        result_image = image.copy()
-        
-        # Draw placeholder detections
-        # 2 vertical rebars
-        cv2.rectangle(result_image, (100, 50), (120, 300), (255, 0, 0), 2)  # Blue for vertical
-        cv2.rectangle(result_image, (180, 50), (200, 300), (255, 0, 0), 2)  # Blue for vertical
-        
-        # Multiple horizontal rebars
-        for i in range(11):
-            y_pos = 70 + i * 20
-            cv2.rectangle(result_image, (80, y_pos), (220, y_pos + 5), (0, 255, 0), 2)  # Green for horizontal
-        
-        # Add labels
-        cv2.putText(result_image, "front_vertical: 0.85", (100, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
-        cv2.putText(result_image, "front_vertical: 0.82", (180, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
-        cv2.putText(result_image, "front_horizontal: 0.78", (80, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-        
-        # Add title
-        cv2.putText(result_image, "Step 1: REBAR DETECTION", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        
-        return result_image
-
-    def _create_placeholder_step2(self, image):
-        """Create placeholder Step 2: Intersections"""
-        result_image = image.copy()
-        
-        # Draw rebar structure
-        cv2.rectangle(result_image, (100, 50), (120, 300), (128, 128, 128), 1)
-        cv2.rectangle(result_image, (180, 50), (200, 300), (128, 128, 128), 1)
-        
-        # Draw intersections with quadrant colors and labels
-        intersection_points = [
-            (110, 70, 'TL', 'TL-4'), (110, 90, 'TL', 'TL-6'), (110, 110, 'TL', 'TL-8'),
-            (110, 130, 'TL', 'TL-10'), (110, 150, 'TL', 'TL-12'), (110, 170, 'BL', 'BL-14'),
-            (190, 70, 'TR', 'TR-3'), (190, 90, 'TR', 'TR-5'), (190, 110, 'TR', 'TR-7'),
-            (190, 130, 'TR', 'TR-9'), (190, 150, 'TR', 'TR-11'), (190, 170, 'BR', 'BR-13')
-        ]
-        
-        quadrant_colors = {'TL': (0, 255, 0), 'TR': (255, 0, 255), 'BL': (0, 0, 255), 'BR': (255, 0, 0)}
-        
-        for x, y, quadrant, label in intersection_points:
-            color = quadrant_colors[quadrant]
-            cv2.circle(result_image, (x, y), 3, color, -1)
-            cv2.putText(result_image, label, (x+5, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.3, color, 1)
-        
-        # Add title
-        cv2.putText(result_image, "Step 2: QUADRANT INTERSECTIONS", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        
-        return result_image
-
-    def _create_placeholder_step3(self, image):
-        """Create placeholder Step 3: Polygon"""
-        result_image = image.copy()
-        
-        # Draw polygon
-        corners = [(110, 70), (190, 70), (190, 290), (110, 290)]
-        overlay = result_image.copy()
-        pts = np.array(corners, dtype=np.int32)
-        cv2.fillPoly(overlay, [pts], (255, 128, 0))  # Orange polygon
-        result_image = cv2.addWeighted(overlay, 0.3, result_image, 0.7, 0)
-        cv2.polylines(result_image, [pts], True, (0, 255, 255), 3)  # Yellow outline
-        
-        # Add measurements
-        cv2.putText(result_image, "W=28.2cm", (120, 320), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-        cv2.putText(result_image, "H=56.5cm", (30, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-        cv2.putText(result_image, "Vol=0.045m³", (120, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
-        
-        # Add title
-        cv2.putText(result_image, "Step 3: POLYGON + VOLUME", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        
-        return result_image
-
-    def _create_placeholder_step4(self, image):
-        """Create placeholder Step 4: Clean polygon visualization without text overlays"""
-        result_image = image.copy()
-        
-        # Draw clean polygon with masking (no text overlays)
-        corners = [(110, 70), (190, 70), (190, 290), (110, 290)]
-        overlay = result_image.copy()
-        pts = np.array(corners, dtype=np.int32)
-        cv2.fillPoly(overlay, [pts], (0, 128, 255))  # Blue polygon fill
-        result_image = cv2.addWeighted(overlay, 0.3, result_image, 0.7, 0)
-        cv2.polylines(result_image, [pts], True, (0, 255, 0), 3)  # Green outline
-        
-        # NO TEXT OVERLAYS - Clean image for modal display
-        # Cement estimation details will be shown in pipeline details instead
-        
-        return result_image
 
     def _finalize_analysis_results(self, result):
         """

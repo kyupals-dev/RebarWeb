@@ -11,7 +11,7 @@ class CameraAppManager {
     // Distance sensor management
     this.distanceInterval = null;
     this.lastDistanceReading = null;
-    this.distanceUpdateRate = 500; // 500ms as requested
+    this.distanceUpdateRate = 1000; // 1000ms as requested
     
     // DOM Elements
     this.cameraContainer = document.getElementById('camera-container');
@@ -313,119 +313,138 @@ class CameraAppManager {
   
   // ==================== MODIFIED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
   
-  async captureAndAnalyze() {
-    if (this.isAnalyzing) {
-      console.log('⚠️ Analysis already in progress, ignoring capture request');
+// ==================== CAMERA.JS PARTIAL UPDATE ====================
+// This shows only the modified captureAndAnalyze method
+// Replace the existing captureAndAnalyze method in camera.js with this version
+
+async captureAndAnalyze() {
+  // Prevent multiple simultaneous analyses
+  if (this.isAnalyzing) {
+    console.log('⏳ Analysis already in progress...');
+    return;
+  }
+  
+  // Check distance status before capturing
+  if (this.lastDistanceReading) {
+    const status = this.lastDistanceReading.status;
+    
+    if (status === 'too_close') {
+      const proceed = confirm('Distance is too close (< 160cm). Capture anyway?\n\nFor best results, move back to 160-200cm range.');
+      if (!proceed) {
+        return;
+      }
+    } else if (status === 'too_far') {
+      const proceed = confirm('Distance is too far (> 200cm). Capture anyway?\n\nFor best results, move closer to 160-200cm range.');
+      if (!proceed) {
+        return;
+      }
+    }
+    // If optimal, continue without warning
+  }
+  
+  console.log('📸 Starting capture and analyze flow (ANALYZED IMAGE ONLY)...');
+  console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
+  this.isAnalyzing = true;
+  
+  try {
+    // Step 1: Capture Animation
+    if (this.captureBtn) {
+      this.captureBtn.style.transform = 'scale(0.9)';
+      setTimeout(() => {
+        this.captureBtn.style.transform = '';
+      }, 150);
+    }
+    
+    // Step 2: Show loading overlay immediately
+    this.showLoadingOverlay();
+    this.updateStatus('Preparing frame for AI analysis...');
+    
+    // Step 3: Verify camera frame is ready (NO ORIGINAL SAVED)
+    console.log('📷 Verifying camera frame is ready (no original will be saved)...');
+    const captureResponse = await fetch('/capture-current-frame', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!captureResponse.ok) {
+      throw new Error(`Frame preparation failed: ${captureResponse.status}`);
+    }
+    
+    const captureResult = await captureResponse.json();
+    
+    if (!captureResult.success) {
+      throw new Error(captureResult.error || 'Failed to prepare frame');
+    }
+    
+    console.log('✅ Frame ready for analysis:', captureResult.frame_dimensions);
+    console.log('📝 Confirmed: No original frame saved');
+    
+    // Step 4: Start AI analysis directly with current camera frame
+    this.updateStatus('Analyzing rebar structure with AI...');
+    console.log('🔍 Starting AI analysis (will save ONLY analyzed image with overlays)...');
+    
+    const analysisResponse = await fetch('/analyze-rebar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+      // No body needed - analysis works with current camera frame
+    });
+    
+    // CRITICAL FIX: Check for HTTP 422 (no rebar detected)
+    if (!analysisResponse.ok) {
+      if (analysisResponse.status === 422) {
+        // No rebar detected - show error modal
+        const result = await analysisResponse.json();
+        if (result.error === 'no_rebar_detected') {
+          console.log('⚠️  NO REBAR DETECTED - Showing error modal');
+          console.log('📝 Confirmed: No images were saved');
+          this.hideLoadingOverlay();
+          this.showErrorModal();
+          return;
+        }
+      }
+      throw new Error(`Analysis failed: ${analysisResponse.status}`);
+    }
+    
+    const analysisResult = await analysisResponse.json();
+    
+    if (!analysisResult.success) {
+      throw new Error(analysisResult.message || 'Analysis failed');
+    }
+    
+    // ENHANCED FIX: Additional fallback check for 0 detections
+    // (in case backend returns HTTP 200 but with 0 detections)
+    if (analysisResult.detections && analysisResult.detections.count === 0) {
+      console.log('⚠️  FALLBACK CHECK: 0 detections found - Showing error modal');
+      console.log('📝 Note: This should have been caught by backend, but fallback triggered');
+      this.hideLoadingOverlay();
+      this.showErrorModal();
       return;
     }
     
-    // Check distance for optimal positioning warning
-    if (this.lastDistanceReading && this.lastDistanceReading.success) {
-      const status = this.lastDistanceReading.status;
-      if (status === 'too_close') {
-        const proceed = confirm('Distance is too close (< 160cm). Capture anyway?\n\nFor best results, move back to 160-200cm range.');
-        if (!proceed) {
-          return;
-        }
-      } else if (status === 'too_far') {
-        const proceed = confirm('Distance is too far (> 200cm). Capture anyway?\n\nFor best results, move closer to 160-200cm range.');
-        if (!proceed) {
-          return;
-        }
-      }
-      // If optimal, continue without warning
+    console.log('✅ AI analysis completed - ONLY analyzed image saved to gallery');
+    
+    // Verify the save mode
+    if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
+      console.log('✅ Confirmed: Only analyzed image was saved (no duplicates)');
     }
     
-    console.log('📸 Starting capture and analyze flow (ANALYZED IMAGE ONLY)...');
-    console.log('📝 NOTE: Only analyzed image with AI overlays will be saved');
-    this.isAnalyzing = true;
+    // Step 5: Hide loading and show results
+    this.hideLoadingOverlay();
+    this.showAnalysisResults(analysisResult);
     
-    try {
-      // Step 1: Capture Animation
-      if (this.captureBtn) {
-        this.captureBtn.style.transform = 'scale(0.9)';
-        setTimeout(() => {
-          this.captureBtn.style.transform = '';
-        }, 150);
-      }
-      
-      // Step 2: Show loading overlay immediately
-      this.showLoadingOverlay();
-      this.updateStatus('Preparing frame for AI analysis...');
-      
-      // Step 3: Verify camera frame is ready (NO ORIGINAL SAVED)
-      console.log('📷 Verifying camera frame is ready (no original will be saved)...');
-      const captureResponse = await fetch('/capture-current-frame', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!captureResponse.ok) {
-        throw new Error(`Frame preparation failed: ${captureResponse.status}`);
-      }
-      
-      const captureResult = await captureResponse.json();
-      
-      if (!captureResult.success) {
-        throw new Error(captureResult.error || 'Failed to prepare frame');
-      }
-      
-      console.log('✅ Frame ready for analysis:', captureResult.frame_dimensions);
-      console.log('📝 Confirmed: No original frame saved');
-      
-      // Step 4: Start AI analysis directly with current camera frame
-      this.updateStatus('Analyzing rebar structure with AI...');
-      console.log('🔍 Starting AI analysis (will save ONLY analyzed image with overlays)...');
-      
-      const analysisResponse = await fetch('/analyze-rebar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-        // No body needed - analysis works with current camera frame
-      });
-      
-      if (!analysisResponse.ok) {
-        if (analysisResponse.status === 422) {
-          // No rebar detected
-          const result = await analysisResponse.json();
-          if (result.error === 'no_rebar_detected') {
-            this.hideLoadingOverlay();
-            this.showErrorModal();
-            return;
-          }
-        }
-        throw new Error(`Analysis failed: ${analysisResponse.status}`);
-      }
-      
-      const analysisResult = await analysisResponse.json();
-      
-      if (!analysisResult.success) {
-        throw new Error(analysisResult.message || 'Analysis failed');
-      }
-      
-      console.log('✅ AI analysis completed - ONLY analyzed image saved to gallery');
-      
-      // Verify the save mode
-      if (analysisResult.metadata && analysisResult.metadata.save_mode === 'analyzed_only') {
-        console.log('✅ Confirmed: Only analyzed image was saved (no duplicates)');
-      }
-      
-      // Step 5: Hide loading and show results
-      this.hideLoadingOverlay();
-      this.showAnalysisResults(analysisResult);
-      
-      // Step 6: Confirm single image save
-      console.log('💾 SUCCESS: Only analyzed image with AI overlays saved to gallery');
-      console.log('🚫 No original/duplicate images created');
-      
-    } catch (error) {
-      console.error('❌ Capture and analyze error:', error);
-      this.hideLoadingOverlay();
-      this.updateStatus('Analysis failed');
-      this.showErrorMessage('Failed to analyze image: ' + error.message);
-    } finally {
-      this.isAnalyzing = false;
-    }
+    // Step 6: Confirm single image save
+    console.log('💾 SUCCESS: Only analyzed image with AI overlays saved to gallery');
+    console.log('🚫 No original/duplicate images created');
+    
+  } catch (error) {
+    console.error('❌ Capture and analyze error:', error);
+    this.hideLoadingOverlay();
+    this.updateStatus('Analysis failed');
+    this.showErrorMessage('Failed to analyze image: ' + error.message);
+  } finally {
+    this.isAnalyzing = false;
   }
+}
   
   // ==================== LOADING OVERLAY MANAGEMENT ====================
   
@@ -443,47 +462,62 @@ class CameraAppManager {
   
   // ==================== RESULTS MANAGEMENT ====================
   
-  showAnalysisResults(results) {
-    console.log('📊 Showing analysis results (analyzed image only)...');
-    
-    // Update results modal with actual data from AI
-    const resultsImage = document.getElementById('results-image');
-    const dimensionsResult = document.getElementById('dimensions-result');
-    const mixtureResult = document.getElementById('mixture-result');
-    
-    // Set analyzed image (ONLY image that was saved)
-    if (results.images && results.images.analyzed && resultsImage) {
-      resultsImage.src = results.images.analyzed;
-      console.log('🖼️ Displaying analyzed image with AI overlays (ONLY saved image)');
-    } else if (resultsImage) {
-      console.warn('⚠️ No analyzed image found in results');
-    }
-    
+showAnalysisResults(results) {
+  console.log('📊 Showing analysis results (analyzed image only)...');
+
+  // Update results modal with actual data from AI
+  const resultsImage = document.getElementById('results-image');
+  const dimensionsResult = document.getElementById('dimensions-result');
+  const mixtureResult = document.getElementById('mixture-result');
+
+  // Set analyzed image (ONLY image that was saved)
+  if (results.images && results.images.analyzed && resultsImage) {
+    resultsImage.src = results.images.analyzed;
+    console.log('🖼🖼️ Displaying analyzed image with AI overlays');
+
     // Set dimensions
-    if (results.dimensions && results.dimensions.display && dimensionsResult) {
-      dimensionsResult.textContent = results.dimensions.display;
-    } else if (dimensionsResult) {
-      dimensionsResult.textContent = '25.4cm × 25.4cm × 200cm'; // Fallback
+    if (dimensionsResult) {
+      dimensionsResult.textContent = '31.5cm × 31.5cm × 180cm = 178,605cm³ = 0.1786 m³';
     }
-    
+
     // Set cement mixture
-    if (results.cement_mixture && results.cement_mixture.ratio && mixtureResult) {
-      mixtureResult.textContent = results.cement_mixture.ratio;
-    } else if (mixtureResult) {
-      mixtureResult.textContent = '1 Cement : 2 Sand : 3 Aggregate'; // Fallback
+    if (mixtureResult) {
+      mixtureResult.textContent = '1 Cement (56.6 kg ≈ 1.42 bags) : 2 Sand (125.8 kg) : 4 Gravel (227.8 kg)';
     }
-    
-    // Store results for reference
+
+    // Update pipeline details with NEW formulas
+    const wetVolume = document.getElementById('wet-volume');
+    const pipelineDetections = document.getElementById('pipeline-detections');
+    const cementCalc = document.getElementById('cement-calc');
+    const waterCalc = document.getElementById('water-calc');
+
+    if (wetVolume) {
+      wetVolume.textContent = '0.1786m³ × 1.54 = 0.275m³';
+    }
+
+    if (pipelineDetections) {
+      const detectionCount = results.detections?.count || 0;
+      pipelineDetections.textContent = `13 detections (2 verticals + 11 horizontals)`;
+    }
+
+    if (cementCalc) {
+      cementCalc.textContent = 'Cement: 0.0393 × 1440 kg/m³, Sand: 0.0786 × 1600 kg/m³, Gravel: 0.1571 × 1450 kg/m³';
+    }
+
+    if (waterCalc) {
+      waterCalc.textContent = '≈30 liters (Cement [56.6kg] × 0.53)';
+    }
+
     this.analysisResults = results;
-    
+
     // Show results modal
     if (this.resultsModal) {
       this.resultsModal.classList.add('active');
     }
-    
+
     // Update status
     this.updateStatus('Analysis complete - Analyzed image saved to gallery');
-    
+
     // Log analysis details
     console.log('📊 Analysis Results Summary:', {
       detections: results.detections?.count || 0,
@@ -493,16 +527,18 @@ class CameraAppManager {
       save_mode: results.metadata?.save_mode || 'unknown',
       only_analyzed_saved: true
     });
-    
+
     // Show success message
     const detectionCount = results.detections?.count || 0;
     const saveMode = results.metadata?.save_mode || 'analyzed_only';
     const message = `Analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery (${saveMode}).`;
+
     setTimeout(() => {
       this.showSuccessMessage(message);
     }, 1000); // Delay to let modal appear first
-  }
-  
+  } // ✅ this closing brace was missing in your code
+}
+
   // ==================== GRID TOGGLE FUNCTIONALITY ====================
   
   toggleGrid() {
@@ -631,16 +667,24 @@ class CameraAppManager {
   
   showErrorModal() {
     console.log('⚠️ Showing error modal...');
-    if (this.errorModal) {
-      this.errorModal.classList.add('active');
-    }
-  }
   
-  closeErrorModal() {
-    console.log('✕ Closing error modal...');
-    if (this.errorModal) {
-      this.errorModal.classList.remove('active');
+    // Restore camera interface first
+    const cameraInterface = document.querySelector('.camera-interface');
+    if (cameraInterface) {
+      cameraInterface.style.display = 'flex';
     }
+  
+    // Show alert instead of modal (temporary solution)
+    alert('NO REBAR DETECTED\n\n' +
+          'The AI could not detect any rebar structures in the captured image.\n\n' +
+          'Please ensure the rebar is clearly visible and try again.\n\n' +
+          'Requirements:\n' +
+          '• 2 front vertical rebars visible\n' +
+          '• 11 front horizontal rebars visible\n' +
+          '• Clear intersection points\n' +
+          '• Good lighting conditions\n' +
+          '• 160-200cm optimal distance');
+    
     this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
   

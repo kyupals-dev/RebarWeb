@@ -63,32 +63,31 @@ def video_feed():
                 current_frame = camera_manager.get_current_frame()
                 
                 if current_frame is not None:
-                    # Encode frame as JPEG
-                    ret, buffer = cv2.imencode('.jpg', current_frame, 
-                                             [cv2.IMWRITE_JPEG_QUALITY, 85])
-                    if ret:
-                        frame_bytes = buffer.tobytes()
-                        yield (b'--frame\r\n'
-                               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-                        error_count = 0  # Reset error count on success
-                        frame_count += 1
-                        
-                        # Log every 100 frames for debugging
-                        #if frame_count % 100 == 0:
-                            #print(f"Streamed {frame_count} frames")
+                    frame_count += 1
+                    
+                    # Skip every other frame (reduces by 50%)
+                    if frame_count % 2 == 0:  # Change to % 3 for 66% reduction
+                        # Encode frame as JPEG
+                        ret, buffer = cv2.imencode('.jpg', current_frame,
+                                                 [cv2.IMWRITE_JPEG_QUALITY, 95])
+                        if ret:
+                            frame_bytes = buffer.tobytes()
+                            yield (b'--frame\r\n'
+                                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                            error_count = 0
+                        else:
+                            error_count += 1
                     else:
-                        error_count += 1
-                        print(f"Failed to encode frame {frame_count}")
+                        error_count = 0
                 else:
                     error_count += 1
-                    if error_count % 10 == 0:  # Log every 10 errors
+                    if error_count % 10 == 0:
                         print(f"No frame available for streaming (error count: {error_count})")
-                
-                # If too many consecutive errors, break the stream
+                        
                 if error_count >= max_errors:
                     print(f"Too many streaming errors ({error_count}), stopping stream")
                     break
-                
+                    
                 threading.Event().wait(1.0 / config.CAMERA_FPS)
                 
             except Exception as e:
@@ -96,8 +95,8 @@ def video_feed():
                 error_count += 1
                 if error_count >= max_errors:
                     break
-                threading.Event().wait(0.1)  # Brief pause on error
-    
+                threading.Event().wait(0.1)
+                         
     return Response(generate_frames(), 
                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
