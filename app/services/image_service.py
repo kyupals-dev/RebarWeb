@@ -27,7 +27,14 @@ class ImageService:
                filename.rsplit('.', 1)[1].lower() in self.allowed_extensions
     
     def _is_analyzed_image(self, filename):
-        """Check if filename indicates an analyzed image with AI overlays"""
+        """
+        Check if filename indicates an analyzed image with AI overlays
+        FIXED: Exclude step images from gallery - they're for modal details only
+        """
+        
+        if self._is_step_image(filename):
+            return False
+            
         analyzed_prefixes = [
             'analyzed_rebar_',         # Real model results
             'analyzed_placeholder_',   # Placeholder results

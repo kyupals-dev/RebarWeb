@@ -1,14 +1,14 @@
-# Improvements for app/routes/camera_routes.py
+# app/routes/camera_routes.py
+# Complete camera routes with MJPEG streaming optimization and all endpoints
 
 from flask import Blueprint, Response, jsonify, request
 import threading
 import cv2
+import time
 from app.utils.config import config
 
-# Create a Blueprint for camera routes
 camera_bp = Blueprint('camera', __name__)
 
-# This will be injected when the blueprint is registered
 camera_manager = None
 image_service = None
 
@@ -37,22 +37,27 @@ def _validate_services():
 
 @camera_bp.route('/video_feed')
 def video_feed():
-    """Stream video feed from camera with service validation"""
-    # Check if camera manager is available
+    """Stream video feed using MJPEG with optimizations"""
     if not camera_manager:
         print("Video feed requested but camera manager not available")
         return "Camera service not available", 503
     
-    # Check camera status
     status = camera_manager.get_status()
     if not status['is_running']:
         print("Video feed requested but camera not running")
         return "Camera not running", 503
     
     def generate_frames():
+        """Generate frames with adaptive quality and frame skipping"""
         frame_count = 0
         error_count = 0
         max_errors = 10
+        last_frame_time = time.time()
+        target_interval = 1.0 / config.CAMERA_FPS  # Target time between frames
+        
+        # Adaptive JPEG quality based on network conditions
+        jpeg_quality = 85
+        consecutive_slow_frames = 0
         
         while True:
             try:
@@ -60,45 +65,85 @@ def video_feed():
                     print("Camera manager unavailable or stopped during streaming")
                     break
                 
+                # Frame rate control - only send frame if enough time has passed
+                current_time = time.time()
+                elapsed = current_time - last_frame_time
+                
+                if elapsed < target_interval:
+                    # Sleep for remaining time to maintain target FPS
+                    time.sleep(target_interval - elapsed)
+                    current_time = time.time()
+                
                 current_frame = camera_manager.get_current_frame()
                 
                 if current_frame is not None:
-                    frame_count += 1
+                    # Adaptive quality: reduce quality if encoding is slow
+                    if consecutive_slow_frames > 3:
+                        jpeg_quality = max(70, jpeg_quality - 5)
+                        consecutive_slow_frames = 0
+                        print(f"Reducing JPEG quality to {jpeg_quality} for better performance")
                     
-                    # Skip every other frame (reduces by 50%)
-                    if frame_count % 2 == 0:  # Change to % 3 for 66% reduction
-                        # Encode frame as JPEG
-                        ret, buffer = cv2.imencode('.jpg', current_frame,
-                                                 [cv2.IMWRITE_JPEG_QUALITY, 95])
-                        if ret:
-                            frame_bytes = buffer.tobytes()
-                            yield (b'--frame\r\n'
-                                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-                            error_count = 0
-                        else:
-                            error_count += 1
-                    else:
+                    # Encode frame with current quality setting
+                    encode_start = time.time()
+                    ret, buffer = cv2.imencode('.jpg', current_frame, 
+                                             [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
+                    encode_time = time.time() - encode_start
+                    
+                    if ret:
+                        frame_bytes = buffer.tobytes()
+                        
+                        # Send frame in MJPEG format
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n'
+                               b'Content-Length: ' + str(len(frame_bytes)).encode() + b'\r\n\r\n' 
+                               + frame_bytes + b'\r\n')
+                        
                         error_count = 0
+                        frame_count += 1
+                        last_frame_time = current_time
+                        
+                        # Monitor encoding performance
+                        if encode_time > target_interval:
+                            consecutive_slow_frames += 1
+                        else:
+                            consecutive_slow_frames = max(0, consecutive_slow_frames - 1)
+                        
+                        # Periodic logging (every 300 frames = ~10 seconds at 30fps)
+                        if frame_count % 300 == 0:
+                            print(f"📹 Streamed {frame_count} frames (Quality: {jpeg_quality})")
+                    else:
+                        error_count += 1
+                        print(f"Failed to encode frame {frame_count}")
                 else:
                     error_count += 1
-                    if error_count % 10 == 0:
-                        print(f"No frame available for streaming (error count: {error_count})")
-                        
-                if error_count >= max_errors:
-                    print(f"Too many streaming errors ({error_count}), stopping stream")
-                    break
-                    
-                threading.Event().wait(1.0 / config.CAMERA_FPS)
+                    if error_count % 50 == 0:
+                        print(f"No frame available (error count: {error_count})")
                 
+                if error_count >= max_errors:
+                    print(f"Too many errors ({error_count}), stopping stream")
+                    break
+                
+            except GeneratorExit:
+                # Client disconnected - clean exit
+                print(f"Client disconnected from video feed after {frame_count} frames")
+                break
             except Exception as e:
                 print(f"Error in video stream: {e}")
                 error_count += 1
                 if error_count >= max_errors:
                     break
-                threading.Event().wait(0.1)
-                         
-    return Response(generate_frames(), 
-                   mimetype='multipart/x-mixed-replace; boundary=frame')
+                time.sleep(0.1)
+    
+    return Response(
+        generate_frames(),
+        mimetype='multipart/x-mixed-replace; boundary=frame',
+        headers={
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Connection': 'keep-alive'
+        }
+    )
 
 @camera_bp.route('/capture-current-frame', methods=['POST'])
 def capture_current_frame():
@@ -161,4 +206,67 @@ def camera_status():
         return jsonify({
             'success': False,
             'error': str(e)
+        }), 500
+
+@camera_bp.route('/start-camera', methods=['POST'])
+def start_camera():
+    """Start camera with validation"""
+    try:
+        validation_error = _validate_services()
+        if validation_error:
+            return validation_error
+        
+        result = camera_manager.start_camera()
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error starting camera: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to start camera: {str(e)}'
+        }), 500
+
+@camera_bp.route('/stop-camera', methods=['POST'])
+def stop_camera():
+    """Stop camera with validation"""
+    try:
+        validation_error = _validate_services()
+        if validation_error:
+            return validation_error
+        
+        result = camera_manager.stop_camera()
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error stopping camera: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to stop camera: {str(e)}'
+        }), 500
+
+@camera_bp.route('/restart-camera', methods=['POST'])
+def restart_camera():
+    """Restart camera with validation"""
+    try:
+        validation_error = _validate_services()
+        if validation_error:
+            return validation_error
+        
+        # Stop camera
+        stop_result = camera_manager.stop_camera()
+        if not stop_result['success']:
+            return jsonify(stop_result), 500
+        
+        # Wait a moment
+        threading.Event().wait(0.5)
+        
+        # Start camera
+        start_result = camera_manager.start_camera()
+        return jsonify(start_result)
+        
+    except Exception as e:
+        print(f"Error restarting camera: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to restart camera: {str(e)}'
         }), 500

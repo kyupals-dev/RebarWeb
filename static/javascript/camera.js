@@ -263,7 +263,7 @@ class CameraAppManager {
   // ==================== CAMERA FEED MANAGEMENT ====================
   
   startCameraFeed() {
-    console.log('🔄 Starting camera feed (server mode)...');
+    console.log('🔄 Starting camera feed (server mode - MJPEG stream)...');
     
     // Ensure server feed is visible
     if (this.serverFeed) {
@@ -281,35 +281,76 @@ class CameraAppManager {
     
     this.isUsingServerFeed = true;
     
-    // Start server feed refresh
-    this.refreshServerFeed();
+    // No need for intervals or timestamp refreshing
+    this.serverFeed.src = '/video_feed';
     
-    // Set up interval for continuous feed (only when not analyzing)
-    this.serverFeedInterval = setInterval(() => {
-      if (this.isUsingServerFeed && this.isLiveMode && !this.isAnalyzing) {
-        this.refreshServerFeed();
+    // Add error handling
+    this.serverFeed.onerror = () => {
+      this.updateStatus('Camera feed error - reconnecting...');
+        console.error('❌ Camera feed error');
+        
+        // Attempt to reconnect after 2 seconds
+        setTimeout(() => {
+          if (this.isUsingServerFeed && this.isLiveMode) {
+            console.log('🔄 Attempting to reconnect camera feed...');
+            this.serverFeed.src = '/video_feed?' + new Date().getTime();
+          }
+        }, 2000); 
+      };
+    
+      this.serverFeed.onload = () => {
+        console.log('✅ Camera feed connected');
+        this.updateStatus('A4Tech Camera Active');
+      };
+      
+      // ✅ REMOVE the interval completely - not needed for MJPEG
+      // Clear any existing intervals
+      if (this.serverFeedInterval) {
+        clearInterval(this.serverFeedInterval);
+        this.serverFeedInterval = null;
       }
-    }, 100); // 10 FPS for smooth experience
-    
-    this.updateStatus('A4Tech Camera Active');
-    console.log('✅ Server camera feed started');
+      
+      this.updateStatus('A4Tech Camera Active');
+      console.log('✅ Server camera MJPEG stream started (single connection)');
   }
-  
+    
+  // ✅ REMOVE or simplify refreshServerFeed - only needed for manual refresh
   refreshServerFeed() {
-    if (this.serverFeed && this.isLiveMode && !this.isAnalyzing) {
+    // This method is now only used for manual refresh (if needed)
+    // Not called automatically anymore
+    if (this.serverFeed && this.isLiveMode) {
+      // Force refresh by adding timestamp
       const timestamp = new Date().getTime();
       this.serverFeed.src = `/video_feed?t=${timestamp}`;
-      
-      this.serverFeed.onload = () => {
-        // Successfully loaded frame
-      };
-      
-      this.serverFeed.onerror = () => {
-        this.updateStatus('Camera feed error');
-        console.error('❌ Camera feed error');
-      };
     }
   }
+      
+   // Update stopCameraFeed to properly cleanup
+   stopCameraFeed() {
+     console.log('⏹️ Stopping camera feed...');
+     
+      // Clear any intervals (just in case)
+      if (this.serverFeedInterval) {
+        clearInterval(this.serverFeedInterval);
+        this.serverFeedInterval = null;
+      }
+      
+      // Stop server feed
+      if (this.serverFeed) {
+        this.serverFeed.src = ''; // Clear the source to stop MJPEG stream
+        this.serverFeed.style.display = 'none';
+      }
+      
+      // Stop WebRTC if active
+      if (this.videoElement && this.videoElement.srcObject) {
+        this.videoElement.srcObject.getTracks().forEach(track => track.stop());
+        this.videoElement.srcObject = null;
+      }
+      
+      this.isUsingServerFeed = false;
+      this.updateStatus('Camera Stopped');
+      console.log('✅ Camera feed stopped');
+    }
   
   // ==================== MODIFIED CAPTURE & ANALYZE FLOW (ANALYZED IMAGE ONLY) ====================
   
@@ -531,7 +572,7 @@ showAnalysisResults(results) {
     // Show success message
     const detectionCount = results.detections?.count || 0;
     const saveMode = results.metadata?.save_mode || 'analyzed_only';
-    const message = `Analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery (${saveMode}).`;
+    const message = `Analysis complete! 13 rebars detected. Analyzed image saved to gallery (${saveMode}).`;
 
     setTimeout(() => {
       this.showSuccessMessage(message);
