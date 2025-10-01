@@ -110,7 +110,7 @@ class DistanceService:
         """Main monitoring loop (runs in background thread)"""
         print("📏 Distance monitoring loop started")
         consecutive_errors = 0
-        max_errors = 10
+        max_errors = 15  # Increased from 10 to give more recovery chances
         
         while self.is_running:
             try:
@@ -124,6 +124,10 @@ class DistanceService:
                 else:
                     # Real sensor reading
                     if self.sensor and self.sensor_available:
+                        # Check if sensor is still valid
+                        if hasattr(self.sensor, 'closed') and self.sensor.closed:
+                            raise Exception("DistanceSensor is closed or uninitialized")
+                        
                         distance_m = self.sensor.distance
                         distance_cm = distance_m * 100  # Convert to cm
                         
@@ -155,6 +159,36 @@ class DistanceService:
                 consecutive_errors += 1
                 if consecutive_errors % 5 == 0:  # Log every 5 errors
                     print(f"⚠️  Distance sensor error: {e}")
+                
+                # Try to recover if sensor is closed (before hitting max errors)
+                if consecutive_errors < max_errors and ("closed" in str(e).lower() or "uninitialized" in str(e).lower()):
+                    print("🔄 Attempting to reinitialize sensor...")
+                    try:
+                        # Close old sensor if it exists
+                        if self.sensor:
+                            try:
+                                self.sensor.close()
+                            except:
+                                pass
+                        
+                        # Small delay before reinitializing
+                        time.sleep(0.5)
+                        
+                        # Reinitialize
+                        self.sensor = DistanceSensor(echo=24, trigger=23)
+                        
+                        # Quick test
+                        test_distance = self.sensor.distance * 100
+                        if 0 < test_distance < 1000:
+                            print("✅ Sensor reinitialized successfully")
+                            consecutive_errors = 0  # Reset error count on successful recovery
+                            self.sensor_available = True
+                        else:
+                            raise Exception("Test reading failed")
+                            
+                    except Exception as reinit_error:
+                        print(f"❌ Reinitialization failed: {reinit_error}")
+                        # Don't reset consecutive_errors, let it continue to accumulate
                 
                 if consecutive_errors >= max_errors:
                     print("❌ Too many sensor errors, switching to simulation")
