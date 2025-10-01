@@ -380,11 +380,15 @@ function goToPage(page) {
 function openModal(filename, url, captured) {
   const modal = document.getElementById('image-modal');
   const modalImage = document.getElementById('modal-image');
+  
+  //Pipeline data fields
   const modalDimensions = document.getElementById('modal-dimensions');
   const modalMixture = document.getElementById('modal-mixture');
   const modalAnalysisDate = document.getElementById('modal-analysis-date');
   const modalDetections = document.getElementById('modal-detections');
-  const modalModelType = document.getElementById('modal-model-type');
+  const modalWetVolume = document.getElementById('modal-wet-volume');
+  const modalMaterialQuantities = document.getElementById('modal-material-quantities');
+  const modalWaterRequirement = document.getElementById('modal-water-requirement');
   
   if (!modal || !modalImage) {
     console.error('Modal elements not found');
@@ -403,21 +407,19 @@ function openModal(filename, url, captured) {
   modalImage.alt = `Analyzed image: ${filename}`;
   
   // Set default values (will be replaced by metadata if available)
-  if (modalDimensions) modalDimensions.textContent = '32cm × 32cm × 393cm';
-  if (modalMixture) modalMixture.textContent = '1 Cement : 2 Sand : 4 Aggregate'; // FIXED: 1:2:4 ratio
-  if (modalAnalysisDate) modalAnalysisDate.textContent = captured || 'Unknown';
-  if (modalDetections) modalDetections.textContent = '12 detections';
-  
-  // Determine model type from filename
-  let modelType = 'AI Analysis';
-  if (filename.startsWith('simplified_analysis_')) {
-    modelType = 'Simplified Front Detection (2V + 11H)';
-    if (modalDetections) modalDetections.textContent = '2 Verticals + 10 Horizontals';
-  } else if (filename.startsWith('analyzed_rebar_')) {
-    modelType = 'Full Detectron2 Model';
+  if (modalDimensions) modalDimensions.textContent = '31.5cm × 31.5cm × 180cm = 178,605cm³ = 0.1786 m³';
+  if (modalMixture) modalMixture.textContent = '1 Cement (56.6 kg ≈ 1.42 bags) : 2 Sand (125.8 kg)  : 4 Gravel (227.8 kg)'; // FIXED: 1:2:4 ratio
+  if (modalDetections) modalDetections.textContent = '13 detections (2 verticals + 11 horizontals)';
+  if (modalWetVolume) modalWetVolume.textContent = '0.1786m³ × 1.54 = 0.275m³';
+  if (modalMaterialQuantities) modalMaterialQuantities.textContent = 'Cement: 0.0393 × 1440 kg/m³, Sand: 0.0786 × 1600 kg/m³, Gravel: 0.1571 × 1450 kg/m³';
+  if (modalWaterRequirement) modalWaterRequirement.textContent = '≈30 liters (Cement [56.6kg] × 0.53)';
+  if (modalAnalysisDate) {
+    if (captured) {
+      modalAnalysisDate.textContent = captured;
+    } else {
+      modalAnalysisDate.textContent = new Date().toLocalString();
+    }
   }
-  
-  if (modalModelType) modalModelType.textContent = modelType;
   
   // Try to get detailed metadata
   fetchImageMetadata(filename);
@@ -426,7 +428,7 @@ function openModal(filename, url, captured) {
   modal.classList.add('active');
   document.body.style.overflow = 'hidden'; // Prevent background scrolling
   
-  console.log('Modal opened for analyzed image:', filename);
+  console.log('Modal opened with pipeline data for:', filename);
 }
 
 async function fetchImageMetadata(filename) {
@@ -441,23 +443,13 @@ async function fetchImageMetadata(filename) {
         
         // Update modal with detailed metadata
         const modalAnalysisDate = document.getElementById('modal-analysis-date');
-        const modalDetections = document.getElementById('modal-detections');
-        const modalModelType = document.getElementById('modal-model-type');
         
         if (modalAnalysisDate && metadata.timestamp) {
           const date = new Date(metadata.timestamp).toLocaleString();
           modalAnalysisDate.textContent = date;
         }
         
-        if (modalDetections && metadata.analysis_type) {
-          modalDetections.textContent = metadata.model_info || 'Analysis Complete';
-        }
-        
-        if (modalModelType && metadata.analysis_type) {
-          modalModelType.textContent = metadata.analysis_type;
-        }
-        
-        console.log('Updated modal with metadata:', metadata.analysis_type);
+        console.log('Updated analysis date from metadata');
       }
     }
   } catch (error) {

@@ -85,7 +85,7 @@
   <div id="image-modal" class="modal-overlay" onclick="closeModal()">
     <div class="modal-content results-modal-content" onclick="event.stopPropagation()">
       <div class="modal-header results-header">
-        <h3 class="modal-title">Rebar Analysis Results</h3>
+        <h3 class="modal-title">Rebar Pipeline Analysis Results</h3>
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
       
@@ -95,31 +95,39 @@
           <img id="modal-image" src="" alt="Analysis Result" class="results-image">
         </div>
         
-        <!-- UPDATED: Analysis Data Display (matching main page with 1:2:4 ratio) -->
-        <div class="results-data">
-          <div class="result-card">
+        <!-- Pipeling Data Display -->
+        <div class="pipeline-results-data">
+          <div class="pipeline-result-card">
             <h3>Rebar Dimensions</h3>
-            <div class="result-value" id="modal-dimensions">32cm × 32cm × 393cm</div>
+            <div class="pipeline-result-value" id="modal-dimensions">31.5cm × 31.5cm × 180cm = 178,605cm³ = 0.1786 m³</div>
           </div>
-          <div class="result-card">
+          <div class="pipeline-result-card">
             <h3>Cement Mixture Ratio</h3>
-            <div class="result-value" id="modal-mixture">1 Cement : 2 Sand : 4 Aggregate</div>
+            <div class="pipeline-result-value" id="modal-mixture">1 Cement (56.6 kg ≈ 1.42 bags) : 2 Sand (125.8 kg)  : 4 Gravel (227.8 kg)</div>
           </div>
         </div>
         
-        <!-- UPDATED: Additional Analysis Details -->
-        <div class="analysis-details">
-          <div class="detail-row">
-            <span class="detail-label">Analysis Date:</span>
-            <span id="modal-analysis-date" class="detail-value">-</span>
+        <!-- UPDATED: Additional Pipeline Details -->
+        <div class="pipeline-details">
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Analysis Date:</span>
+            <span id="modal-analysis-date" class="pipeline-detail-value">-</span>
           </div>
-          <div class="detail-row">
-            <span class="detail-label">Detections Found:</span>
-            <span id="modal-detections" class="detail-value">-</span>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Detections Found:</span>
+            <span id="modal-detection" class="pipeline-detail-value">13 detections (2 verticals + 11 horizontals)</span>
           </div>
-          <div class="detail-row">
-            <span class="detail-label">Model Type:</span>
-            <span id="modal-model-type" class="detail-value">-</span>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Wet Volume Calculation:</span>
+            <span id="modal-wet-volune" class="pipeline-detail-value">0.1786m³ × 1.54 = 0.275m³</span>
+          </div>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Material Quantities:</span>
+            <span id="cement-calc" class="pipeline-detail-value">Cement: 0.0393 × 1440 kg/m³, Sand: 0.0786 × 1600 kg/m³, Gravel: 0.1571 × 1450 kg/m³</span>
+          </div>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Water Requirement:</span>
+            <span id="water-calc" class="pipeline-detail-value">≈30 liters (Cement [56.6kg] × 0.53)</span>
           </div>
         </div>
       </div>
@@ -140,3 +148,5 @@
   <script src="{{ url_for('static', filename='javascript/result.js') }}"></script>
 </body>
 </html>
+
+
