@@ -370,12 +370,12 @@ async captureAndAnalyze() {
     const status = this.lastDistanceReading.status;
     
     if (status === 'too_close') {
-      const proceed = confirm('Distance is too close (< 160cm). Capture anyway?\n\nFor best results, move back to 200cm range.');
+      const proceed = confirm('Distance is too close. Capture anyway?\n\nFor best results, move back to 200cm range.');
       if (!proceed) {
         return;
       }
     } else if (status === 'too_far') {
-      const proceed = confirm('Distance is too far (> 200cm). Capture anyway?\n\nFor best results, move closer to 200cm range.');
+      const proceed = confirm('Distance is too far. Capture anyway?\n\nFor best results, move closer to 200cm range.');
       if (!proceed) {
         return;
       }
@@ -720,11 +720,8 @@ showAnalysisResults(results) {
           'The AI could not detect any rebar structures in the captured image.\n\n' +
           'Please ensure the rebar is clearly visible and try again.\n\n' +
           'Requirements:\n' +
-          '• 2 front vertical rebars visible\n' +
-          '• 11 front horizontal rebars visible\n' +
-          '• Clear intersection points\n' +
-          '• Good lighting conditions\n' +
-          '• 160-200cm optimal distance');
+          '• Visible rebar structure\n' +
+          '• 200cm optimal distance');
     
     this.updateStatus('Ready for next capture (analyzed image only mode)');
   }
