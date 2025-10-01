@@ -370,12 +370,12 @@ async captureAndAnalyze() {
     const status = this.lastDistanceReading.status;
     
     if (status === 'too_close') {
-      const proceed = confirm('Distance is too close (< 160cm). Capture anyway?\n\nFor best results, move back to 160-200cm range.');
+      const proceed = confirm('Distance is too close (< 160cm). Capture anyway?\n\nFor best results, move back to 200cm range.');
       if (!proceed) {
         return;
       }
     } else if (status === 'too_far') {
-      const proceed = confirm('Distance is too far (> 200cm). Capture anyway?\n\nFor best results, move closer to 160-200cm range.');
+      const proceed = confirm('Distance is too far (> 200cm). Capture anyway?\n\nFor best results, move closer to 200cm range.');
       if (!proceed) {
         return;
       }
