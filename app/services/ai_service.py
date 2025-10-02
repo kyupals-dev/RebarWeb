@@ -136,8 +136,12 @@ class AIService:
             if self.model_loaded and DETECTRON2_AVAILABLE:
                 result = self._run_4step_pipeline(image)
             else:
-                print("⚠️  Model not available, using placeholder")
-                result = self._run_4step_placeholder(image)
+                print("⚠️  Model not available - Cannot analyze")
+                return {
+                    'success': False,
+                    'error': 'model_not_loaded',
+                    'message': 'AI model is not loaded. Please ensure Detectron2 is installed and model file exists.'
+                }
                 
             if not result.get('success', False):
                 

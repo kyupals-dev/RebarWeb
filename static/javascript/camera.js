@@ -518,12 +518,12 @@ showAnalysisResults(results) {
 
     // Set dimensions
     if (dimensionsResult) {
-      dimensionsResult.textContent = '31.5cm × 31.5cm × 180cm = 178,605cm³ = 0.1786 m³';
+      dimensionsResult.textContent = '30.5cm × 30.5cm × 180cm = 167,445cm³ = 0.167445m³';
     }
 
     // Set cement mixture
     if (mixtureResult) {
-      mixtureResult.textContent = '1 Cement (56.6 kg ≈ 1.42 bags) : 2 Sand (125.8 kg) : 4 Gravel (227.8 kg)';
+      mixtureResult.textContent = '1 Cement (53.136 kg ≈ 1.33 bags) : 2 Sand (117.92 kg) : 4 Gravel (213.73 kg)';
     }
 
     // Update pipeline details with NEW formulas
@@ -533,7 +533,7 @@ showAnalysisResults(results) {
     const waterCalc = document.getElementById('water-calc');
 
     if (wetVolume) {
-      wetVolume.textContent = '0.1786m³ × 1.54 = 0.275m³';
+      wetVolume.textContent = '0.167445m³ × 1.54 = 0.2578653m³';
     }
 
     if (pipelineDetections) {
@@ -542,11 +542,11 @@ showAnalysisResults(results) {
     }
 
     if (cementCalc) {
-      cementCalc.textContent = 'Cement: 0.0393 × 1440 kg/m³, Sand: 0.0786 × 1600 kg/m³, Gravel: 0.1571 × 1450 kg/m³';
+      cementCalc.textContent = 'Cement: 0.0369 × 1440 kg/m³, Sand: 0.0737 × 1600 kg/m³, Gravel: 0.1474 × 1450 kg/m³';
     }
 
     if (waterCalc) {
-      waterCalc.textContent = '≈30 liters (Cement [56.6kg] × 0.53)';
+      waterCalc.textContent = '≈28.2 liters (Cement [53.136kg] × 0.53)';
     }
 
     this.analysisResults = results;

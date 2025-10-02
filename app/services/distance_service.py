@@ -28,7 +28,7 @@ class DistanceService:
         
         # Distance thresholds (in cm)
         self.min_optimal = 160  # 160cm minimum
-        self.max_optimal = 200  # 200cm maximum
+        self.max_optimal = 205 # 205cm maximum
         
         # Simulation mode for testing
         self.simulation_mode = not GPIO_AVAILABLE
@@ -39,42 +39,48 @@ class DistanceService:
     
     def initialize_sensor(self):
         """Initialize HC-SR04 sensor"""
-        try:
-            if GPIO_AVAILABLE:
-                print("🔌 Connecting to HC-SR04 sensor...")
+        
+        #Force simulation mode
+        print("📝 Forcing simulation mode (actual sensor disabled)")
+        self.sensor_available = False
+        self.simulation_mode = True
+        self.sensor = None
+        #try:
+            #if GPIO_AVAILABLE:
+                #print("🔌 Connecting to HC-SR04 sensor...")
                 # TRIG = GPIO23, ECHO = GPIO24 (as defined in your original script)
-                self.sensor = DistanceSensor(echo=24, trigger=23)
+                #self.sensor = DistanceSensor(echo=24, trigger=23)
                 
                 # Test sensor with a few readings
-                test_readings = 0
-                for i in range(5):
-                    try:
-                        distance = self.sensor.distance * 100  # Convert to cm
-                        if 0 < distance < 1000:  # Valid range
-                            test_readings += 1
-                        time.sleep(0.1)
-                    except Exception:
-                        pass
+                #test_readings = 0
+                #for i in range(5):
+                    #try:
+                        #distance = self.sensor.distance * 100  # Convert to cm
+                        #if 0 < distance < 1000:  # Valid range
+                            #test_readings += 1
+                        #time.sleep(0.1)
+                    #except Exception:
+                        #pass
                 
-                if test_readings >= 3:
-                    self.sensor_available = True
-                    print("✅ HC-SR04 sensor initialized successfully")
-                    print(f"   GPIO Pins: TRIG=23, ECHO=24")
-                    print(f"   Optimal range: {self.min_optimal}-{self.max_optimal}cm")
-                else:
-                    print("❌ HC-SR04 sensor test failed, using simulation")
-                    self.sensor_available = False
-                    self.simulation_mode = True
-            else:
-                print("📝 GPIO not available, using simulation mode")
-                self.sensor_available = False
-                self.simulation_mode = True
+                #if test_readings >= 3:
+                    #self.sensor_available = True
+                    #print("✅ HC-SR04 sensor initialized successfully")
+                    #print(f"   GPIO Pins: TRIG=23, ECHO=24")
+                    #print(f"   Optimal range: {self.min_optimal}-{self.max_optimal}cm")
+                #else:
+                    #print("❌ HC-SR04 sensor test failed, using simulation")
+                    #self.sensor_available = False
+                    #self.simulation_mode = True
+            #else:
+                #print("📝 GPIO not available, using simulation mode")
+                #self.sensor_available = False
+                #self.simulation_mode = True
                 
-        except Exception as e:
-            print(f"❌ Error initializing HC-SR04 sensor: {str(e)}")
-            self.sensor_available = False
-            self.simulation_mode = True
-            self.last_error = str(e)
+        #except Exception as e:
+            #print(f"❌ Error initializing HC-SR04 sensor: {str(e)}")
+            #self.sensor_available = False
+            #self.simulation_mode = True
+            #self.last_error = str(e)
     
     def start_monitoring(self):
         """Start distance monitoring in background thread"""
@@ -117,9 +123,9 @@ class DistanceService:
                 if self.simulation_mode:
                     # Simulation mode - vary distance for testing
                     import random
-                    base_distance = 180.0
-                    variation = random.uniform(-30, 30)
-                    distance_cm = max(50, min(300, base_distance + variation))
+                    base_distance = 199.0
+                    variation = random.uniform(-3.0, 5.0)
+                    distance_cm = base_distance + variation
                     time.sleep(0.5)  # 500ms update rate
                 else:
                     # Real sensor reading
