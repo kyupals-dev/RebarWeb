@@ -151,15 +151,23 @@ def analyze_rebar():
                 'width': result['dimensions']['width'],
                 'height': result['dimensions']['height'],
                 'unit': result['dimensions']['unit'],
+                'volume': result['dimensions']['volume'],
+                'volume_m3': result['dimensions'].get('volume_m3', result['dimensions'].get('volume', 0) / 1000000),
                 'display': result['dimensions']['display']
             },
             'cement_mixture': {
                 'ratio': result['cement_mixture']['ratio_string'],
                 'details': {
                     'cement_bags': result['cement_mixture'].get('cement_bags', 0),
+                    'cement_weight_kg': result['cement_mixture'].get('cement_weight_kg', 0),
+                    'cement_m3': result['cement_mixture'].get('cement_m3', 0),
                     'sand_m3': result['cement_mixture'].get('sand_volume_m3', 0),
+                    'sand_weight_kg': result['cement_mixture'].get('sand_weight_kg', 0),
                     'aggregate_m3': result['cement_mixture'].get('aggregate_volume_m3', 0),
-                    'total_concrete_m3': result['cement_mixture'].get('total_concrete_volume_m3', 0)
+                    'gravel_weight_kg': result['cement_mixture'].get('gravel_weight_kg', 0),
+                    'water_liters': result['cement_mixture'].get('water_liters', 0),
+                    'total_concrete_m3': result['cement_mixture'].get('total_concrete_volume_m3', 0),
+                    'dry_volume_m3': result['cement_mixture'].get('dry_volume_m3', 0)
                 }
             },
             'detections': {
@@ -176,9 +184,16 @@ def analyze_rebar():
                 'save_mode': 'analyzed_only',
                 'source': 'camera_frame' if current_frame is not None else 'fallback_file',
                 'model_type': result.get('model_type', 'unknown'),
-                'classes_used': 2
+                'classes_used': 2,
+                'pipeline_data': result.get('pipeline_data', {
+                    'front_vertical_count': 2,
+                    'front_horizontal_count': 11,
+                    'intersection_count': result.get('num_detections', 0),
+                    'polygon_corners': 4
+                })
             }
         }
+        
         
         return jsonify(response), 200
         

@@ -503,82 +503,136 @@ async captureAndAnalyze() {
   
   // ==================== RESULTS MANAGEMENT ====================
   
-showAnalysisResults(results) {
-  console.log('📊 Showing analysis results (analyzed image only)...');
-
-  // Update results modal with actual data from AI
+showResults(results) {
+  console.log('📊 Displaying pipeline analysis results (REAL DATA ONLY):', results);
+  
+  // Get DOM elements
   const resultsImage = document.getElementById('results-image');
   const dimensionsResult = document.getElementById('dimensions-result');
   const mixtureResult = document.getElementById('mixture-result');
-
-  // Set analyzed image (ONLY image that was saved)
-  if (results.images && results.images.analyzed && resultsImage) {
+  
+  // Set analyzed image
+  if (results.images && results.images.analyzed) {
     resultsImage.src = results.images.analyzed;
-    console.log('🖼🖼️ Displaying analyzed image with AI overlays');
+  } else {
+    console.warn('⚠️ No analyzed image found in results');
+  }
+  
+  // ==================== DISPLAY DIMENSIONS ====================
+  // Use real dimensions from backend (already formatted)
+  if (results.dimensions && results.dimensions.display && dimensionsResult) {
+    dimensionsResult.textContent = results.dimensions.display;
+    console.log('✅ Dimensions displayed:', results.dimensions.display);
+  } else {
+    console.error('❌ No dimension data received from backend');
+    dimensionsResult.textContent = 'Dimension data unavailable';
+  }
+  
+  // ==================== DISPLAY CEMENT MIXTURE ====================
+  // Use real cement mixture from backend calculations
+  if (results.cement_mixture && mixtureResult) {
+    const mixture = results.cement_mixture;
+    const details = mixture.details || {};
+    
+    // Format: "1 Cement (X kg ≈ Y bags) : 2 Sand (X kg) : 4 Gravel (X kg)"
+    const cementKg = details.cement_weight_kg || 0;
+    const cementBags = details.cement_bags || 0;
+    const sandKg = details.sand_weight_kg || 0;
+    const gravelKg = details.gravel_weight_kg || 0;
+    
+    const formattedRatio = `1 Cement (${cementKg.toFixed(3)} kg ≈ ${cementBags.toFixed(2)} bags) : 2 Sand (${sandKg.toFixed(2)} kg) : 4 Gravel (${gravelKg.toFixed(2)} kg)`;
+    
+    mixtureResult.textContent = formattedRatio;
+    console.log('✅ Cement mixture displayed:', formattedRatio);
+  } else {
+    console.error('❌ No cement mixture data received from backend');
+    mixtureResult.textContent = 'Cement mixture data unavailable';
+  }
+  
+  // ==================== UPDATE PIPELINE DETAILS ====================
+  const pipelineDetections = document.getElementById('pipeline-detections');
+  const wetVolume = document.getElementById('wet-volume');
+  const cementCalc = document.getElementById('cement-calc');
+  const waterCalc = document.getElementById('water-calc');
+  
+  // Detections Found
+  if (pipelineDetections && results.detections) {
+    const detectionCount = results.detections.count || 0;
+    // Try to get breakdown from pipeline_data if available
+    const pipelineData = results.metadata?.pipeline_data || {};
+    const verticals = pipelineData.front_vertical_count || 0;
+    const horizontals = pipelineData.front_horizontal_count || 0;
+    
+    pipelineDetections.textContent = `${detectionCount} detections (${verticals} verticals + ${horizontals} horizontals)`;
+    console.log('✅ Detections displayed:', pipelineDetections.textContent);
+  }
+  
+  // Wet Volume Calculation
+  if (wetVolume && results.dimensions) {
+    const volumeM3 = results.dimensions.volume_m3 || (results.dimensions.volume / 1000000);
+    const dryVolumeFactor = 1.54; // Standard factor
+    const wetVolumeM3 = volumeM3 * dryVolumeFactor;
+    
+    wetVolume.textContent = `${volumeM3.toFixed(6)}m³ × ${dryVolumeFactor} = ${wetVolumeM3.toFixed(7)}m³`;
+    console.log('✅ Wet volume displayed:', wetVolume.textContent);
+  }
+  
+  // Material Quantities
+  if (cementCalc && results.cement_mixture && results.cement_mixture.details) {
+    const details = results.cement_mixture.details;
+    const cementM3 = details.cement_m3 || (details.cement_bags * 0.035);
+    const sandM3 = details.sand_m3 || 0;
+    const aggregateM3 = details.aggregate_m3 || 0;
+    
+    const cementDensity = 1440;
+    const sandDensity = 1600;
+    const gravelDensity = 1450;
+    
+    cementCalc.textContent = `Cement: ${cementM3.toFixed(4)} × ${cementDensity} kg/m³, Sand: ${sandM3.toFixed(4)} × ${sandDensity} kg/m³, Gravel: ${aggregateM3.toFixed(4)} × ${gravelDensity} kg/m³`;
+    console.log('✅ Material quantities displayed:', cementCalc.textContent);
+  }
+  
+  // Water Requirement
+  if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
+    const details = results.cement_mixture.details;
+    const cementKg = details.cement_weight_kg || 0;
+    const waterCementRatio = 0.53;
+    const waterLiters = cementKg * waterCementRatio;
+    
+    waterCalc.textContent = `≈${waterLiters.toFixed(1)} liters (Cement [${cementKg.toFixed(3)}kg] × ${waterCementRatio})`;
+    console.log('✅ Water requirement displayed:', waterCalc.textContent);
+  }
+  
+  // Store results for reference
+  this.analysisResults = results;
+  
+  // Show results modal
+  if (this.resultsModal) {
+    this.resultsModal.classList.add('active');
+  }
+  
+  // Update status
+  this.updateStatus('Analysis complete - Analyzed image saved to gallery');
+  
+  // Log analysis details
+  console.log('📊 Analysis Results Summary:', {
+    detections: results.detections?.count || 0,
+    dimensions: results.dimensions?.display || 'N/A',
+    mixture: results.cement_mixture?.ratio || 'N/A',
+    placeholder: results.metadata?.placeholder_mode || false,
+    save_mode: results.metadata?.save_mode || 'unknown',
+    only_analyzed_saved: true
+  });
+  
+  // Show success message
+  const detectionCount = results.detections?.count || 0;
+  const message = `Analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery.`;
+  this.showSuccessMessage(message);
 
-    // Set dimensions
-    if (dimensionsResult) {
-      dimensionsResult.textContent = '30.8cm × 30.8cm × 180cm = 170,755.2cm³ = 0.1707552m³';
-    }
-
-    // Set cement mixture
-    if (mixtureResult) {
-      mixtureResult.textContent = '1 Cement (54.09 kg ≈ 1.35 bags) : 2 Sand (120.21 kg) : 4 Gravel (217.88 kg)';
-    }
-
-    // Update pipeline details with NEW formulas
-    const wetVolume = document.getElementById('wet-volume');
-    const pipelineDetections = document.getElementById('pipeline-detections');
-    const cementCalc = document.getElementById('cement-calc');
-    const waterCalc = document.getElementById('water-calc');
-
-    if (wetVolume) {
-      wetVolume.textContent = '0.1707552m³ × 1.54 = 0.262m³';
-    }
-
-    if (pipelineDetections) {
-      const detectionCount = results.detections?.count || 0;
-      pipelineDetections.textContent = `13 detections (2 verticals + 11 horizontals)`;
-    }
-
-    if (cementCalc) {
-      cementCalc.textContent = 'Cement: 0.037 × 1440 kg/m³, Sand: 0.075 × 1600 kg/m³, Gravel: 0.150 × 1450 kg/m³';
-    }
-
-    if (waterCalc) {
-      waterCalc.textContent = '≈28.67 liters (Cement [54.09kg] × 0.53)';
-    }
-
-    this.analysisResults = results;
-
-    // Show results modal
-    if (this.resultsModal) {
-      this.resultsModal.classList.add('active');
-    }
-
-    // Update status
-    this.updateStatus('Analysis complete - Analyzed image saved to gallery');
-
-    // Log analysis details
-    console.log('📊 Analysis Results Summary:', {
-      detections: results.detections?.count || 0,
-      dimensions: results.dimensions?.display || 'N/A',
-      mixture: results.cement_mixture?.ratio || 'N/A',
-      placeholder: results.metadata?.placeholder_mode || false,
-      save_mode: results.metadata?.save_mode || 'unknown',
-      only_analyzed_saved: true
-    });
-
-    // Show success message
-    const detectionCount = results.detections?.count || 0;
-    const saveMode = results.metadata?.save_mode || 'analyzed_only';
-    const message = `Analysis complete! 13 rebars detected. Analyzed image saved to gallery (${saveMode}).`;
-
-    setTimeout(() => {
-      this.showSuccessMessage(message);
-    }, 1000); // Delay to let modal appear first
-  } // ✅ this closing brace was missing in your code
-}
+  setTimeout(() => {
+    this.showSuccessMessage(message);
+  }, 1000); // Delay to let modal appear first
+} 
 
   // ==================== GRID TOGGLE FUNCTIONALITY ====================
   

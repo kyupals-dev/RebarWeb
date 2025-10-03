@@ -40,7 +40,7 @@ class AIService:
         self.num_classes = 2  # FIXED: 2 classes not 3
         
         # FIXED: Exact threshold from training
-        self.detection_threshold = 1000
+        self.detection_threshold = 0.3
         
         # Pipeline constants from notebook
         self.CEMENT_BAG_WEIGHT = 40      # kg
@@ -236,6 +236,7 @@ class AIService:
                 'height': polygon_data['height_cm'],
                 'unit': 'cm',
                 'volume': polygon_data['volume_cm3'],
+                'volume_m3': polygon_data['volume_m3'],
                 'display': f"{polygon_data['width_cm']:.1f}cm × {polygon_data['length_cm']:.1f}cm × {polygon_data['height_cm']:.1f}cm = {polygon_data['volume_cm3']:.0f}cm³"
             }
             
@@ -246,8 +247,14 @@ class AIService:
                 'aggregate': self.MIX_RATIO[2],
                 'ratio_string': f'{self.MIX_RATIO[0]} Cement : {self.MIX_RATIO[1]} Sand : {self.MIX_RATIO[2]} Aggregate',
                 'cement_bags': cement_data['cement_bags'],
+                'cement_weight_kg': cement_data['cement_weight_kg'],
+                'cement_m3': cement_data.get('cement_m3', cement_data['cement_bags'] * 0.035),
                 'sand_volume_m3': cement_data['sand_m3'],
+                'sand_weight_kg': cement_data['sand_weight_kg'],
                 'aggregate_volume_m3': cement_data['gravel_m3'],
+                'gravel_weight_kg': cement_data['gravel_weight_kg'],
+                'water_liters': cement_data['water_liters'],
+                'dry_volume_m3': cement_data['dry_volume_m3'],
                 'total_concrete_volume_m3': polygon_data['volume_m3'] * self.DRY_VOLUME_FACTOR
             }
             
@@ -421,6 +428,7 @@ class AIService:
                 'dry_volume_m3': dry_volume_m3,
                 'cement_bags': cement_bags,
                 'cement_weight_kg': cement_weight_kg,
+                'cement_m3': cement_m3,
                 'sand_m3': sand_m3,
                 'sand_weight_kg': sand_weight_kg,
                 'gravel_m3': gravel_m3,
