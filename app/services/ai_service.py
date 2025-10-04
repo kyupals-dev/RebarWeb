@@ -1,7 +1,6 @@
 """
 AI Service for Rebar Detection and Analysis - SIMPLIFIED PIPELINE
 Implements the exact 4-step process from the training notebook
-FIXED: Complete implementation with all missing methods
 """
 
 import os
@@ -48,7 +47,7 @@ class AIService:
         self.WATER_CEMENT_RATIO = 0.53
         self.DRY_VOLUME_FACTOR = 1.54
         self.PX_TO_CM = 1 / 3.54         # conversion factor (3.54 px = 1 cm)
-        self.OFFSET_CM = 4.5             # allowance for formworks
+        self.OFFSET_CM = 4.5             # allowance for formworks outward offset
 
         # Material Densities (kg/m³)
         self.CEMENT_DENSITY = 1440
@@ -107,7 +106,6 @@ class AIService:
     def analyze_image(self, image_data=None, image_path=None):
         """
         SIMPLIFIED 4-Step Analysis Pipeline
-        Returns 4 visualization images for display
         """
         try:
             print(f"🔍 Starting SIMPLIFIED 4-Step Analysis...")
@@ -162,7 +160,7 @@ class AIService:
             }
     
     def _run_4step_pipeline(self, image):
-        """Run the exact 4-step pipeline from training notebook"""
+        """Run the exact 4-step pipeline from training"""
         try:
             print("🤖 Running 4-Step Pipeline with REAL MODEL...")
             
@@ -200,7 +198,7 @@ class AIService:
             print(f"Front horizontal: {horizontal_count}, Front vertical: {vertical_count}")
             
             if len(detections) == 0:
-                print("⚠️  NO DETECTIONS FOUND - Returning error (will NOT save images)")
+                print("⚠️  NO DETECTIONS FOUND - Returning error")
                 return {
                     'success': False,
                     'error': 'no_rebar_detected',
@@ -677,7 +675,7 @@ class AIService:
             'num_classes': self.num_classes,
             'class_names': self.class_names,
             'threshold': self.detection_threshold,
-            'model_type': 'simplified_4step_pipeline' if self.model_loaded else 'placeholder',
+            'model_type': 'simplified_4step_pipeline',
             'save_mode': 'analyzed_images_only',
             'expected_detections': {
                 'front_vertical': 2,
