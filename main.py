@@ -171,21 +171,19 @@ class TkinterCameraFrame:
                 if test_result['success']:
                     avg_distance = test_result.get('average_distance', 0)
                     readings_count = test_result.get('readings_count', 0)
-                    simulation_mode = test_result.get('simulation_mode', False)
                     
-                    mode_text = " (SIMULATION)" if simulation_mode else ""
                     self.status_label.configure(
-                        text=f"Distance test passed: {avg_distance:.1f}cm average from {readings_count} readings{mode_text}"
+                        text=f"Distance test passed: {avg_distance:.1f}cm average from {readings_count} readings"
                     )
                 else:
                     error = test_result.get('error', 'Unknown error')
                     self.status_label.configure(text=f"Distance test failed: {error}")
-                    
+                
             except Exception as e:
                 self.status_label.configure(text=f"Distance test error: {str(e)}")
         else:
             self.status_label.configure(text="Distance service not available")
-    
+                    
     def test_ai(self):
         """Test AI service with current camera frame"""
         if self.camera_manager:
@@ -372,14 +370,10 @@ def main():
         print(f"GPIO Available: {'✅' if distance_status['gpio_available'] else '❌'}")
         print(f"Sensor Available: {'✅' if distance_status['sensor_available'] else '❌'}")
         print(f"Monitoring Running: {'✅' if distance_status['is_running'] else '❌'}")
-        print(f"Simulation Mode: {'✅' if distance_status['simulation_mode'] else '❌'}")
         print(f"GPIO Pins: TRIG={distance_status['gpio_pins']['trigger']}, ECHO={distance_status['gpio_pins']['echo']}")
         print(f"Optimal Range: {distance_status['optimal_range']['min']}-{distance_status['optimal_range']['max']}{distance_status['optimal_range']['unit']}")
         if distance_status['last_error']:
             print(f"⚠️  Last Error: {distance_status['last_error']}")
-        if distance_status['simulation_mode']:
-            print("⚠️  Distance sensor using simulation mode")
-        print("==============================")
         
         # Print image service info
         image_stats = image_service.get_storage_stats()

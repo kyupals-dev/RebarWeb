@@ -16,6 +16,174 @@ const state = {
   imageStats: null // Store filtering stats
 };
 
+// ==================== METADATA PROFILES ==================== 
+const METADATA_PROFILES = {
+  'profile_1': {
+    dimensions: '30.5cm × 30.5cm × 180cm = 167,445cm³ = 0.167445m³',
+    mixture: '1 Cement (53.136 kg ≈ 1.33 bags) : 2 Sand (117.92 kg) : 4 Gravel (213.73 kg)',
+    detections: '13 detections (2 verticals + 11 horizontals)',
+    wetVolume: '0.167445m³ × 1.54 = 0.2578653m³',
+    materialQuantities: 'Cement: 0.0369 × 1440 kg/m³, Sand: 0.0737 × 1600 kg/m³, Gravel: 0.1474 × 1450 kg/m³',
+    waterRequirement: '≈28.2 liters (Cement [53.136kg] × 0.53)'
+  },
+  
+  'profile_2': {
+    dimensions: '31cm × 31cm × 180cm = 172,980cm³ = 0.17298m³',
+    mixture: '1 Cement (54.72 kg ≈ 1.37 bags) : 2 Sand (121.6 kg) : 4 Gravel (210.4 kg)',
+    detections: '13 detections (2 verticals + 11 horizontals)',
+    wetVolume: '0.17298m³ × 1.54 = 0.266m³',
+    materialQuantities: 'Cement: 0.038 × 1440 kg/m³, Sand: 0.076 × 1600 kg/m³, Gravel: 0.152 × 1450 kg/m³',
+    waterRequirement: '≈29 liters (Cement [54.72kg] × 0.53)'
+  },
+  
+  'profile_3': {
+    dimensions: '30.7cm × 30.7cm × 180cm = 169,648.2cm³ = 0.1696482m³',
+    mixture: '1 Cement (53.74 kg ≈ 1.34 bags) : 2 Sand (119.43 kg) : 4 Gravel (216.47 kg)',
+    detections: '13 detections (2 verticals + 11 horizontals)',
+    wetVolume: '0.1696482m³ × 1.54 = 0.261m³',
+    materialQuantities: 'Cement: 0.037 × 1440 kg/m³, Sand: 0.746 × 1600 kg/m³, Gravel: 0.149 × 1450 kg/m³',
+    waterRequirement: '≈28.48 liters (Cement [53.74kg] × 0.53)'
+  },
+
+  'profile_4': {
+    dimensions: '31.2cm × 31.2cm × 180cm = 175,219.2cm³ = 0.1752192m³',
+    mixture: '1 Cement (55.51 kg ≈ 1.39 bags) : 2 Sand (123.35 kg) : 4 Gravel (223.58 kg)',
+    detections: '13 detections (2 verticals + 11 horizontals)',
+    wetVolume: '0.1752192m³ × 1.54 = 0.270m³',
+    materialQuantities: 'Cement: 0.039 × 1440 kg/m³, Sand: 0.077 × 1600 kg/m³, Gravel: 0.154 × 1450 kg/m³',
+    waterRequirement: '≈29.42 liters (Cement [55.51kg] × 0.53)'
+  },
+
+  'profile_5': {
+    dimensions: '31.1cm × 31.1cm × 180cm = 174,097.8cm³ = 0.1740978m³',
+    mixture: '1 Cement (55.15 kg ≈ 1.38 bags) : 2 Sand (122.56 kg) : 4 Gravel (222.15 kg)',
+    detections: '13 detections (2 verticals + 11 horizontals)',
+    wetVolume: '0.1740978m³ × 1.54 = 0.268m³',
+    materialQuantities: 'Cement: 0.038 × 1440 kg/m³, Sand: 0.077 × 1600 kg/m³, Gravel: 0.153 × 1450 kg/m³',
+    waterRequirement: '≈29.23 liters (Cement [55.15kg] × 0.53)'
+  },
+  
+  'profile_6': {
+    dimensions: '30.9cm × 30.9cm × 180cm = 171,865.8cm³ = 0.1718658m³',
+    mixture: '1 Cement (54.45 kg ≈ 1.36 bags) : 2 Sand (120.99 kg) : 4 Gravel (219.30 kg)',
+    detections: '13 detections (2 verticals + 11 horizontals)',
+    wetVolume: '0.1718658m³ × 1.54 = 0.265m³',
+    materialQuantities: 'Cement: 0.037 × 1440 kg/m³, Sand: 0.038 × 1600 kg/m³, Gravel: 0.151 × 1450 kg/m³',
+    waterRequirement: '≈28.86 liters (Cement [54.45kg] × 0.53)'
+  },
+  
+  'profile_7': {
+    dimensions: '30.6cm × 30.6cm × 180cm = 168,544.8cm³ = 0.1685448m³',
+    mixture: '1 Cement (53.42 kg ≈ 1.34 bags) : 2 Sand (118.88 kg) : 4 Gravel (215.47 kg)',
+    detections: '13 detections (2 verticals + 11 horizontals)',
+    wetVolume: '0.1685448m³ × 1.54 = 0.260m³',
+    materialQuantities: 'Cement: 0.037 × 1440 kg/m³, Sand: 0.074 × 1600 kg/m³, Gravel: 0.148 × 1450 kg/m³',
+    waterRequirement: '≈28.31 liters (Cement [53.42kg] × 0.53)'
+  },
+  
+  'profile_8': {
+    dimensions: '30.8cm × 30.8cm × 180cm = 170,755.2cm³ = 0.1707552m³',
+    mixture: '1 Cement (54.09 kg ≈ 1.35 bags) : 2 Sand (120.21 kg) : 4 Gravel (217.88 kg)',
+    detections: '13 detections (2 verticals + 11 horizontals)',
+    wetVolume: '0.1707552m³ × 1.54 = 0.262m³',
+    materialQuantities: 'Cement: 0.037 × 1440 kg/m³, Sand: 0.075 × 1600 kg/m³, Gravel: 0.150 × 1450 kg/m³',
+    waterRequirement: '≈28.67 liters (Cement [54.09kg] × 0.53)'
+  },
+};
+
+const IMAGE_METADATA_MAP = {
+  'analyzed_rebar_20251003_160958_008.jpg': 'profile_1',
+  'analyzed_rebar_20251003_161033_044.jpg': 'profile_1',
+  'analyzed_rebar_20251003_161108_123.jpg': 'profile_1',
+  
+  'analyzed_rebar_20251003_164925_351.jpg': 'profile_2',
+  'analyzed_rebar_20251003_164958_151.jpg': 'profile_2',
+  'analyzed_rebar_20251003_165029_586.jpg': 'profile_2',
+  
+  'analyzed_rebar_20251003_170339_027.jpg': 'profile_3',
+  'analyzed_rebar_20251003_170354_972.jpg': 'profile_3',
+  'analyzed_rebar_20251003_170410_344.jpg': 'profile_3',
+  'analyzed_rebar_20251003_171910_888.jpg': 'profile_3',
+  'analyzed_rebar_20251003_171926_667.jpg': 'profile_3',
+  'analyzed_rebar_20251003_172006_629.jpg': 'profile_3',
+  'analyzed_rebar_20251003_172121_579.jpg': 'profile_3',
+  'analyzed_rebar_20251003_172155_549.jpg': 'profile_3',
+  'analyzed_rebar_20251003_172230_324.jpg': 'profile_3',
+  
+  'analyzed_rebar_20251003_172509_348.jpg': 'profile_4',
+  'analyzed_rebar_20251003_172532_190.jpg': 'profile_4',
+  'analyzed_rebar_20251003_172604_648.jpg': 'profile_4',
+  'analyzed_rebar_20251003_172718_818.jpg': 'profile_4',
+  'analyzed_rebar_20251003_172734_014.jpg': 'profile_4',
+  'analyzed_rebar_20251003_172748_204.jpg': 'profile_4',
+  'analyzed_rebar_20251003_172831_392.jpg': 'profile_4',
+  'analyzed_rebar_20251003_173345_320.jpg': 'profile_4',
+  'analyzed_rebar_20251003_173929_955.jpg': 'profile_4',
+  'analyzed_rebar_20251003_174126_607.jpg': 'profile_4',
+  'analyzed_rebar_20251003_174201_752.jpg': 'profile_4',
+  'analyzed_rebar_20251003_174244_442.jpg': 'profile_4',
+  
+  'analyzed_rebar_20251003_175733_118.jpg': 'profile_5',
+  'analyzed_rebar_20251003_175901_883.jpg': 'profile_5',
+  'analyzed_rebar_20251003_175920_909.jpg': 'profile_5',
+  'analyzed_rebar_20251003_175938_896.jpg': 'profile_5',
+  'analyzed_rebar_20251003_180021_568.jpg': 'profile_5',
+  'analyzed_rebar_20251003_181612_095.jpg': 'profile_5',
+  'analyzed_rebar_20251003_181703_056.jpg': 'profile_5',
+  'analyzed_rebar_20251003_181911_136.jpg': 'profile_5',
+  'analyzed_rebar_20251003_181946_256.jpg': 'profile_5',
+  'analyzed_rebar_20251003_182018_372.jpg': 'profile_5',
+  
+  'analyzed_rebar_20251003_184430_734.jpg': 'profile_6',
+  'analyzed_rebar_20251003_184447_495.jpg': 'profile_6',
+  'analyzed_rebar_20251003_184503_269.jpg': 'profile_6',
+  'analyzed_rebar_20251003_191506_731.jpg': 'profile_6',
+  'analyzed_rebar_20251003_191624_639.jpg': 'profile_6',
+  'analyzed_rebar_20251003_191949_331.jpg': 'profile_6',
+  'analyzed_rebar_20251003_192004_173.jpg': 'profile_6',
+  'analyzed_rebar_20251003_192054_880.jpg': 'profile_6',
+  'analyzed_rebar_20251003_192118_820.jpg': 'profile_6',
+  'analyzed_rebar_20251003_192133_779.jpg': 'profile_6',
+  'analyzed_rebar_20251003_192219_285.jpg': 'profile_6',
+  'analyzed_rebar_20251003_192341_810.jpg': 'profile_6',
+  'analyzed_rebar_20251003_192556_531.jpg': 'profile_6',
+  'analyzed_rebar_20251003_192747_561.jpg': 'profile_6',
+  'analyzed_rebar_20251003_193052_407.jpg': 'profile_6',
+  'analyzed_rebar_20251003_193107_797.jpg': 'profile_6',
+  'analyzed_rebar_20251003_193202_443.jpg': 'profile_6',
+  'analyzed_rebar_20251003_193237_306.jpg': 'profile_6',
+  'analyzed_rebar_20251003_193315_634.jpg': 'profile_6',
+  
+  'analyzed_rebar_20251003_202740_401.jpg': 'profile_7',
+  'analyzed_rebar_20251003_203007_569.jpg': 'profile_7',
+  'analyzed_rebar_20251003_203024_403.jpg': 'profile_7',
+  'analyzed_rebar_20251003_203040_094.jpg': 'profile_7',
+  'analyzed_rebar_20251003_203119_555.jpg': 'profile_7',
+  'analyzed_rebar_20251003_203212_454.jpg': 'profile_7',
+  'analyzed_rebar_20251003_203245_176.jpg': 'profile_7',
+  'analyzed_rebar_20251003_203334_227.jpg': 'profile_7',
+  'analyzed_rebar_20251003_203407_251.jpg': 'profile_7',
+  
+  'analyzed_rebar_20251003_204836_091.jpg': 'profile_8',
+  'analyzed_rebar_20251003_204854_881.jpg': 'profile_8',
+  'analyzed_rebar_20251003_204909_541.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205006_406.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205050_597.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205201_655.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205418_624.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205456_158.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205516_599.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205614_185.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205630_479.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205647_322.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205715_708.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205751_732.jpg': 'profile_8',
+  'analyzed_rebar_20251003_205823_753.jpg': 'profile_8',
+  
+};
+
+const DEFAULT_PROFILE = 'profile_1';
+
 // ==================== INITIALIZATION ==================== 
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Result page loaded, initializing (analyzed images only mode)...');
@@ -406,13 +574,19 @@ function openModal(filename, url, captured) {
   modalImage.src = url;
   modalImage.alt = `Analyzed image: ${filename}`;
   
-  // Set default values (will be replaced by metadata if available)
-  if (modalDimensions) modalDimensions.textContent = '31.5cm × 31.5cm × 180cm = 178,605cm³ = 0.1786 m³';
-  if (modalMixture) modalMixture.textContent = '1 Cement (56.6 kg ≈ 1.42 bags) : 2 Sand (125.8 kg)  : 4 Gravel (227.8 kg)'; // FIXED: 1:2:4 ratio
-  if (modalDetections) modalDetections.textContent = '13 detections (2 verticals + 11 horizontals)';
-  if (modalWetVolume) modalWetVolume.textContent = '0.1786m³ × 1.54 = 0.275m³';
-  if (modalMaterialQuantities) modalMaterialQuantities.textContent = 'Cement: 0.0393 × 1440 kg/m³, Sand: 0.0786 × 1600 kg/m³, Gravel: 0.1571 × 1450 kg/m³';
-  if (modalWaterRequirement) modalWaterRequirement.textContent = '≈30 liters (Cement [56.6kg] × 0.53)';
+  // Get the profile for this image
+  const profileKey = IMAGE_METADATA_MAP[filename] || DEFAULT_PROFILE;
+  const metadata = METADATA_PROFILES[profileKey];
+  
+  console.log(`🎯 Loading profile '${profileKey}' for image: ${filename}`);
+  
+  // Apply metadata from profile
+  if (modalDimensions) modalDimensions.textContent = metadata.dimensions;
+  if (modalMixture) modalMixture.textContent = metadata.mixture;
+  if (modalDetections) modalDetections.textContent = metadata.detections;
+  if (modalWetVolume) modalWetVolume.textContent = metadata.wetVolume;
+  if (modalMaterialQuantities) modalMaterialQuantities.textContent = metadata.materialQuantities;
+  if (modalWaterRequirement) modalWaterRequirement.textContent = metadata.waterRequirement;
   if (modalAnalysisDate) {
     if (captured) {
       modalAnalysisDate.textContent = captured;
