@@ -207,24 +207,24 @@ class AIService:
                 }
             
             MIN_VERTICALS = 2
-            MIN_HORIZONTALS = 6
-            MAX_HORIZONTALS = 11
-                
-            if vertical_count < MIN_VERTICALS or horizontal_count < MIN_HORIZONTALS:
+            
+            # New validation    
+            if vertical_count < MIN_VERTICALS:
                 print(f"⚠️  INSUFFICIENT REBAR STRUCTURE DETECTED")
-                print(f"   Required: {MIN_VERTICALS} verticals + {MIN_HORIZONTALS}-{MAX_HORIZONTALS} horizontals")
+                print(f"   Required: at least {MIN_VERTICALS} verticals (any number of horizontals)")
                 print(f"   Found: {vertical_count} verticals + {horizontal_count} horizontals")
                 print(f"   This is likely a false positive - NOT saving images")
                 return {
                     'success': False,
                     'error': 'no_rebar_detected',
-                    'message': f'Insufficient rebar structure detected. Required: {MIN_VERTICALS} verticals + {MIN_HORIZONTALS}-{MAX_HORIZONTALS} horizontals. Found: {vertical_count} verticals + {horizontal_count} horizontals.',
+                    'message': f'Insufficient rebar structure detected. Required: At least {MIN_VERTICALS} vertical rebars. Found: {vertical_count} verticals + {horizontal_count} horizontals.',
                     'num_detections': len(detections),
                     'detected_verticals': vertical_count,
-                    'detected_verticals': vertical_count,
+                    'detected_horizontals': horizontal_count,
                 }
                 
             print(" Valid rebar structure detected - proceeding with analysis")
+            print(f"   {vertical_count} verticals + {horizontal_count} horizontals")
                     
                 
             # STEP 1 Visualization

@@ -591,6 +591,7 @@ body {
   font-weight: bold;
   color: #2d7d47;
   line-height: 1.4;
+  white-space: pre-line;
   word-break: break-word;
 }
 
@@ -627,6 +628,7 @@ body {
   text-align: right;
   max-width: 60%;
   word-break: break-word;
+  white-space: pre-line;
 }
 
 /* UPDATED: Pipeline Visualization Steps (4 Images) */

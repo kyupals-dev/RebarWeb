@@ -528,80 +528,71 @@ showResults(results) {
     dimensionsResult.textContent = 'Dimension data unavailable';
   }
   
-  // ==================== DISPLAY CEMENT MIXTURE ====================
-  // Use real cement mixture from backend calculations
-  if (results.cement_mixture && mixtureResult) {
-    const mixture = results.cement_mixture;
-    const details = mixture.details || {};
-    
-    // Format: "1 Cement (X kg ≈ Y bags) : 2 Sand (X kg) : 4 Gravel (X kg)"
-    const cementKg = details.cement_weight_kg || 0;
-    const cementBags = details.cement_bags || 0;
-    const sandKg = details.sand_weight_kg || 0;
-    const gravelKg = details.gravel_weight_kg || 0;
-    
-    const formattedRatio = `1 Cement (${cementKg.toFixed(3)} kg ≈ ${cementBags.toFixed(2)} bags) : 2 Sand (${sandKg.toFixed(2)} kg) : 4 Gravel (${gravelKg.toFixed(2)} kg)`;
-    
-    mixtureResult.textContent = formattedRatio;
-    console.log('✅ Cement mixture displayed:', formattedRatio);
-  } else {
-    console.error('❌ No cement mixture data received from backend');
-    mixtureResult.textContent = 'Cement mixture data unavailable';
-  }
+// ==================== DISPLAY CEMENT MIXTURE ====================
+// Only show the ratio (quantities moved to Material Quantities section)
+if (results.cement_mixture && mixtureResult) {
+  mixtureResult.textContent = 'Cement ratio 1:2:4';
+  console.log('✅ Cement mixture ratio displayed');
+} else {
+  console.error('❌ No cement mixture data received from backend');
+  mixtureResult.textContent = 'Cement mixture data unavailable';
+}
+
+// ==================== UPDATE PIPELINE DETAILS ====================
+const pipelineDetections = document.getElementById('pipeline-detections');
+const wetVolume = document.getElementById('wet-volume');
+const cementCalc = document.getElementById('cement-calc');
+const waterCalc = document.getElementById('water-calc');
+
+// Detections Found
+if (pipelineDetections && results.detections) {
+  const detectionCount = results.detections.count || 0;
+  // Try to get breakdown from pipeline_data if available
+  const pipelineData = results.metadata?.pipeline_data || {};
+  const verticals = pipelineData.front_vertical_count || 0;
+  const horizontals = pipelineData.front_horizontal_count || 0;
   
-  // ==================== UPDATE PIPELINE DETAILS ====================
-  const pipelineDetections = document.getElementById('pipeline-detections');
-  const wetVolume = document.getElementById('wet-volume');
-  const cementCalc = document.getElementById('cement-calc');
-  const waterCalc = document.getElementById('water-calc');
+  pipelineDetections.textContent = `${detectionCount} detections (${verticals} verticals + ${horizontals} horizontals)`;
+  console.log('✅ Detections displayed:', pipelineDetections.textContent);
+}
+
+// Wet Volume Calculation - ONLY show final result
+if (wetVolume && results.dimensions) {
+  const volumeM3 = results.dimensions.volume_m3 || (results.dimensions.volume / 1000000);
+  const dryVolumeFactor = 1.54; // Standard factor
+  const wetVolumeM3 = volumeM3 * dryVolumeFactor;
   
-  // Detections Found
-  if (pipelineDetections && results.detections) {
-    const detectionCount = results.detections.count || 0;
-    // Try to get breakdown from pipeline_data if available
-    const pipelineData = results.metadata?.pipeline_data || {};
-    const verticals = pipelineData.front_vertical_count || 0;
-    const horizontals = pipelineData.front_horizontal_count || 0;
-    
-    pipelineDetections.textContent = `${detectionCount} detections (${verticals} verticals + ${horizontals} horizontals)`;
-    console.log('✅ Detections displayed:', pipelineDetections.textContent);
-  }
+  // NEW: Only show final result
+  wetVolume.textContent = `${wetVolumeM3.toFixed(7)}m³`;
+  console.log('✅ Wet volume displayed:', wetVolume.textContent);
+}
+
+// Material Quantities - NEW FORMAT with cement, sand, gravel quantities
+if (cementCalc && results.cement_mixture && results.cement_mixture.details) {
+  const details = results.cement_mixture.details;
+  const cementKg = details.cement_weight_kg || 0;
+  const cementBags = details.cement_bags || 0;
+  const sandKg = details.sand_weight_kg || 0;
+  const gravelKg = details.gravel_weight_kg || 0;
   
-  // Wet Volume Calculation
-  if (wetVolume && results.dimensions) {
-    const volumeM3 = results.dimensions.volume_m3 || (results.dimensions.volume / 1000000);
-    const dryVolumeFactor = 1.54; // Standard factor
-    const wetVolumeM3 = volumeM3 * dryVolumeFactor;
-    
-    wetVolume.textContent = `${volumeM3.toFixed(6)}m³ × ${dryVolumeFactor} = ${wetVolumeM3.toFixed(7)}m³`;
-    console.log('✅ Wet volume displayed:', wetVolume.textContent);
-  }
+  // NEW FORMAT: Multi-line display without formulas
+  const materialQuantities = `Cement = ${cementKg.toFixed(2)} kg ≈ ${cementBags.toFixed(2)} bags
+Sand = ${sandKg.toFixed(2)} kg
+Gravel = ${gravelKg.toFixed(2)} kg`;
   
-  // Material Quantities
-  if (cementCalc && results.cement_mixture && results.cement_mixture.details) {
-    const details = results.cement_mixture.details;
-    const cementM3 = details.cement_m3 || (details.cement_bags * 0.035);
-    const sandM3 = details.sand_m3 || 0;
-    const aggregateM3 = details.aggregate_m3 || 0;
-    
-    const cementDensity = 1440;
-    const sandDensity = 1600;
-    const gravelDensity = 1450;
-    
-    cementCalc.textContent = `Cement: ${cementM3.toFixed(4)} × ${cementDensity} kg/m³, Sand: ${sandM3.toFixed(4)} × ${sandDensity} kg/m³, Gravel: ${aggregateM3.toFixed(4)} × ${gravelDensity} kg/m³`;
-    console.log('✅ Material quantities displayed:', cementCalc.textContent);
-  }
+  cementCalc.textContent = materialQuantities;
+  console.log('✅ Material quantities displayed:', cementCalc.textContent);
+}
+
+// Water Requirement - ONLY show final result
+if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
+  const details = results.cement_mixture.details;
+  const waterLiters = details.water_liters || 0;
   
-  // Water Requirement
-  if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
-    const details = results.cement_mixture.details;
-    const cementKg = details.cement_weight_kg || 0;
-    const waterCementRatio = 0.53;
-    const waterLiters = cementKg * waterCementRatio;
-    
-    waterCalc.textContent = `≈${waterLiters.toFixed(1)} liters (Cement [${cementKg.toFixed(3)}kg] × ${waterCementRatio})`;
-    console.log('✅ Water requirement displayed:', waterCalc.textContent);
-  }
+  // NEW: Only show final result
+  waterCalc.textContent = `≈${waterLiters.toFixed(1)} liters`;
+  console.log('✅ Water requirement displayed:', waterCalc.textContent);
+}
   
   // Store results for reference
   this.analysisResults = results;
