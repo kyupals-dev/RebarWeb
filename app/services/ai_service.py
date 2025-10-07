@@ -39,7 +39,7 @@ class AIService:
         self.num_classes = 2  # FIXED: 2 classes not 3
         
         # FIXED: Exact threshold from training
-        self.detection_threshold = 0.4
+        self.detection_threshold = 0.2
         
         # Pipeline constants from notebook
         self.CEMENT_BAG_WEIGHT = 40      # kg
@@ -205,6 +205,27 @@ class AIService:
                     'message': 'No rebar structures detected in the image',
                     'num_detections': 0
                 }
+            
+            MIN_VERTICALS = 2
+            MIN_HORIZONTALS = 6
+            MAX_HORIZONTALS = 11
+                
+            if vertical_count < MIN_VERTICALS or horizontal_count < MIN_HORIZONTALS:
+                print(f"⚠️  INSUFFICIENT REBAR STRUCTURE DETECTED")
+                print(f"   Required: {MIN_VERTICALS} verticals + {MIN_HORIZONTALS}-{MAX_HORIZONTALS} horizontals")
+                print(f"   Found: {vertical_count} verticals + {horizontal_count} horizontals")
+                print(f"   This is likely a false positive - NOT saving images")
+                return {
+                    'success': False,
+                    'error': 'no_rebar_detected',
+                    'message': f'Insufficient rebar structure detected. Required: {MIN_VERTICALS} verticals + {MIN_HORIZONTALS}-{MAX_HORIZONTALS} horizontals. Found: {vertical_count} verticals + {horizontal_count} horizontals.',
+                    'num_detections': len(detections),
+                    'detected_verticals': vertical_count,
+                    'detected_verticals': vertical_count,
+                }
+                
+            print(" Valid rebar structure detected - proceeding with analysis")
+                    
                 
             # STEP 1 Visualization
             step1_image = self._create_step1_visualization(image, detections)

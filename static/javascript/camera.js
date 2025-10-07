@@ -471,7 +471,7 @@ async captureAndAnalyze() {
     
     // Step 5: Hide loading and show results
     this.hideLoadingOverlay();
-    this.showAnalysisResults(analysisResult);
+    this.showResults(analysisResult);
     
     // Step 6: Confirm single image save
     console.log('💾 SUCCESS: Only analyzed image with AI overlays saved to gallery');
