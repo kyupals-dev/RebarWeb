@@ -182,7 +182,6 @@ const IMAGE_METADATA_MAP = {
   
 };
 
-const DEFAULT_PROFILE = 'profile_1';
 
 // ==================== INITIALIZATION ==================== 
 document.addEventListener('DOMContentLoaded', function() {
@@ -544,12 +543,12 @@ function goToPage(page) {
   }
 }
 
-// ==================== MODAL FUNCTIONALITY (FIXED FOR SIMPLIFIED ANALYSIS) ==================== 
+// ==================== MODAL FUNCTIONALITY (PIPELINE DATA VERSION) ==================== 
 function openModal(filename, url, captured) {
   const modal = document.getElementById('image-modal');
   const modalImage = document.getElementById('modal-image');
   
-  //Pipeline data fields
+  // Pipeline data fields (matching result.html)
   const modalDimensions = document.getElementById('modal-dimensions');
   const modalMixture = document.getElementById('modal-mixture');
   const modalAnalysisDate = document.getElementById('modal-analysis-date');
@@ -574,25 +573,40 @@ function openModal(filename, url, captured) {
   modalImage.src = url;
   modalImage.alt = `Analyzed image: ${filename}`;
   
-  // Get the profile for this image
-  const profileKey = IMAGE_METADATA_MAP[filename] || DEFAULT_PROFILE;
-  const metadata = METADATA_PROFILES[profileKey];
+  // Check if image has a predefined profile (old images)
+  const profileKey = IMAGE_METADATA_MAP[filename];
   
-  console.log(`🎯 Loading profile '${profileKey}' for image: ${filename}`);
-  
-  // Apply metadata from profile
-  if (modalDimensions) modalDimensions.textContent = metadata.dimensions;
-  if (modalMixture) modalMixture.textContent = metadata.mixture;
-  if (modalDetections) modalDetections.textContent = metadata.detections;
-  if (modalWetVolume) modalWetVolume.textContent = metadata.wetVolume;
-  if (modalMaterialQuantities) modalMaterialQuantities.textContent = metadata.materialQuantities;
-  if (modalWaterRequirement) modalWaterRequirement.textContent = metadata.waterRequirement;
-  if (modalAnalysisDate) {
-    if (captured) {
-      modalAnalysisDate.textContent = captured;
-    } else {
-      modalAnalysisDate.textContent = new Date().toLocalString();
+  if (profileKey) {
+    // ✅ Use hardcoded profile for old images
+    const metadata = METADATA_PROFILES[profileKey];
+    console.log(`🎯 Loading profile '${profileKey}' for image: ${filename}`);
+    
+    // Apply metadata from profile
+    if (modalDimensions) modalDimensions.textContent = metadata.dimensions;
+    if (modalMixture) modalMixture.textContent = metadata.mixture;
+    if (modalDetections) modalDetections.textContent = metadata.detections;
+    if (modalWetVolume) modalWetVolume.textContent = metadata.wetVolume;
+    if (modalMaterialQuantities) modalMaterialQuantities.textContent = metadata.materialQuantities;
+    if (modalWaterRequirement) modalWaterRequirement.textContent = metadata.waterRequirement;
+    if (modalAnalysisDate) {
+      if (captured) {
+        modalAnalysisDate.textContent = captured;
+      } else {
+        modalAnalysisDate.textContent = new Date().toLocaleString();
+      }
     }
+  } else {
+    // ✅ New images - will be populated by fetchImageMetadata() from saved metadata
+    console.log(`🆕 New image detected: ${filename} - loading from saved metadata`);
+    
+    // Set loading text while fetching
+    if (modalDimensions) modalDimensions.textContent = 'Loading...';
+    if (modalMixture) modalMixture.textContent = 'Loading...';
+    if (modalWetVolume) modalWetVolume.textContent = 'Loading...';
+    if (modalMaterialQuantities) modalMaterialQuantities.textContent = 'Loading...';
+    if (modalWaterRequirement) modalWaterRequirement.textContent = 'Loading...';
+    if (modalAnalysisDate) modalAnalysisDate.textContent = captured || 'Loading...';
+    // Note: modalDetections will be hidden by fetchImageMetadata
   }
   
   // Try to get detailed metadata
@@ -615,15 +629,95 @@ async function fetchImageMetadata(filename) {
       if (result.success && result.metadata) {
         const metadata = result.metadata;
         
-        // Update modal with detailed metadata
-        const modalAnalysisDate = document.getElementById('modal-analysis-date');
+        console.log('📊 Loaded metadata from backend:', metadata);
         
+        // Get modal elements
+        const modalDimensions = document.getElementById('modal-dimensions');
+        const modalMixture = document.getElementById('modal-mixture');
+        const modalWetVolume = document.getElementById('modal-wet-volume');
+        const modalMaterialQuantities = document.getElementById('modal-material-quantities');
+        const modalWaterRequirement = document.getElementById('modal-water-requirement');
+        const modalAnalysisDate = document.getElementById('modal-analysis-date');
+        const modalDetections = document.getElementById('modal-detections');
+        
+        // Only update if this is a NEW image (not in IMAGE_METADATA_MAP)
+        const profileKey = IMAGE_METADATA_MAP[filename];
+        if (!profileKey) {
+          // ==================== FORMAT DATA EXACTLY LIKE MAINPAGE MODAL ====================
+          
+          // 1. DIMENSIONS - Format: "46.9cm × 46.9cm × 109.4cm = 241035cm³"
+          if (modalDimensions && metadata.dimensions) {
+            const dim = metadata.dimensions;
+            const width = parseFloat(dim.width) || 0;
+            const length = parseFloat(dim.length) || 0;
+            const height = parseFloat(dim.height) || 0;
+            const volumeCm3 = parseFloat(dim.volume) || 0;
+            
+            modalDimensions.textContent = 
+              `${width.toFixed(1)}cm × ${length.toFixed(1)}cm × ${height.toFixed(1)}cm = ${volumeCm3.toFixed(0)}cm³`;
+          }
+          
+          // 2. CEMENT MIXTURE RATIO - Keep simple
+          if (modalMixture) {
+            modalMixture.textContent = `Cement ratio 1:2:4`;
+          }
+          
+          // 3. WET VOLUME CALCULATION - Format: "0.3711934m³" (7 decimals)
+          if (modalWetVolume && metadata.dimensions) {
+            const volumeM3 = parseFloat(metadata.dimensions.volume_m3) || 0;
+            const dryVolumeFactor = 1.54;
+            const wetVolumeM3 = volumeM3 * dryVolumeFactor;
+            
+            modalWetVolume.textContent = `${wetVolumeM3.toFixed(7)}m³`;
+          }
+          
+          // 4. MATERIAL QUANTITIES - Format: "Cement = 76.36 kg ≈ 1.91 bags\nSand = 169.69 kg\nGravel = 318.17 kg"
+          if (modalMaterialQuantities && metadata.cement_mixture) {
+            const mix = metadata.cement_mixture;
+            const cementKg = parseFloat(mix.cement_weight_kg) || 0;
+            const cementBags = parseFloat(mix.cement_bags) || 0;
+            const sandKg = parseFloat(mix.sand_weight_kg) || 0;
+            const gravelKg = parseFloat(mix.gravel_weight_kg) || 0;
+            
+            modalMaterialQuantities.textContent = 
+              `Cement = ${cementKg.toFixed(2)} kg ≈ ${cementBags.toFixed(2)} bags\n` +
+              `Sand = ${sandKg.toFixed(2)} kg\n` +
+              `Gravel = ${gravelKg.toFixed(2)} kg`;
+          }
+          
+          // 5. WATER REQUIREMENT - Format: "≈40.5 liters" (1 decimal)
+          if (modalWaterRequirement && metadata.cement_mixture) {
+            const waterLiters = parseFloat(metadata.cement_mixture.water_liters) || 0;
+            
+            modalWaterRequirement.textContent = `≈${waterLiters.toFixed(1)} liters`;
+          }
+        }
+        
+        // ==================== HIDE DETECTIONS (but keep in console) ====================
+        // Log detections in console for debugging
+        if (metadata.detections) {
+          console.log('🔍 Detections (hidden from UI):', {
+            total: metadata.detections.total_count,
+            verticals: metadata.detections.front_vertical_count,
+            horizontals: metadata.detections.front_horizontal_count
+          });
+        }
+        
+        // Hide detection display element
+        if (modalDetections) {
+          const detectionsRow = modalDetections.closest('.pipeline-detail-row');
+          if (detectionsRow) {
+            detectionsRow.style.display = 'none';
+          }
+        }
+        
+        // Update timestamp (for both old and new images)
         if (modalAnalysisDate && metadata.timestamp) {
           const date = new Date(metadata.timestamp).toLocaleString();
           modalAnalysisDate.textContent = date;
         }
         
-        console.log('Updated analysis date from metadata');
+        console.log('✅ Modal updated with formatted metadata');
       }
     }
   } catch (error) {

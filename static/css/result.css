@@ -494,6 +494,7 @@ body {
   color: #333;
   font-size: 14px;
   font-weight: 500;
+  white-space: pre-line;
 }
 
 /* Modal Footer */

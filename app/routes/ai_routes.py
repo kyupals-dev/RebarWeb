@@ -15,13 +15,15 @@ ai_bp = Blueprint('ai', __name__)
 # This will be injected when the blueprint is registered
 ai_service = None
 camera_manager = None  # Added camera manager dependency
+image_service = None
 
-def init_ai_routes(ai_svc, cam_manager=None):
+def init_ai_routes(ai_svc, cam_manager=None, img_service=None):
     """Initialize the AI routes with service dependencies"""
-    global ai_service, camera_manager
+    global ai_service, camera_manager, image_service
     ai_service = ai_svc
     camera_manager = cam_manager
-    print("AI routes initialized with AI service and camera manager")
+    image_service = img_service
+    print("AI routes initialized with AI service, camera manager, and image service")
 
 def _validate_ai_service():
     """Helper function to validate AI service availability"""
@@ -142,6 +144,16 @@ def analyze_rebar():
         analyzed_filename = os.path.basename(result['analyzed_image_path'])
         print(f"📁 Analyzed image saved: {analyzed_filename}")
         
+        # ✅ SAVE METADATA FOR THE ANALYZED IMAGE
+        if image_service:
+            metadata_result = image_service.save_analysis_with_metadata(result)
+            if metadata_result['success']:
+                print(f"✅ Metadata saved successfully for: {analyzed_filename}")
+            else:
+                print(f"⚠️ Warning: Could not save metadata: {metadata_result.get('error', 'Unknown error')}")
+        else:
+            print("⚠️ Warning: Image service not available, metadata not saved")
+            
         # Format response for frontend
         response = {
             'success': True,

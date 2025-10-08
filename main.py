@@ -296,7 +296,7 @@ def main():
         with app.app_context():
             init_camera_routes(camera_manager, image_service)
             init_image_routes(image_service)
-            init_ai_routes(ai_service, camera_manager)  # MODIFIED: Pass camera_manager to AI routes
+            init_ai_routes(ai_service, camera_manager, image_service)  # MODIFIED: Pass camera_manager to AI routes
             init_sensor_routes(distance_service)  # Initialize Sensor Routes
             print("Flask routes initialized (AI routes have camera access)")
         
