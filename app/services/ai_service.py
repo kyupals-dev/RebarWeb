@@ -256,7 +256,7 @@ class AIService:
                 'unit': 'cm',
                 'volume': polygon_data['volume_cm3'],
                 'volume_m3': polygon_data['volume_m3'],
-                'display': f"{polygon_data['width_cm']:.1f}cm × {polygon_data['length_cm']:.1f}cm × {polygon_data['height_cm']:.1f}cm = {polygon_data['volume_cm3']:.0f}cm³"
+                'display': f"{polygon_data['width_cm']:.1f}cm × {polygon_data['length_cm']:.1f}cm × {polygon_data['height_cm']:.1f}cm = {polygon_data['volume_cm3']:.0f}cm³ = {polygon_data['volume_m3']:.6f}m³"
             }
             
             # Format mixture

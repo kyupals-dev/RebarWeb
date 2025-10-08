@@ -304,10 +304,11 @@ class SimplifiedRebarProcessor:
             
             # Calculate volume
             volume_cm3 = column_length_cm * column_width_cm * column_height_cm
+            volume_m3 = volume_cm3 / 1_000_000
             
             # Create display string
-            display_string = (f"{column_length_cm:.1f}cm x {column_width_cm:.1f}cm x "
-                            f"{column_height_cm:.1f}cm = {volume_cm3:.0f}cm³")
+            display_string =  (f"{column_length_cm:.1f}cm x {column_width_cm:.1f}cm x "
+                            f"{column_height_cm:.1f}cm = {volume_cm3:.0f}cm³ = {volume_m3:.6f}m³")
             
             result = {
                 'length': round(column_length_cm, 1),
@@ -315,6 +316,7 @@ class SimplifiedRebarProcessor:
                 'height': round(column_height_cm, 1),
                 'unit': 'cm',
                 'volume': round(volume_cm3, 1),
+                'volume_m3': round(volume_m3, 6),
                 'display': display_string,
                 'method': 'intersection_based_with_offset',
                 'offset_applied': self.offset_cm,
@@ -347,6 +349,7 @@ class SimplifiedRebarProcessor:
             default_internal = 25.0
             default_side = default_internal + (2 * self.offset_cm)
             default_volume = default_side * default_side * 200
+            default_volume_m3 = default_volume / 1_000_000
             
             return {
                 'length': default_side,
@@ -354,7 +357,8 @@ class SimplifiedRebarProcessor:
                 'height': 200.0,
                 'unit': 'cm',
                 'volume': default_volume,
-                'display': f'{default_side}cm x {default_side}cm x 200cm = {default_volume:.0f}cm³',
+                'volume_m3': round(default_volume_m3, 6),
+                'display': f'{default_side}cm x {default_side}cm x 200cm = {default_volume:.0f}cm³ = {default_volume_m3:.6f}m³',
                 'method': 'fallback_with_offset',
                 'offset_applied': self.offset_cm,
                 'error': str(e)

@@ -652,9 +652,10 @@ async function fetchImageMetadata(filename) {
             const length = parseFloat(dim.length) || 0;
             const height = parseFloat(dim.height) || 0;
             const volumeCm3 = parseFloat(dim.volume) || 0;
+            const volumeM3 = volumeCm3 / 1000000;
             
             modalDimensions.textContent = 
-              `${width.toFixed(1)}cm × ${length.toFixed(1)}cm × ${height.toFixed(1)}cm = ${volumeCm3.toFixed(0)}cm³`;
+              `${width.toFixed(1)}cm × ${length.toFixed(1)}cm × ${height.toFixed(1)}cm = ${volumeCm3.toFixed(0)}cm³ = ${volumeM3.toFixed(6)}m³`;
           }
           
           // 2. CEMENT MIXTURE RATIO - Keep simple
