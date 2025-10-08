@@ -39,7 +39,7 @@ class AIService:
         self.num_classes = 2  # FIXED: 2 classes not 3
         
         # FIXED: Exact threshold from training
-        self.detection_threshold = 0.2
+        self.detection_threshold = 0.3
         
         # Pipeline constants from notebook
         self.CEMENT_BAG_WEIGHT = 40      # kg

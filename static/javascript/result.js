@@ -742,81 +742,299 @@ function isModalOpen() {
 }
 
 // ==================== MODAL ACTIONS ==================== 
-function downloadCurrentImage() {
+async function downloadCurrentImage() {
   if (!state.currentModalImage) {
     console.error('No current modal image to download');
     showNotification('No image selected for download', 'error');
     return;
   }
   
-  const { filename, url } = state.currentModalImage;
+  const { filename, url, captured } = state.currentModalImage;
   
-  console.log('Downloading analyzed image:', filename, 'from:', url);
+  console.log('==========================================');
+  console.log('🔍 PDF Generation Debug Info:');
+  console.log('Filename:', filename);
+  console.log('==========================================');
   
   try {
-    // Method 1: Try using fetch to get the blob first
-    fetch(url)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.blob();
-      })
-      .then(blob => {
-        // Create blob URL
-        const blobUrl = window.URL.createObjectURL(blob);
+    // Import jsPDF library dynamically if not already loaded
+    if (typeof window.jspdf === 'undefined') {
+      await loadJsPDF();
+    }
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    // Helper function to decode HTML entities and replace special characters
+    const cleanText = (element) => {
+      if (!element) return 'N/A';
+      
+      // Get the text content (innerText preserves line breaks)
+      let text = element.innerText || element.textContent || 'N/A';
+      
+      // Create a temporary element to decode HTML entities
+      const txt = document.createElement('textarea');
+      txt.innerHTML = text;
+      text = txt.value;
+      
+      // Replace special Unicode characters with PDF-safe alternatives
+      return text
+        .replace(/×/g, ' x ')          // Multiplication sign to x with spaces
+        .replace(/cm³/g, 'cm^3')       // Cubic centimeter with caret notation
+        .replace(/m³/g, 'm^3')         // Cubic meter with caret notation
+        .replace(/³/g, '^3')           // Generic superscript 3 to caret notation
+        .replace(/²/g, '^2')           // Superscript 2 to caret notation
+        .replace(/≈/g, '~')            // Approximately equal to ~
+        .replace(/°/g, ' degrees')     // Degree symbol
+        .replace(/µ/g, 'u')            // Micro symbol
+        .replace(/–/g, '-')            // En dash to hyphen
+        .replace(/—/g, '-')            // Em dash to hyphen
+        .replace(/\s\s+/g, ' ')        // Normalize multiple spaces (but keep line breaks)
+        .trim();
+    };
+    
+    // ===== GET DATA FROM THE MODAL DOM ELEMENTS (LIVE DATA) =====
+    const dimensionsEl = document.getElementById('modal-dimensions');
+    const mixtureEl = document.getElementById('modal-mixture');
+    const analysisDateEl = document.getElementById('modal-analysis-date');
+    const wetVolumeEl = document.getElementById('modal-wet-volume');
+    const materialQuantitiesEl = document.getElementById('modal-material-quantities');
+    const waterRequirementEl = document.getElementById('modal-water-requirement');
+    
+    const dimensions = cleanText(dimensionsEl);
+    const mixture = cleanText(mixtureEl);
+    const analysisDate = cleanText(analysisDateEl) || captured || new Date().toLocaleString();
+    const wetVolume = cleanText(wetVolumeEl);
+    const materialQuantities = cleanText(materialQuantitiesEl);
+    const waterRequirement = cleanText(waterRequirementEl);
+    
+    console.log('📊 Extracted Values from Modal DOM:');
+    console.log('- Dimensions:', dimensions);
+    console.log('- Mixture:', mixture);
+    console.log('- Analysis Date:', analysisDate);
+    console.log('- Wet Volume:', wetVolume);
+    console.log('- Material Quantities:', materialQuantities);
+    console.log('- Water Requirement:', waterRequirement);
+    console.log('==========================================');
+    
+    // PDF Layout Configuration
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - (2 * margin);
+    let yPosition = margin;
+    
+    // ========== HEADER (matching modal) ==========
+    doc.setFillColor(45, 125, 71); // Green color #2d7d47
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);  // INCREASED from 20 to 24
+    doc.setFont('helvetica', 'bold');
+    doc.text('Rebar Analysis Results', pageWidth / 2, 22, { align: 'center' });
+    
+    yPosition = 45;
+    
+    // ========== ADD IMAGE (centered like modal) ==========
+    try {
+      showNotification('Generating PDF report...', 'info');
+      
+      // Convert image to base64
+      const imageData = await getImageAsBase64(url);
+      
+      // Calculate image dimensions to center it (like modal)
+      const imgWidth = 90;
+      const imgHeight = 70;
+      const imgX = (pageWidth - imgWidth) / 2;
+      
+      doc.addImage(imageData, 'JPEG', imgX, yPosition, imgWidth, imgHeight);
+      yPosition += imgHeight + 12;
+      
+    } catch (imgError) {
+      console.error('Error adding image to PDF:', imgError);
+      // Continue without image
+      doc.setTextColor(200, 0, 0);
+      doc.setFontSize(11);  // INCREASED from 10 to 11
+      doc.text('Image could not be loaded', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 12;
+    }
+    
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+    
+    // ========== TWO-COLUMN SECTION (REBAR DIMENSIONS & CEMENT MIXTURE) ==========
+    const boxWidth = (contentWidth - 6) / 2;
+    const leftX = margin;
+    const rightX = margin + boxWidth + 6;
+    
+    // Left box - REBAR DIMENSIONS
+    doc.setDrawColor(45, 125, 71);
+    doc.setLineWidth(0.8);
+    doc.setFillColor(240, 248, 242);
+    doc.roundedRect(leftX, yPosition, boxWidth, 26, 3, 3, 'FD');  // INCREASED height from 22 to 26
+    
+    doc.setFontSize(11);  // INCREASED from 9 to 11
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(45, 125, 71);
+    doc.text('REBAR DIMENSIONS', leftX + 4, yPosition + 7);
+    
+    doc.setFontSize(10);  // INCREASED from 8.5 to 10
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(51, 51, 51);
+    const dimLines = doc.splitTextToSize(dimensions, boxWidth - 8);
+    doc.text(dimLines, leftX + 4, yPosition + 14);
+    
+    // Right box - CEMENT MIXTURE RATIO
+    doc.setDrawColor(45, 125, 71);
+    doc.setFillColor(240, 248, 242);
+    doc.roundedRect(rightX, yPosition, boxWidth, 26, 3, 3, 'FD');  // INCREASED height from 22 to 26
+    
+    doc.setFontSize(11);  // INCREASED from 9 to 11
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(45, 125, 71);
+    doc.text('CEMENT MIXTURE RATIO', rightX + 4, yPosition + 7);
+    
+    doc.setFontSize(10);  // INCREASED from 8.5 to 10
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(51, 51, 51);
+    const mixLines = doc.splitTextToSize(mixture, boxWidth - 8);
+    doc.text(mixLines, rightX + 4, yPosition + 14);
+    
+    yPosition += 34;  // INCREASED from 30 to 34
+    
+    // ========== ANALYSIS DETAILS TABLE (matching modal exactly) ==========
+    // Split Material Quantities into lines (preserve line breaks from modal)
+    const materialQtyRawLines = materialQuantities.split('\n').filter(line => line.trim());
+    
+    // Calculate the height needed for material quantities section
+    let materialQtyHeight = 0;
+    const maxValueWidth = contentWidth - 60;
+    doc.setFontSize(10);  // Set font size for calculation
+    materialQtyRawLines.forEach(line => {
+      const wrappedLines = doc.splitTextToSize(line, maxValueWidth);
+      materialQtyHeight += wrappedLines.length * 6;  // INCREASED from 5 to 6
+    });
+    
+    const sectionHeight = 10 + (3 * 18) + materialQtyHeight + 6;  // INCREASED spacing
+    
+    // Draw light gray background for entire section
+    doc.setFillColor(248, 249, 250);
+    doc.rect(margin, yPosition, contentWidth, sectionHeight, 'F');
+    
+    // Draw border
+    doc.setDrawColor(224, 224, 224);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, yPosition, contentWidth, sectionHeight);
+    
+    yPosition += 10;
+    
+    // Details rows with exact formatting from modal
+    const details = [
+      { label: 'Analysis Date:', value: analysisDate, multiline: false },
+      { label: 'Wet Volume Calculation:', value: wetVolume, multiline: false },
+      { label: 'Material Quantities:', value: materialQuantities, multiline: true, preserveLineBreaks: true },
+      { label: 'Water Requirement:', value: waterRequirement, multiline: false }
+    ];
+    
+    let currentY = yPosition;
+    details.forEach((detail, index) => {
+      // Draw separator line (except for first row)
+      if (index > 0) {
+        doc.setDrawColor(224, 224, 224);
+        doc.setLineWidth(0.2);
+        doc.line(margin + 3, currentY - 3, margin + contentWidth - 3, currentY - 3);  // INCREASED spacing
+      }
+      
+      // Label (left side)
+      doc.setFontSize(10);  // INCREASED from 8.5 to 10
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(45, 125, 71);
+      doc.text(detail.label, margin + 3, currentY + 5);
+      
+      // Value (right side)
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 51, 51);
+      doc.setFontSize(10);  // INCREASED from 8.5 to 10
+      
+      if (detail.preserveLineBreaks) {
+        // Handle Material Quantities with preserved line breaks
+        const lines = detail.value.split('\n').filter(line => line.trim());
+        let lineY = currentY + 5;
         
-        // Create download link
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        link.style.display = 'none';
-        
-        // Add to DOM, click, and remove
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Clean up blob URL
-        setTimeout(() => {
-          window.URL.revokeObjectURL(blobUrl);
-        }, 100);
-        
-        showNotification('Analyzed image download started successfully', 'success');
-        console.log('Download initiated successfully for analyzed image:', filename);
-      })
-      .catch(error => {
-        console.error('Fetch download failed, trying direct method:', error);
-        
-        // Method 2: Fallback to direct download
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        
-        // Force download by setting proper headers simulation
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        
-        // Trigger click
-        const event = new MouseEvent('click', {
-          bubbles: true,
-          cancelable: true,
-          view: window
+        lines.forEach(line => {
+          const wrappedLines = doc.splitTextToSize(line, maxValueWidth);
+          doc.text(wrappedLines, margin + 58, lineY);
+          lineY += wrappedLines.length * 6;  // INCREASED from 5 to 6
         });
         
-        link.dispatchEvent(event);
-        document.body.removeChild(link);
-        
-        showNotification('Download initiated (fallback method)', 'success');
-        console.log('Fallback download initiated for:', filename);
-      });
-      
+        currentY = lineY + 4;
+      } else {
+        // Handle single-line or auto-wrapped values
+        const valueLines = doc.splitTextToSize(detail.value, maxValueWidth);
+        doc.text(valueLines, margin + 58, currentY + 5);
+        currentY += valueLines.length > 1 ? (12 + (valueLines.length - 1) * 6) : 18;  // INCREASED spacing
+      }
+    });
+    
+    yPosition = currentY + 5;
+    
+    // ========== FOOTER ==========
+    const footerY = pageHeight - 15;
+    doc.setFontSize(9);  // INCREASED from 7.5 to 9
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(128, 128, 128);
+    doc.text('Generated by Rebar Vista', pageWidth / 2, footerY, { align: 'center' });
+    
+    const now = new Date();
+    const dateStr = `${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}/${now.getFullYear()}, ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
+    doc.text(dateStr, pageWidth / 2, footerY + 4.5, { align: 'center' });  // INCREASED spacing
+    
+    // ========== SAVE PDF ==========
+    const pdfFilename = filename.replace(/\.(jpg|jpeg|png)$/i, '_report.pdf');
+    doc.save(pdfFilename);
+    
+    showNotification('PDF report generated successfully', 'success');
+    console.log('✅ PDF download completed:', pdfFilename);
+    console.log('==========================================');
+    
   } catch (error) {
-    console.error('Download error:', error);
-    showNotification('Failed to download image: ' + error.message, 'error');
+    console.error('PDF generation error:', error);
+    showNotification('Failed to generate PDF: ' + error.message, 'error');
   }
+}
+
+// Helper function to convert image to base64
+function getImageAsBase64(url) {
+  return new Promise((resolve, reject) => {
+    fetch(url)
+      .then(response => response.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      })
+      .catch(reject);
+  });
+}
+
+// Helper function to load jsPDF library dynamically
+function loadJsPDF() {
+  return new Promise((resolve, reject) => {
+    if (window.jspdf) {
+      resolve();
+      return;
+    }
+    
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    script.onload = () => {
+      console.log('jsPDF library loaded successfully');
+      resolve();
+    };
+    script.onerror = () => reject(new Error('Failed to load jsPDF library'));
+    document.head.appendChild(script);
+  });
 }
 
 async function deleteCurrentImage() {
