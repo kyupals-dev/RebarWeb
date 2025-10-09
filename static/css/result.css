@@ -690,6 +690,16 @@ body {
   .results-modal-content {
     max-width: 900px;
   }
+  
+  .results-footer {
+	padding: 20px 30px 35px 30px;
+  }
+  
+  .modal-btn {
+    padding: 14px 28px;
+    min-width: 140px;
+    font-size: 15px;
+  }	
 }
 
 /* Medium portrait screens (most phones) */
@@ -743,10 +753,13 @@ body {
   .results-footer {
     flex-direction: column;
     gap: 10px;
+    padding: 15px 20px 30px 20px;
   }
   
   .modal-btn {
     width: 100%;
+    padding: 14px 24px;
+    font-size: 15px;
   }
 }
 
@@ -813,6 +826,13 @@ body {
   
   .detail-label, .detail-value {
     font-size: 13px;
+  }
+}
+
+/* Desktop/Laptop screens - Fix for 2 column layout */
+@media (min-width: 769px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr); /* 2 columns for desktop */
   }
 }
 

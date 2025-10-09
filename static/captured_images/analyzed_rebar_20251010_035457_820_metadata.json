@@ -1,0 +1,142 @@
+{
+  "timestamp": "2025-10-10T03:54:57.853979",
+  "analysis_type": "4_step_pipeline",
+  "model_type": "real_4step_pipeline",
+  "placeholder": false,
+  "detections": {
+    "total_count": 7,
+    "front_vertical_count": 2,
+    "front_horizontal_count": 5,
+    "intersection_count": 10,
+    "items": [
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.9908592104911804,
+        "bbox": [
+          228.5875244140625,
+          72.66217803955078,
+          241.53956604003906,
+          376.53851318359375
+        ]
+      },
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.9865896701812744,
+        "bbox": [
+          172.9864044189453,
+          73.06639862060547,
+          181.81454467773438,
+          376.2428894042969
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9716773629188538,
+        "bbox": [
+          169.45474243164062,
+          158.70233154296875,
+          243.6090850830078,
+          170.81764221191406
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9669569730758667,
+        "bbox": [
+          170.7640380859375,
+          216.36976623535156,
+          240.72486877441406,
+          226.37020874023438
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9567536115646362,
+        "bbox": [
+          168.444091796875,
+          271.25201416015625,
+          240.92892456054688,
+          279.8433532714844
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.8359535336494446,
+        "bbox": [
+          170.1218719482422,
+          95.62857818603516,
+          245.2260284423828,
+          111.19674682617188
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.7415068745613098,
+        "bbox": [
+          168.48956298828125,
+          323.24542236328125,
+          235.9731903076172,
+          332.3484191894531
+        ]
+      }
+    ]
+  },
+  "dimensions": {
+    "length": 25.28900301658501,
+    "width": 25.28900301658501,
+    "height": 63.38538369216488,
+    "unit": "cm",
+    "volume": 40537.08728347455,
+    "volume_m3": 0.040537087283474556,
+    "display": "25.3cm \u00d7 25.3cm \u00d7 63.4cm = 40537cm\u00b3 = 0.040537m\u00b3"
+  },
+  "cement_mixture": {
+    "cement": 1,
+    "sand": 2,
+    "aggregate": 4,
+    "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+    "cement_bags": 0.3210537312851185,
+    "cement_weight_kg": 12.84214925140474,
+    "cement_m3": 0.008918159202364403,
+    "sand_volume_m3": 0.017836318404728806,
+    "sand_weight_kg": 28.53810944756609,
+    "aggregate_volume_m3": 0.03567263680945761,
+    "gravel_weight_kg": 53.50895521418642,
+    "water_liters": 6.806339103244512,
+    "dry_volume_m3": 0.06242711441655082,
+    "total_concrete_volume_m3": 0.06242711441655082
+  },
+  "step_images": {
+    "step1": {
+      "filename": "step1_detection_20251010_035457_820.jpg",
+      "url": "/static/captured_images/step1_detection_20251010_035457_820.jpg",
+      "exists": true
+    },
+    "step2": {
+      "filename": "step2_intersections_20251010_035457_820.jpg",
+      "url": "/static/captured_images/step2_intersections_20251010_035457_820.jpg",
+      "exists": true
+    },
+    "step3": {
+      "filename": "step3_polygon_20251010_035457_820.jpg",
+      "url": "/static/captured_images/step3_polygon_20251010_035457_820.jpg",
+      "exists": true
+    },
+    "step4": {
+      "filename": "step4_cement_20251010_035457_820.jpg",
+      "url": "/static/captured_images/step4_cement_20251010_035457_820.jpg",
+      "exists": true
+    },
+    "final": {
+      "filename": "analyzed_rebar_20251010_035457_820.jpg",
+      "url": "/static/captured_images/analyzed_rebar_20251010_035457_820.jpg",
+      "exists": true
+    }
+  },
+  "pipeline_data": {
+    "front_horizontal_count": 5,
+    "front_vertical_count": 2,
+    "intersection_count": 10,
+    "polygon_corners": 4
+  }
+}

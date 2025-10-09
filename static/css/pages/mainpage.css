@@ -111,22 +111,22 @@ body {
 .camera-interface {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   height: calc(100vh - 80px);
-  padding: 20px;
+  padding: 15px 20px 20px 20px;
   position: relative;
 }
 
 /* Dynamic Camera Container - 90% of screen height for maximum space usage */
 .camera-container {
   position: relative;
-  /* Maximized sizing: 90% of available height, maintaining 480:640 aspect ratio */
-  height: 90vh;
-  width: calc(90vh * 0.75); /* 480/640 = 0.75 aspect ratio */
+  /* Reduced height for mobile - 82% leaves room for controls */
+  height: 82vh;
+  width: calc(82vh * 0.75); /* 480/640 = 0.75 aspect ratio */
   max-height: 800px;
   max-width: 600px;
-  min-height: 500px;
-  min-width: 375px;
+  min-height: 450px;
+  min-width: 340px;
   background: #000;
   border-radius: 20px;
   overflow: hidden;
@@ -881,6 +881,18 @@ body {
   }
 }
 
+/* Mobile portrait screens - ensure controls are visible */
+@media (orientation: portrait) and (max-width: 767px) {
+  .camera-container {
+    height: 78vh;
+    width: calc(78vh * 0.75);
+  }
+  
+  .camera-interface {
+    padding: 40px 10px 10px 10px !important; /* Zero top padding for mobile */
+  }
+}
+
 /* Portrait-optimized responsive design */
 @media (orientation: portrait) and (min-height: 800px) {
   .camera-container {
@@ -1023,26 +1035,99 @@ body {
   }
 }
 
-/* Landscape fallback */
+/* Landscape fallback - Desktop optimization */
 @media (orientation: landscape) {
-  .camera-container {
-    height: 85vh;
-    width: calc(85vh * 0.75);
-    max-height: 600px;
-    max-width: 450px;
+  /* Desktop/Laptop screens - larger camera view */
+  @media (min-width: 1024px) {
+    .camera-container {
+      height: 85vh;
+      width: calc(85vh * 0.75);
+      max-height: 900px; /* Increased from 600px */
+      max-width: 675px;  /* Increased from 450px */
+    }
+    
+    .camera-interface::before {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(45, 125, 71, 0.9);
+      color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 12px;
+      z-index: 50;
+    }
+    
+    .distance-display {
+      right: 85px;
+      top: 20px;
+      font-size: 11px;
+    }
+    
+    /* Slightly larger buttons for desktop */
+    .capture-btn {
+      width: 85px;
+      height: 85px;
+      background-size: 52px 52px;
+    }
+    
+    .gallery-btn,
+    .grid-btn {
+      width: 70px;
+      height: 70px;
+      background-size: 42px 42px;
+    }
+    
+    .fullscreen-btn {
+      width: 45px;
+      height: 45px;
+      background-size: 28px 28px;
+    }
+    
+    .tutorial-btn {
+      width: 55px;
+      height: 55px;
+      font-size: 26px;
+    }
   }
- 
-   .distance-display {
-    right: 80px;
-    top: 15px;
-    font-size: 10px;
+  
+  /* Smaller landscape screens (tablets in landscape) */
+  @media (max-width: 1023px) {
+    .camera-container {
+      height: 85vh;
+      width: calc(85vh * 0.75);
+      max-height: 650px;
+      max-width: 488px;
+    }
+    
+    .camera-interface::before {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(45, 125, 71, 0.9);
+      color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 12px;
+      z-index: 50;
+    }
+    
+    .distance-display {
+      right: 80px;
+      top: 15px;
+      font-size: 10px;
+    }
   }
 }
 
 /* Tablet-specific optimizations */
 @media (min-width: 768px) and (orientation: portrait) {
   .camera-interface {
-    padding: 20px;
+    padding: 60px 20px 20px 20px !important;
+    align-items: flex-start !important;
+    padding-top: 60px !important;
   }
   
   .camera-container {
