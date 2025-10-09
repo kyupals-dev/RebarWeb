@@ -47,7 +47,7 @@ class AIService:
         self.WATER_CEMENT_RATIO = 0.53
         self.DRY_VOLUME_FACTOR = 1.54
         self.PX_TO_CM = 1 / 3.54         # conversion factor (3.54 px = 1 cm)
-        self.OFFSET_CM = 4.5             # allowance for formworks outward offset
+        self.OFFSET_CM = 9             # allowance for formworks outward offset
 
         # Material Densities (kg/m³)
         self.CEMENT_DENSITY = 1440

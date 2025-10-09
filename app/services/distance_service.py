@@ -28,8 +28,8 @@ class DistanceService:
         self.sensor_available = False
         
         # Distance thresholds (in cm)
-        self.min_optimal = 160  # 160cm minimum
-        self.max_optimal = 200  # 200cm maximum
+        self.min_optimal = 196  # minimum
+        self.max_optimal = 205  # maximum
         
         print("📏 Initializing Distance Service...")
         self.initialize_sensor()

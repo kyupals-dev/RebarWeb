@@ -1,0 +1,142 @@
+{
+  "timestamp": "2025-10-09T18:36:22.481390",
+  "analysis_type": "4_step_pipeline",
+  "model_type": "real_4step_pipeline",
+  "placeholder": false,
+  "detections": {
+    "total_count": 7,
+    "front_vertical_count": 2,
+    "front_horizontal_count": 5,
+    "intersection_count": 10,
+    "items": [
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.996337890625,
+        "bbox": [
+          194.09375,
+          76.79722595214844,
+          206.75772094726562,
+          388.81341552734375
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9882358908653259,
+        "bbox": [
+          193.94859313964844,
+          173.66165161132812,
+          270.81280517578125,
+          184.0211181640625
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9772960543632507,
+        "bbox": [
+          192.87362670898438,
+          283.4012451171875,
+          266.3077697753906,
+          295.8678283691406
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9595766067504883,
+        "bbox": [
+          196.7274627685547,
+          228.1981658935547,
+          267.31494140625,
+          238.39871215820312
+        ]
+      },
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.9473640322685242,
+        "bbox": [
+          254.79539489746094,
+          79.70198059082031,
+          268.9739074707031,
+          388.7035827636719
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9346181154251099,
+        "bbox": [
+          192.813232421875,
+          335.31011962890625,
+          262.4266662597656,
+          344.699462890625
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.8126450181007385,
+        "bbox": [
+          197.478759765625,
+          105.96499633789062,
+          271.5411682128906,
+          121.87236785888672
+        ]
+      }
+    ]
+  },
+  "dimensions": {
+    "length": 26.361275624420685,
+    "width": 26.361275624420685,
+    "height": 63.86613253146242,
+    "unit": "cm",
+    "volume": 44381.65180309275,
+    "volume_m3": 0.044381651803092746,
+    "display": "26.4cm \u00d7 26.4cm \u00d7 63.9cm = 44382cm\u00b3 = 0.044382m\u00b3"
+  },
+  "cement_mixture": {
+    "cement": 1,
+    "sand": 2,
+    "aggregate": 4,
+    "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+    "cement_bags": 0.3515026822804946,
+    "cement_weight_kg": 14.060107291219783,
+    "cement_m3": 0.009763963396680404,
+    "sand_volume_m3": 0.01952792679336081,
+    "sand_weight_kg": 31.244682869377293,
+    "aggregate_volume_m3": 0.03905585358672162,
+    "gravel_weight_kg": 58.58378038008242,
+    "water_liters": 7.451856864346485,
+    "dry_volume_m3": 0.06834774377676284,
+    "total_concrete_volume_m3": 0.06834774377676284
+  },
+  "step_images": {
+    "step1": {
+      "filename": "step1_detection_20251009_183622_453.jpg",
+      "url": "/static/captured_images/step1_detection_20251009_183622_453.jpg",
+      "exists": true
+    },
+    "step2": {
+      "filename": "step2_intersections_20251009_183622_453.jpg",
+      "url": "/static/captured_images/step2_intersections_20251009_183622_453.jpg",
+      "exists": true
+    },
+    "step3": {
+      "filename": "step3_polygon_20251009_183622_453.jpg",
+      "url": "/static/captured_images/step3_polygon_20251009_183622_453.jpg",
+      "exists": true
+    },
+    "step4": {
+      "filename": "step4_cement_20251009_183622_453.jpg",
+      "url": "/static/captured_images/step4_cement_20251009_183622_453.jpg",
+      "exists": true
+    },
+    "final": {
+      "filename": "analyzed_rebar_20251009_183622_453.jpg",
+      "url": "/static/captured_images/analyzed_rebar_20251009_183622_453.jpg",
+      "exists": true
+    }
+  },
+  "pipeline_data": {
+    "front_horizontal_count": 5,
+    "front_vertical_count": 2,
+    "intersection_count": 10,
+    "polygon_corners": 4
+  }
+}
