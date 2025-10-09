@@ -247,10 +247,28 @@ body {
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
-.image-card:hover .image-overlay {
-  opacity: 1;
+/* Desktop: Show on hover */
+@media (hover: hover) and (pointer: fine) {
+  .image-card:hover .image-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Touch devices: Hide by default, show only when card has 'active' class */
+@media (hover: none), (pointer: coarse) {
+  .image-overlay {
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .image-card.active .image-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .image-actions .view-btn {
@@ -547,6 +565,20 @@ body {
   font-size: 18px;
 }
 
+.image-type-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(45, 125, 71, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 10;
+  pointer-events: none;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .pipeline-results-data {
@@ -565,6 +597,19 @@ body {
   
   .results-header .modal-title {
     font-size: 18px;
+  }
+}
+
+/* Touch devices: Disable hover animations, keep tap-to-show behavior */
+@media (hover: none) and (pointer: coarse) {
+  .image-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: #2d7d47;
+  }
+  
+  .image-card:hover .image-container img {
+    transform: scale(1.05);
   }
 }
 

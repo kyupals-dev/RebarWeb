@@ -228,8 +228,47 @@ function setupEventListeners() {
   // Keyboard navigation
   document.addEventListener('keydown', handleKeyboard);
   
+  // Add tap-to-show-overlay for touch devices
+  document.addEventListener('click', handleImageCardTap);
+  
   // Window resize for responsive behavior
   window.addEventListener('resize', debounce(handleResize, 250));
+}
+
+function handleImageCardTap(e) {
+  // Only apply on touch devices
+  if (!isTouchDevice()) return;
+  
+  const imageCard = e.target.closest('.image-card');
+  
+  // If clicked outside any image card, remove all active states
+  if (!imageCard) {
+    document.querySelectorAll('.image-card.active').forEach(card => {
+      card.classList.remove('active');
+    });
+    return;
+  }
+  
+  // If clicked on the view button, let it work normally
+  if (e.target.closest('.view-btn')) {
+    return;
+  }
+  
+  // If clicked on an inactive card, activate it and deactivate others
+  if (!imageCard.classList.contains('active')) {
+    e.preventDefault();
+    document.querySelectorAll('.image-card.active').forEach(card => {
+      card.classList.remove('active');
+    });
+    imageCard.classList.add('active');
+  }
+}
+
+// Helper function to detect touch devices
+function isTouchDevice() {
+  return (('ontouchstart' in window) ||
+     (navigator.maxTouchPoints > 0) ||
+     (navigator.msMaxTouchPoints > 0));
 }
 
 function handleFilterChange() {
@@ -422,26 +461,21 @@ function createImageCard(image, index) {
   const capturedDate = new Date(image.timestamp).toLocaleDateString();
   const imageType = image.type || 'analyzed';
   
-  // Determine analysis type from filename
-  let analysisType = 'AI Analysis';
-  const filename = image.filename || '';
-  if (filename.startsWith('simplified_analysis_')) {
-    analysisType = 'Simplified Detection';
-  } else if (filename.startsWith('analyzed_rebar_')) {
-    analysisType = 'Full Model Analysis';
-  }
+  // Use sequential numbering for easy identification
+  const imageNumber = index + 1;
+  const analysisType = `No. ${imageNumber}`;
   
   return `
     <div class="image-card" data-index="${index}" data-type="${imageType}">
       <div class="image-container">
         <img src="${image.url}" alt="Analyzed image with AI overlays" loading="lazy" onerror="handleImageError(this)">
+        <div class="image-type-badge">${analysisType}</div>
         <div class="image-overlay">
           <div class="image-actions">
             <button class="view-btn" onclick="openModal('${image.filename}', '${image.url}', '${capturedDate}')">
               View Analysis
             </button>
           </div>
-          <div class="image-type-badge">${analysisType}</div>
         </div>
       </div>
     </div>
@@ -1163,7 +1197,7 @@ function showLoadingState() {
     galleryGrid.innerHTML = `
       <div class="loading-state">
         <div class="loading-spinner"></div>
-        <p>Loading analyzed images...</p>
+        <p>Loading results...</p>
       </div>
     `;
   }
