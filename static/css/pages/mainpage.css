@@ -82,6 +82,30 @@ body {
   font-size: 24px;
 }
 
+/* ==================== HOME BUTTON ==================== */
+.home-btn {
+  background: linear-gradient(135deg, #2d7d47 0%, #1e5631 100%);
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.home-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(45, 125, 71, 0.3);
+}
+
+.home-btn:active {
+  transform: translateY(0);
+}
+
 /* ==================== PORTRAIT-OPTIMIZED CAMERA INTERFACE ==================== */
 
 .camera-interface {

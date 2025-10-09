@@ -915,6 +915,7 @@ if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
   }
 }
 
+
 // ==================== GLOBAL MODAL FUNCTIONS ====================
 
 // Global functions for modal button onclick events
@@ -934,6 +935,12 @@ window.closeErrorModal = function() {
   if (window.cameraApp) {
     window.cameraApp.closeErrorModal();
   }
+};
+
+// Navigate to welcome page
+window.goToWelcome = function() {
+  console.log('🏠 Navigating to welcome page...');
+  window.location.href = '/welcome';
 };
 
 // ==================== INITIALIZATION ====================
@@ -974,3 +981,5 @@ notificationStyles.textContent = `
   }
 `;
 document.head.appendChild(notificationStyles);
+
+
