@@ -25,20 +25,13 @@ class TkinterCameraFrame:
         self.camera_manager = camera_manager
         self.distance_service = distance_service
         self.root = tk.Tk()
-        self.root.title("Rebar Vista Camera Feed - 480x640 (Analyzed Images Only)")
+        self.root.title("Rebar Vista Camera Feed")
         self.root.geometry("520x780")  # Slightly taller for distance display
         self.root.configure(bg='#2c3e50')
         
         # Create main frame
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Title label with save mode indicator
-        title_label = tk.Label(main_frame, 
-                              text="Rebar Vista Camera (480x640) + Distance\nSave Mode: Analyzed Images Only", 
-                              font=('Arial', 14, 'bold'), 
-                              bg='#2c3e50', fg='white')
-        title_label.pack(pady=(0, 5))
         
         # Distance display frame
         distance_frame = tk.Frame(main_frame, bg='#2c3e50')

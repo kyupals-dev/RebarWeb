@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rebar Vista - Image Gallery</title>
+  <title>Rebar Vista - Results</title>
   
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
@@ -23,7 +23,7 @@
       </div>
       
       <div class="header-title">
-        <h1>Analysis Results Gallery</h1>
+        <h1>Rebar Vista Results</h1>
       </div>
       
       <button class="back-btn" onclick="goToMainPage()">BACK</button>
@@ -85,7 +85,7 @@
   <div id="image-modal" class="modal-overlay" onclick="closeModal()">
     <div class="modal-content results-modal-content" onclick="event.stopPropagation()">
       <div class="modal-header results-header">
-        <h3 class="modal-title">Rebar Pipeline Analysis Results</h3>
+        <h3 class="modal-title">Rebar Vista Analysis Results</h3>
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
       

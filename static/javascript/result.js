@@ -874,7 +874,7 @@ async function downloadCurrentImage() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);  // INCREASED from 20 to 24
     doc.setFont('helvetica', 'bold');
-    doc.text('Rebar Analysis Results', pageWidth / 2, 22, { align: 'center' });
+    doc.text('Rebar Vista Analysis Results', pageWidth / 2, 22, { align: 'center' });
     
     yPosition = 45;
     

@@ -614,15 +614,6 @@ if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
     save_mode: results.metadata?.save_mode || 'unknown',
     only_analyzed_saved: true
   });
-  
-  // Show success message
-  const detectionCount = results.detections?.count || 0;
-  const message = `Analysis complete! ${detectionCount} rebar structures detected. Analyzed image saved to gallery.`;
-  this.showSuccessMessage(message);
-
-  setTimeout(() => {
-    this.showSuccessMessage(message);
-  }, 1000); // Delay to let modal appear first
 } 
 
   // ==================== GRID TOGGLE FUNCTIONALITY ====================
@@ -748,7 +739,7 @@ if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
       this.resultsModal.classList.remove('active');
     }
     this.analysisResults = null; // Clear stored results
-    this.updateStatus('Ready for next capture (analyzed image only mode)');
+    this.updateStatus('Ready for next capture');
   }
   
   showErrorModal() {
@@ -768,7 +759,7 @@ if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
           '• Visible rebar structure\n' +
           '• 200cm optimal distance');
     
-    this.updateStatus('Ready for next capture (analyzed image only mode)');
+    this.updateStatus('Ready for next capture');
   }
   
   // ==================== UI STATUS MANAGEMENT ====================
