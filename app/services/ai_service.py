@@ -238,6 +238,16 @@ class AIService:
             # STEP 3: POLYGON + VOLUME
             print("📍 STEP 3: POLYGON + VOLUME")
             polygon_data = self._calculate_polygon(intersections)
+            
+            #For checking:
+            if polygon_data is None:
+                print("❌ Failed to calculate polygon from intersections")
+                return {
+                    'success': False,
+                    'error': 'polygon_calculation_failed',
+                    'message': 'Failed to calculate rebar structure polygon'
+                }
+                
             step3_image = self._create_step3_visualization(image, polygon_data)
             
             # STEP 4: CEMENT ESTIMATION
@@ -351,16 +361,10 @@ class AIService:
         """Calculate polygon from intersection points"""
         try:
             if not intersections:
-                # Fallback polygon
-                return {
-                    'corners': [(100, 100), (200, 100), (200, 300), (100, 300)],
-                    'width_cm': 28.2,
-                    'length_cm': 28.2,
-                    'height_cm': 142.4,
-                    'volume_cm3': 113000,
-                    'volume_m3': 0.113
-                }
-            
+                # ERROR: No intersections means something went wrong
+                print("❌ No intersections found - cannot calculate polygon")
+                return None
+              
             # Find polygon bounds from intersections
             x_coords = [p['x'] for p in intersections]
             y_coords = [p['y'] for p in intersections]
