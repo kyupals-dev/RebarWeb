@@ -20,74 +20,82 @@ const state = {
 const METADATA_PROFILES = {
   'profile_1': {
     dimensions: '30.5cm × 30.5cm × 180cm = 167,445cm³ = 0.167445m³',
-    mixture: '1 Cement (53.136 kg ≈ 1.33 bags) : 2 Sand (117.92 kg) : 4 Gravel (213.73 kg)',
-    detections: '13 detections (2 verticals + 11 horizontals)',
-    wetVolume: '0.167445m³ × 1.54 = 0.2578653m³',
-    materialQuantities: 'Cement: 0.0369 × 1440 kg/m³, Sand: 0.0737 × 1600 kg/m³, Gravel: 0.1474 × 1450 kg/m³',
-    waterRequirement: '≈28.2 liters (Cement [53.136kg] × 0.53)'
+    mixture: 'Cement Ratio 1:2:4',
+    wetVolume: '0.2578653m³',
+    materialQuantities: 'Cement = 53.136 kg = 1.33 bags\n' +
+                        'Sand = 117.92 kg\n' +
+                        'Gravel = 213.73 kg',
+    waterRequirement: '≈28.2 liters'
   },
   
   'profile_2': {
     dimensions: '31cm × 31cm × 180cm = 172,980cm³ = 0.17298m³',
-    mixture: '1 Cement (54.72 kg ≈ 1.37 bags) : 2 Sand (121.6 kg) : 4 Gravel (210.4 kg)',
-    detections: '13 detections (2 verticals + 11 horizontals)',
-    wetVolume: '0.17298m³ × 1.54 = 0.266m³',
-    materialQuantities: 'Cement: 0.038 × 1440 kg/m³, Sand: 0.076 × 1600 kg/m³, Gravel: 0.152 × 1450 kg/m³',
-    waterRequirement: '≈29 liters (Cement [54.72kg] × 0.53)'
+    mixture: 'Cement Ratio 1:2:4',
+    wetVolume: '0.266m³',
+    materialQuantities: 'Cement = 54.72 kg = 1.37 bags\n' +
+                        'Sand = 121.6 kg\n' +
+                        'Gravel = 210.4 kg',
+    waterRequirement: '≈29 liters'
   },
   
   'profile_3': {
     dimensions: '30.7cm × 30.7cm × 180cm = 169,648.2cm³ = 0.1696482m³',
-    mixture: '1 Cement (53.74 kg ≈ 1.34 bags) : 2 Sand (119.43 kg) : 4 Gravel (216.47 kg)',
-    detections: '13 detections (2 verticals + 11 horizontals)',
-    wetVolume: '0.1696482m³ × 1.54 = 0.261m³',
-    materialQuantities: 'Cement: 0.037 × 1440 kg/m³, Sand: 0.746 × 1600 kg/m³, Gravel: 0.149 × 1450 kg/m³',
-    waterRequirement: '≈28.48 liters (Cement [53.74kg] × 0.53)'
+    mixture: 'Cement Ratio 1:2:4',
+    wetVolume: '0.261m³',
+    materialQuantities: 'Cement = 53.74 kg = 1.34 bags\n' +
+                        'Sand = 119.43 kg\n' +
+                        'Gravel = 216.47 kg',
+    waterRequirement: '≈28.48 liters'
   },
 
   'profile_4': {
     dimensions: '31.2cm × 31.2cm × 180cm = 175,219.2cm³ = 0.1752192m³',
-    mixture: '1 Cement (55.51 kg ≈ 1.39 bags) : 2 Sand (123.35 kg) : 4 Gravel (223.58 kg)',
-    detections: '13 detections (2 verticals + 11 horizontals)',
-    wetVolume: '0.1752192m³ × 1.54 = 0.270m³',
-    materialQuantities: 'Cement: 0.039 × 1440 kg/m³, Sand: 0.077 × 1600 kg/m³, Gravel: 0.154 × 1450 kg/m³',
-    waterRequirement: '≈29.42 liters (Cement [55.51kg] × 0.53)'
+    mixture: 'Cement Ratio 1:2:4',
+    wetVolume: '0.270m³',
+    materialQuantities: 'Cement = 55.51 kg = 1.39 bags\n' +
+                        'Sand = 123.35 kg\n' +
+                        'Gravel = 223.58 kg',
+    waterRequirement: '≈29.42 liters'
   },
 
   'profile_5': {
     dimensions: '31.1cm × 31.1cm × 180cm = 174,097.8cm³ = 0.1740978m³',
-    mixture: '1 Cement (55.15 kg ≈ 1.38 bags) : 2 Sand (122.56 kg) : 4 Gravel (222.15 kg)',
-    detections: '13 detections (2 verticals + 11 horizontals)',
-    wetVolume: '0.1740978m³ × 1.54 = 0.268m³',
-    materialQuantities: 'Cement: 0.038 × 1440 kg/m³, Sand: 0.077 × 1600 kg/m³, Gravel: 0.153 × 1450 kg/m³',
-    waterRequirement: '≈29.23 liters (Cement [55.15kg] × 0.53)'
+    mixture: 'Cement Ratio 1:2:4',
+    wetVolume: '0.268m³',
+    materialQuantities: 'Cement = 55.15 kg = 1.38 bags\n' +
+                        'Sand = 122.56 kg\n' +
+                        'Gravel = 222.15 kg',
+    waterRequirement: '≈29.23 liters'
   },
   
   'profile_6': {
     dimensions: '30.9cm × 30.9cm × 180cm = 171,865.8cm³ = 0.1718658m³',
-    mixture: '1 Cement (54.45 kg ≈ 1.36 bags) : 2 Sand (120.99 kg) : 4 Gravel (219.30 kg)',
-    detections: '13 detections (2 verticals + 11 horizontals)',
-    wetVolume: '0.1718658m³ × 1.54 = 0.265m³',
-    materialQuantities: 'Cement: 0.037 × 1440 kg/m³, Sand: 0.038 × 1600 kg/m³, Gravel: 0.151 × 1450 kg/m³',
-    waterRequirement: '≈28.86 liters (Cement [54.45kg] × 0.53)'
+    mixture: 'Cement Ratio 1:2:4',
+    wetVolume: '0.265m³',
+    materialQuantities: 'Cement = 54.45 kg = 1.36 bags\n' +
+                        'Sand = 120.99 kg\n' +
+                        'Gravel = 219.30 kg',
+    waterRequirement: '≈28.86 liters'
   },
   
   'profile_7': {
     dimensions: '30.6cm × 30.6cm × 180cm = 168,544.8cm³ = 0.1685448m³',
-    mixture: '1 Cement (53.42 kg ≈ 1.34 bags) : 2 Sand (118.88 kg) : 4 Gravel (215.47 kg)',
-    detections: '13 detections (2 verticals + 11 horizontals)',
-    wetVolume: '0.1685448m³ × 1.54 = 0.260m³',
-    materialQuantities: 'Cement: 0.037 × 1440 kg/m³, Sand: 0.074 × 1600 kg/m³, Gravel: 0.148 × 1450 kg/m³',
-    waterRequirement: '≈28.31 liters (Cement [53.42kg] × 0.53)'
+    mixture: 'Cement Ratio 1:2:4',
+    wetVolume: '0.260m³',
+    materialQuantities: 'Cement = 53.42 kg = 1.34 bags\n' +
+                        'Sand = 118.88 kg\n' +
+                        'Gravel = 215.47 kg',
+    waterRequirement: '≈28.31 liters'
   },
   
   'profile_8': {
     dimensions: '30.8cm × 30.8cm × 180cm = 170,755.2cm³ = 0.1707552m³',
-    mixture: '1 Cement (54.09 kg ≈ 1.35 bags) : 2 Sand (120.21 kg) : 4 Gravel (217.88 kg)',
-    detections: '13 detections (2 verticals + 11 horizontals)',
-    wetVolume: '0.1707552m³ × 1.54 = 0.262m³',
-    materialQuantities: 'Cement: 0.037 × 1440 kg/m³, Sand: 0.075 × 1600 kg/m³, Gravel: 0.150 × 1450 kg/m³',
-    waterRequirement: '≈28.67 liters (Cement [54.09kg] × 0.53)'
+    mixture: 'Cement Ratio 1:2:4',
+    wetVolume: '0.262m³',
+    materialQuantities: 'Cement = 54.09 kg = 1.35 bags\n' +
+                        'Sand = 120.21 kg\n' +
+                        'Gravel = 217.88 kg',
+    waterRequirement: '≈28.67 liters'
   },
 };
 
