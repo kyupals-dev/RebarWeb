@@ -19,7 +19,7 @@ try:
     from detectron2 import model_zoo
     DETECTRON2_AVAILABLE = True
 except ImportError:
-    print("⚠️  Detectron2 not available. AI analysis will use placeholder results.")
+    print("⚠️ Detectron2 not available.")
     DETECTRON2_AVAILABLE = False
 
 from app.utils.config import config
@@ -42,12 +42,12 @@ class AIService:
         self.detection_threshold = 0.3
         
         # Pipeline constants from notebook
-        self.CEMENT_BAG_WEIGHT = 40      # kg
-        self.MIX_RATIO = (1, 2, 4)       # cement : sand : gravel
+        self.CEMENT_BAG_WEIGHT = 40       # kg
+        self.MIX_RATIO = (1, 2, 4)        # cement : sand : gravel
         self.WATER_CEMENT_RATIO = 0.53
         self.DRY_VOLUME_FACTOR = 1.54
-        self.PX_TO_CM = 1 / 3.54         # conversion factor (3.54 px = 1 cm)
-        self.OFFSET_CM = 9             # allowance for formworks outward offset
+        self.PX_TO_CM = 1 / 3.54          # conversion factor (3.54 px = 1 cm)
+        self.OFFSET_CM = 9                # allowance for formworks outward offset
 
         # Material Densities (kg/m³)
         self.CEMENT_DENSITY = 1440
@@ -55,17 +55,17 @@ class AIService:
         self.GRAVEL_DENSITY = 1500
         
         print("🤖 Initializing SIMPLIFIED AI Service - 4 Step Pipeline...")
-        print(f"   Classes: {self.class_names}")
-        print(f"   Expected: 2 verticals, 11 horizontals")
-        print(f"   Detection threshold: {self.detection_threshold}")
-        print("   📝 FIXED: Only saves analyzed images with 4-step visualization")
+        print(f"    Classes: {self.class_names}")
+        print(f"    Expected: 2 verticals, 11 horizontals")
+        print(f"    Detection threshold: {self.detection_threshold}")
+        print("    📝 FIXED: Only saves analyzed images with 4-step visualization")
         self.load_model()
     
     def load_model(self):
         """Load the trained Detectron2 model with EXACT TRAINING CONFIGURATION"""
         try:
             if not DETECTRON2_AVAILABLE:
-                print("❌ Detectron2 not available, using placeholder mode")
+                print("❌ Detectron2 not available")
                 return False
             
             if not os.path.exists(self.model_path):
@@ -92,8 +92,8 @@ class AIService:
             self.model_loaded = True
             
             print(f"✅ Model loaded successfully!")
-            print(f"   Classes: {self.class_names}")
-            print(f"   Expected detections: 2 verticals + 11 horizontals = 13 total")
+            print(f"    Classes: {self.class_names}")
+            print(f"    Expected detections: 2 verticals + 11 horizontals = 13 total")
             
             return True
             
@@ -128,13 +128,13 @@ class AIService:
             height, width = image.shape[:2]
             if width != 480 or height != 640:
                 image = cv2.resize(image, (480, 640))
-                print(f"⚙️  Resized to 480x640")
+                print(f"⚙️ Resized to 480x640")
             
             # Run simplified pipeline
             if self.model_loaded and DETECTRON2_AVAILABLE:
                 result = self._run_4step_pipeline(image)
             else:
-                print("⚠️  Model not available - Cannot analyze")
+                print("⚠️ Model not available - Cannot analyze")
                 return {
                     'success': False,
                     'error': 'model_not_loaded',
@@ -159,6 +159,50 @@ class AIService:
                 'error': f'Analysis failed: {str(e)}'
             }
     
+    def _add_timestamp_overlay(self, image):
+        """Add timestamp overlay to image"""
+        try:
+            timestamp_text = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            img_with_timestamp = image.copy()
+            height, width = img_with_timestamp.shape[:2]
+            
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.5
+            font_thickness = 1
+            
+            (text_width, text_height), baseline = cv2.getTextSize(
+                timestamp_text, font, font_scale, font_thickness
+            )
+            
+            x = width - text_width - 10
+            y = 30
+            
+            cv2.rectangle(
+                img_with_timestamp,
+                (x - 5, y - text_height - 5),
+                (x + text_width + 5, y + baseline + 5),
+                (0, 0, 0),
+                -1
+            )
+            
+            cv2.putText(
+                img_with_timestamp,
+                timestamp_text,
+                (x, y),
+                font,
+                font_scale,
+                (255, 255, 255),
+                font_thickness
+            )
+            
+            return img_with_timestamp
+            
+        except Exception as e:
+            print(f"⚠️ Error adding timestamp: {e}")
+            return image
+            
+            
     def _run_4step_pipeline(self, image):
         """Run the exact 4-step pipeline from training"""
         try:
@@ -198,7 +242,7 @@ class AIService:
             print(f"Front horizontal: {horizontal_count}, Front vertical: {vertical_count}")
             
             if len(detections) == 0:
-                print("⚠️  NO DETECTIONS FOUND - Returning error")
+                print("⚠️ NO DETECTIONS FOUND - Returning error")
                 return {
                     'success': False,
                     'error': 'no_rebar_detected',
@@ -208,12 +252,12 @@ class AIService:
             
             MIN_VERTICALS = 2
             
-            # New validation    
+            # New validation  
             if vertical_count < MIN_VERTICALS:
-                print(f"⚠️  INSUFFICIENT REBAR STRUCTURE DETECTED")
-                print(f"   Required: at least {MIN_VERTICALS} verticals (any number of horizontals)")
-                print(f"   Found: {vertical_count} verticals + {horizontal_count} horizontals")
-                print(f"   This is likely a false positive - NOT saving images")
+                print(f"⚠️ INSUFFICIENT REBAR STRUCTURE DETECTED")
+                print(f"    Required: at least {MIN_VERTICALS} verticals (any number of horizontals)")
+                print(f"    Found: {vertical_count} verticals + {horizontal_count} horizontals")
+                print(f"    This is likely a false positive - NOT saving images")
                 return {
                     'success': False,
                     'error': 'no_rebar_detected',
@@ -224,8 +268,8 @@ class AIService:
                 }
                 
             print(" Valid rebar structure detected - proceeding with analysis")
-            print(f"   {vertical_count} verticals + {horizontal_count} horizontals")
-                    
+            print(f"    {vertical_count} verticals + {horizontal_count} horizontals")
+                        
                 
             # STEP 1 Visualization
             step1_image = self._create_step1_visualization(image, detections)
@@ -323,10 +367,10 @@ class AIService:
             intersections = []
             for h_bar in horizontal_bars:
                 h_center = [(h_bar['bbox'][0] + h_bar['bbox'][2]) / 2, 
-                           (h_bar['bbox'][1] + h_bar['bbox'][3]) / 2]
+                            (h_bar['bbox'][1] + h_bar['bbox'][3]) / 2]
                 for v_bar in vertical_bars:
                     v_center = [(v_bar['bbox'][0] + v_bar['bbox'][2]) / 2, 
-                               (v_bar['bbox'][1] + v_bar['bbox'][3]) / 2]
+                                (v_bar['bbox'][1] + v_bar['bbox'][3]) / 2]
                     
                     # Check if bars actually intersect (simplified)
                     if (h_bar['bbox'][0] <= v_center[0] <= h_bar['bbox'][2] and
@@ -364,7 +408,7 @@ class AIService:
                 # ERROR: No intersections means something went wrong
                 print("❌ No intersections found - cannot calculate polygon")
                 return None
-              
+            
             # Find polygon bounds from intersections
             x_coords = [p['x'] for p in intersections]
             y_coords = [p['y'] for p in intersections]
@@ -611,11 +655,11 @@ class AIService:
             final_path = os.path.join(config.UPLOAD_FOLDER, f'analyzed_rebar_{timestamp}.jpg')
             
             # Save all images
-            cv2.imwrite(step1_path, step1_image)
-            cv2.imwrite(step2_path, step2_image)
-            cv2.imwrite(step3_path, step3_image)
-            cv2.imwrite(step4_path, step4_image)
-            cv2.imwrite(final_path, step4_image)  # Final is step 4
+            cv2.imwrite(step1_path, self._add_timestamp_overlay(step1_image))
+            cv2.imwrite(step2_path, self._add_timestamp_overlay(step2_image))
+            cv2.imwrite(step3_path, self._add_timestamp_overlay(step3_image))
+            cv2.imwrite(step4_path, self._add_timestamp_overlay(step4_image))
+            cv2.imwrite(final_path, self._add_timestamp_overlay(step4_image))  # Final is step 4
             
             print(f"✅ Saved 4-step analysis images:")
             print(f"Step 1: {os.path.basename(step1_path)}")
@@ -674,11 +718,11 @@ class AIService:
             
             # Log final results
             print(f"📊 Analysis completed:")
-            print(f"   Model: {final_result['model_type']}")
-            print(f"   Detections: {final_result['num_detections']}")
-            print(f"   Dimensions: {final_result['dimensions'].get('display', 'N/A')}")
-            print(f"   Cement: {final_result['cement_mixture'].get('ratio_string', 'N/A')}")
-            print(f"   Images saved: {len([p for p in final_result['step_images'].values() if p])}")
+            print(f"    Model: {final_result['model_type']}")
+            print(f"    Detections: {final_result['num_detections']}")
+            print(f"    Dimensions: {final_result['dimensions'].get('display', 'N/A')}")
+            print(f"    Cement: {final_result['cement_mixture'].get('ratio_string', 'N/A')}")
+            print(f"    Images saved: {len([p for p in final_result['step_images'].values() if p])}")
             
             return final_result
             
@@ -700,11 +744,5 @@ class AIService:
             'num_classes': self.num_classes,
             'class_names': self.class_names,
             'threshold': self.detection_threshold,
-            'model_type': 'simplified_4step_pipeline',
-            'save_mode': 'analyzed_images_only',
-            'expected_detections': {
-                'front_vertical': 2,
-                'front_horizontal': 11,
-                'total': 13
-            }
+            'model_type': 'simplified_4step_pipeline'
         }

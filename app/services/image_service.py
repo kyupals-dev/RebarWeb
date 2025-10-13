@@ -16,6 +16,57 @@ class ImageService:
         self.allowed_extensions = config.ALLOWED_EXTENSIONS
         print("📁 Enhanced Image Service initialized (4-step analysis metadata support)")
     
+    def _add_timestamp_overlay(self, image):
+        """Add timestamp overlay to image"""
+        try:
+            timestamp_text = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Make a copy to avoid modifying original
+            img_with_timestamp = image.copy()
+            
+            # Get image dimensions
+            height, width = img_with_timestamp.shape[:2]
+            
+            # Calculate position (bottom-right corner with padding)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.5
+            font_thickness = 1
+            
+            # Get text size
+            (text_width, text_height), baseline = cv2.getTextSize(
+                timestamp_text, font, font_scale, font_thickness
+            )
+            
+            # Position at bottom-right with 10px padding
+            x = width - text_width - 10
+            y = 30
+            
+            # Draw black background rectangle
+            cv2.rectangle(
+                img_with_timestamp,
+                (x - 5, y - text_height - 5),
+                (x + text_width + 5, y + baseline + 5),
+                (0, 0, 0),
+                -1
+            )
+            
+            # Draw white text
+            cv2.putText(
+                img_with_timestamp,
+                timestamp_text,
+                (x, y),
+                font,
+                font_scale,
+                (255, 255, 255),
+                font_thickness
+            )
+            
+            return img_with_timestamp
+            
+        except Exception as e:
+            print(f"⚠️ Error adding timestamp: {e}")
+            return image
+    
     def _generate_filename(self, prefix='capture'):
         """Generate a unique filename with timestamp"""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
@@ -24,7 +75,7 @@ class ImageService:
     def _is_allowed_file(self, filename):
         """Check if file extension is allowed"""
         return '.' in filename and \
-               filename.rsplit('.', 1)[1].lower() in self.allowed_extensions
+                filename.rsplit('.', 1)[1].lower() in self.allowed_extensions
     
     def _is_analyzed_image(self, filename):
         """
@@ -36,11 +87,11 @@ class ImageService:
             return False
             
         analyzed_prefixes = [
-            'analyzed_rebar_',         # Real model results
-            'analyzed_placeholder_',   # Placeholder results
-            'step4_cement_',          # Step 4 final results
-            'real_analysis_',          # Legacy real model naming
-            'placeholder_analysis_'    # Legacy placeholder naming
+            'analyzed_rebar_',          # Real model results
+            'analyzed_placeholder_',    # Placeholder results
+            'step4_cement_',            # Step 4 final results
+            'real_analysis_',           # Legacy real model naming
+            'placeholder_analysis_'     # Legacy placeholder naming
         ]
         
         return any(filename.startswith(prefix) for prefix in analyzed_prefixes)
@@ -136,10 +187,10 @@ class ImageService:
                 json.dump(metadata, f, indent=2, default=str)
             
             print(f"✅ Saved 4-step analysis metadata: {os.path.basename(metadata_path)}")
-            print(f"   📊 Detections: {metadata['detections']['total_count']}")
-            print(f"   📐 Dimensions: {metadata['dimensions'].get('display', 'N/A')}")
-            print(f"   🧮 Cement: {metadata['cement_mixture'].get('ratio_string', 'N/A')}")
-            print(f"   🖼️  Step Images: {len([s for s in metadata['step_images'].values() if s['exists']])}/4")
+            print(f"    📊 Detections: {metadata['detections']['total_count']}")
+            print(f"    📐 Dimensions: {metadata['dimensions'].get('display', 'N/A')}")
+            print(f"    🧮 Cement: {metadata['cement_mixture'].get('ratio_string', 'N/A')}")
+            print(f"    🖼️  Step Images: {len([s for s in metadata['step_images'].values() if s['exists']])}/4")
             
             return {
                 'success': True,
@@ -303,10 +354,10 @@ class ImageService:
             original_count = total_count - analyzed_count
             
             print(f"📚 Enhanced Gallery Filter Results:")
-            print(f"   📊 Total images found: {total_count}")
-            print(f"   ✅ Analyzed images (shown): {analyzed_count}")
-            print(f"   🚫 Original images (hidden): {original_count}")
-            print(f"   📋 With 4-step metadata: {len([img for img in analyzed_images if img.get('metadata')])}")
+            print(f"    📊 Total images found: {total_count}")
+            print(f"    ✅ Analyzed images (shown): {analyzed_count}")
+            print(f"    🚫 Original images (hidden): {original_count}")
+            print(f"    📋 With 4-step metadata: {len([img for img in analyzed_images if img.get('metadata')])}")
             
             return {
                 'success': True,
@@ -430,11 +481,11 @@ class ImageService:
                         metadata_deleted += 1
             
             print(f"🗑️  Complete Image & Metadata Cleanup:")
-            print(f"   📊 Total images deleted: {deleted_count}")
-            print(f"   ✅ Analyzed deleted: {analyzed_deleted}")
-            print(f"   📁 Originals deleted: {original_deleted}")
-            print(f"   📋 Metadata files deleted: {metadata_deleted}")
-            print(f"   💾 Space freed: {total_size / 1024:.1f} KB")
+            print(f"    📊 Total images deleted: {deleted_count}")
+            print(f"    ✅ Analyzed deleted: {analyzed_deleted}")
+            print(f"    📁 Originals deleted: {original_deleted}")
+            print(f"    📋 Metadata files deleted: {metadata_deleted}")
+            print(f"    💾 Space freed: {total_size / 1024:.1f} KB")
             
             return {
                 'success': True,
@@ -483,7 +534,8 @@ class ImageService:
             filename = self._generate_filename(prefix)
             filepath = os.path.join(self.upload_folder, filename)
             
-            success = cv2.imwrite(filepath, frame)
+            frame_with_timestamp = self._add_timestamp_overlay(frame)
+            success = cv2.imwrite(filepath, frame_with_timestamp)
             
             if success:
                 image_info = self._log_image_dimensions(filepath, "Frame Saved")
@@ -508,10 +560,17 @@ class ImageService:
             filename = self._generate_filename(prefix)
             filepath = os.path.join(self.upload_folder, filename)
             
+            # Decode and save temporarily
             with open(filepath, 'wb') as f:
                 f.write(base64.b64decode(image_data))
-            
-            image_info = self._log_image_dimensions(filepath, "Web Captured")
+
+            # Read back, add timestamp, and save again
+            img = cv2.imread(filepath)
+            if img is not None:
+                img_with_timestamp = self._add_timestamp_overlay(img)
+                cv2.imwrite(filepath, img_with_timestamp)
+
+            image_info = self._log_image_dimensions(filepath, "Web Captured")            
             
             return {
                 'success': True,
@@ -550,9 +609,9 @@ class ImageService:
                             kept_count += 1
             
             print(f"🧹 Original Image Cleanup:")
-            print(f"   🗑️  Originals deleted: {deleted_count}")
-            print(f"   ✅ Analyzed kept: {kept_count}")
-            print(f"   💾 Space freed: {total_size / 1024:.1f} KB")
+            print(f"    🗑️  Originals deleted: {deleted_count}")
+            print(f"    ✅ Analyzed kept: {kept_count}")
+            print(f"    💾 Space freed: {total_size / 1024:.1f} KB")
             
             return {
                 'success': True,
@@ -624,12 +683,12 @@ class ImageService:
             }
             
             print(f"📊 Enhanced Storage Statistics:")
-            print(f"   📁 Total image files: {stats['total_files']}")
-            print(f"   ✅ Analyzed (gallery): {stats['analyzed_files']} ({stats['analyzed_size_kb']} KB)")
-            print(f"   📄 Originals (hidden): {stats['original_files']} ({stats['original_size_kb']} KB)")
-            print(f"   🎞️  Step images: {stats['step_files']} ({stats['step_size_kb']} KB)")
-            print(f"   📋 Metadata files: {stats['metadata_files']} ({stats['metadata_size_kb']} KB)")
-            print(f"   💾 Total storage: {stats['total_size_kb']} KB")
+            print(f"    📁 Total image files: {stats['total_files']}")
+            print(f"    ✅ Analyzed (gallery): {stats['analyzed_files']} ({stats['analyzed_size_kb']} KB)")
+            print(f"    📄 Originals (hidden): {stats['original_files']} ({stats['original_size_kb']} KB)")
+            print(f"    🎞️  Step images: {stats['step_files']} ({stats['step_size_kb']} KB)")
+            print(f"    📋 Metadata files: {stats['metadata_files']} ({stats['metadata_size_kb']} KB)")
+            print(f"    💾 Total storage: {stats['total_size_kb']} KB")
             
             return {
                 'success': True,
