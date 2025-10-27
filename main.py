@@ -26,16 +26,23 @@ class TkinterCameraFrame:
         self.distance_service = distance_service
         self.root = tk.Tk()
         self.root.title("Rebar Vista Camera Feed")
-        self.root.geometry("520x780")  # Slightly taller for distance display
-        self.root.configure(bg='#2c3e50')
+        
+        self.root.bind('<Escape>', lambda e: self.on_closing())
+        self.root.bind('<Alt-F4>', lambda e: self.on_closing())
+        self.root.bind('<Control-c>', lambda e: self.on_closing())
+        
+        # Override window manager decorations and go fullscreen
+        self.root.overrideredirect(True)
+        self.root.geometry("480x680+0+0")
+        self.root.configure(bg='#2c3e50') 
         
         # Create main frame
         main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
         
         # Distance display frame
         distance_frame = tk.Frame(main_frame, bg='#2c3e50')
-        distance_frame.pack(pady=5)
+        distance_frame.pack(pady=0)
         
         # Distance labels
         self.distance_label = tk.Label(distance_frame, text="Distance: --cm", 
@@ -52,52 +59,7 @@ class TkinterCameraFrame:
         # Camera display label - PORTRAIT 480x640
         self.camera_label = tk.Label(main_frame, bg='black', 
                                    width=480, height=640)
-        self.camera_label.pack(pady=5)
-        
-        # Status label with save mode info
-        self.status_label = tk.Label(main_frame, 
-                                   text="Initializing camera and distance sensor (analyzed images only)...", 
-                                   font=('Arial', 10), 
-                                   bg='#2c3e50', fg='#ecf0f1')
-        self.status_label.pack(pady=5)
-        
-        # Button frame
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(pady=10)
-        
-        # Note: Capture button removed since we don't save originals via Tkinter
-        # The web interface handles capture + AI analysis
-        
-        # Toggle camera button
-        self.toggle_btn = tk.Button(button_frame, text="Stop Camera", 
-                                  command=self.toggle_camera,
-                                  bg='#e74c3c', fg='white', 
-                                  font=('Arial', 12, 'bold'),
-                                  padx=20, pady=5)
-        self.toggle_btn.pack(side=tk.LEFT, padx=5)
-        
-        # Distance test button
-        self.distance_btn = tk.Button(button_frame, text="Test Distance", 
-                                    command=self.test_distance,
-                                    bg='#f39c12', fg='white', 
-                                    font=('Arial', 12, 'bold'),
-                                    padx=20, pady=5)
-        self.distance_btn.pack(side=tk.LEFT, padx=5)
-        
-        # AI test button
-        self.ai_test_btn = tk.Button(button_frame, text="Test AI", 
-                                   command=self.test_ai,
-                                   bg='#9b59b6', fg='white', 
-                                   font=('Arial', 12, 'bold'),
-                                   padx=20, pady=5)
-        self.ai_test_btn.pack(side=tk.LEFT, padx=5)
-        
-        # Info display with save mode
-        self.info_label = tk.Label(main_frame, 
-                                 text="Format: 480x640 Portrait | Distance: Checking | Save: Analyzed Only", 
-                                 font=('Arial', 9), 
-                                 bg='#2c3e50', fg='#bdc3c7')
-        self.info_label.pack(pady=(5, 0))
+        self.camera_label.pack(pady=0)
         
         self.is_running = True
         self.frame_count = 0
@@ -132,19 +94,11 @@ class TkinterCameraFrame:
                     else:
                         self.distance_status_label.configure(bg='#95a5a6', fg='white')  # Unknown
                     
-                    # Update info label
-                    optimal_range = reading.get('optimal_range', '160-200cm')
-                    self.info_label.configure(
-                        text=f"Format: 480x640 | Distance: {reading['distance_text']} | Range: {optimal_range} | Save: Analyzed Only"
-                    )
                     
                 else:
                     # Error case
                     self.distance_label.configure(text="Distance: ERROR")
                     self.distance_status_label.configure(text="ERROR", bg='#e74c3c', fg='white')
-                    self.info_label.configure(
-                        text="Format: 480x640 | Distance: ERROR | Save: Analyzed Only"
-                    )
                     
             except Exception as e:
                 print(f"Tkinter distance update error: {e}")
@@ -154,43 +108,7 @@ class TkinterCameraFrame:
         if self.is_running:
             # Update every 500ms (matching the distance service update rate)
             self.root.after(500, self.update_distance)
-    
-    def test_distance(self):
-        """Test distance sensor functionality"""
-        if self.distance_service:
-            try:
-                test_result = self.distance_service.test_sensor()
-                
-                if test_result['success']:
-                    avg_distance = test_result.get('average_distance', 0)
-                    readings_count = test_result.get('readings_count', 0)
                     
-                    self.status_label.configure(
-                        text=f"Distance test passed: {avg_distance:.1f}cm average from {readings_count} readings"
-                    )
-                else:
-                    error = test_result.get('error', 'Unknown error')
-                    self.status_label.configure(text=f"Distance test failed: {error}")
-                
-            except Exception as e:
-                self.status_label.configure(text=f"Distance test error: {str(e)}")
-        else:
-            self.status_label.configure(text="Distance service not available")
-                    
-    def test_ai(self):
-        """Test AI service with current camera frame"""
-        if self.camera_manager:
-            current_frame = self.camera_manager.get_current_frame()
-            
-            if current_frame is not None:
-                self.status_label.configure(text="Testing AI with current frame (analyzed image only)...")
-                print("🧪 Testing AI service with current camera frame")
-                print("📝 NOTE: AI test will save only analyzed image if successful")
-            else:
-                self.status_label.configure(text="No camera frame available for AI test")
-        else:
-            self.status_label.configure(text="Camera manager not available for AI test")
-    
     def update_frame(self):
         if self.is_running and self.camera_manager:
             current_frame = self.camera_manager.get_current_frame()
@@ -221,15 +139,10 @@ class TkinterCameraFrame:
                     self.camera_label.configure(image=photo)
                     self.camera_label.image = photo
                     
-                    # Update status
-                    self.status_label.configure(text="Rebar Vista Active - 480x640 (Analyzed Images Only Mode)")
                     
                 except Exception as e:
                     print(f"Tkinter display error: {e}")
-                    self.status_label.configure(text="Display error - check camera")
-            else:
-                self.status_label.configure(text="No Rebar Vista camera feed available")
-        
+              
         if self.is_running:
             # Schedule next update - 30ms for smooth display
             self.root.after(30, self.update_frame)
@@ -237,15 +150,19 @@ class TkinterCameraFrame:
     def toggle_camera(self):
         if self.camera_manager.is_running:
             self.camera_manager.stop_camera()
-            self.toggle_btn.configure(text="Start Camera", bg='#27ae60')
-            self.status_label.configure(text="Rebar Vista camera stopped")
+            print("Rebar Vista camera stopped")
         else:
             if self.camera_manager.start_camera():
-                self.toggle_btn.configure(text="Stop Camera", bg='#e74c3c')
-                self.status_label.configure(text="Rebar Vista camera started (480x640, analyzed images only)")
+               print("Rebar Vista camera started")
             else:
-                self.status_label.configure(text="Failed to start Rebar Vista camera")
+                print("Failed to start Rebar Vista camera")
     
+    def toggle_fullscreen(self):
+        """Toggle fullscreen mode on/off"""
+        current_state = self.root.attributes('-fullscreen')
+        self.root.attributes('-fullscreen', not current_state)
+		
+		
     def on_closing(self):
         print("Closing Tkinter camera window...")
         self.is_running = False
