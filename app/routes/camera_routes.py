@@ -56,7 +56,7 @@ def video_feed():
         target_interval = 1.0 / config.CAMERA_FPS  # Target time between frames
         
         # Adaptive JPEG quality based on network conditions
-        jpeg_quality = 85
+        jpeg_quality = 95
         consecutive_slow_frames = 0
         
         while True:

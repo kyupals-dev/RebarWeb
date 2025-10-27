@@ -563,7 +563,7 @@ if (wetVolume && results.dimensions) {
   const wetVolumeM3 = volumeM3 * dryVolumeFactor;
   
   // NEW: Only show final result
-  wetVolume.textContent = `${wetVolumeM3.toFixed(7)}m³`;
+  wetVolume.textContent = `${wetVolumeM3.toFixed(4)}m³`;
   console.log('✅ Wet volume displayed:', wetVolume.textContent);
 }
 
@@ -576,9 +576,10 @@ if (cementCalc && results.cement_mixture && results.cement_mixture.details) {
   const gravelKg = details.gravel_weight_kg || 0;
   
   // NEW FORMAT: Multi-line display without formulas
-  const materialQuantities = `Cement = ${cementKg.toFixed(2)} kg ≈ ${cementBags.toFixed(2)} bags
-Sand = ${sandKg.toFixed(2)} kg
-Gravel = ${gravelKg.toFixed(2)} kg`;
+  const recommendedBags = Math.ceil(cementBags);
+  const materialQuantities = `Cement = ${cementKg.toFixed(2)} kg → ${cementBags.toFixed(2)} bags (recommend purchase: ${recommendedBags} bags)
+  Sand = ${sandKg.toFixed(2)} kg
+  Gravel = ${gravelKg.toFixed(2)} kg`;
   
   cementCalc.textContent = materialQuantities;
   console.log('✅ Material quantities displayed:', cementCalc.textContent);
@@ -590,7 +591,8 @@ if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
   const waterLiters = details.water_liters || 0;
   
   // NEW: Only show final result
-  waterCalc.textContent = `≈${waterLiters.toFixed(1)} liters`;
+  const practicalWater = Math.round(waterLiters);
+  waterCalc.textContent = `${waterLiters.toFixed(1)} L (practical: ${practicalWater} L)`;
   console.log('✅ Water requirement displayed:', waterCalc.textContent);
 }
   

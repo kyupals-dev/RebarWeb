@@ -696,8 +696,9 @@ async function fetchImageMetadata(filename) {
             const volumeCm3 = parseFloat(dim.volume) || 0;
             const volumeM3 = volumeCm3 / 1000000;
             
+            const volumeCm3Formatted = volumeCm3.toLocaleString('en-US', {maximumFractionDigits: 0});
             modalDimensions.textContent = 
-              `${width.toFixed(1)}cm × ${length.toFixed(1)}cm × ${height.toFixed(1)}cm = ${volumeCm3.toFixed(0)}cm³ = ${volumeM3.toFixed(6)}m³`;
+              `${width.toFixed(1)}cm × ${length.toFixed(1)}cm × ${height.toFixed(1)}cm = ${volumeCm3Formatted} cm³ = ${volumeM3.toFixed(4)}m³`;
           }
           
           // 2. CEMENT MIXTURE RATIO - Keep simple
@@ -711,7 +712,7 @@ async function fetchImageMetadata(filename) {
             const dryVolumeFactor = 1.54;
             const wetVolumeM3 = volumeM3 * dryVolumeFactor;
             
-            modalWetVolume.textContent = `${wetVolumeM3.toFixed(7)}m³`;
+            modalWetVolume.textContent = `${wetVolumeM3.toFixed(4)}m³`;
           }
           
           // 4. MATERIAL QUANTITIES - Format: "Cement = 76.36 kg ≈ 1.91 bags\nSand = 169.69 kg\nGravel = 318.17 kg"
@@ -722,8 +723,9 @@ async function fetchImageMetadata(filename) {
             const sandKg = parseFloat(mix.sand_weight_kg) || 0;
             const gravelKg = parseFloat(mix.gravel_weight_kg) || 0;
             
+            const recommendedBags = Math.ceil(cementBags);
             modalMaterialQuantities.textContent = 
-              `Cement = ${cementKg.toFixed(2)} kg ≈ ${cementBags.toFixed(2)} bags\n` +
+              `Cement = ${cementKg.toFixed(2)} kg → ${cementBags.toFixed(2)} bags (recommend purchase: ${recommendedBags} bags)\n` +
               `Sand = ${sandKg.toFixed(2)} kg\n` +
               `Gravel = ${gravelKg.toFixed(2)} kg`;
           }
@@ -732,7 +734,8 @@ async function fetchImageMetadata(filename) {
           if (modalWaterRequirement && metadata.cement_mixture) {
             const waterLiters = parseFloat(metadata.cement_mixture.water_liters) || 0;
             
-            modalWaterRequirement.textContent = `≈${waterLiters.toFixed(1)} liters`;
+            const practicalWater = Math.round(waterLiters);
+            modalWaterRequirement.textContent = `${waterLiters.toFixed(1)} L (practical: ${practicalWater} L)`;
           }
         }
         
@@ -828,6 +831,7 @@ async function downloadCurrentImage() {
         .replace(/³/g, '^3')           // Generic superscript 3 to caret notation
         .replace(/²/g, '^2')           // Superscript 2 to caret notation
         .replace(/≈/g, '~')            // Approximately equal to ~
+        .replace(/→/g, '->')           // Right arrow to ASCII arrow
         .replace(/°/g, ' degrees')     // Degree symbol
         .replace(/µ/g, 'u')            // Micro symbol
         .replace(/–/g, '-')            // En dash to hyphen
