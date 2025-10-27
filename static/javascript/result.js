@@ -724,18 +724,29 @@ async function fetchImageMetadata(filename) {
             const gravelKg = parseFloat(mix.gravel_weight_kg) || 0;
             
             const recommendedBags = Math.ceil(cementBags);
+            const bagText = recommendedBags === 1 ? 'bag' : 'bags';
             modalMaterialQuantities.textContent = 
-              `Cement = ${cementKg.toFixed(2)} kg → ${cementBags.toFixed(2)} bags (recommend purchase: ${recommendedBags} bags)\n` +
+              `Cement = ${cementKg.toFixed(2)} kg → ${cementBags.toFixed(2)} bags (recommend purchase: ${recommendedBags} ${bagText})\n` +
               `Sand = ${sandKg.toFixed(2)} kg\n` +
               `Gravel = ${gravelKg.toFixed(2)} kg`;
           }
           
-          // 5. WATER REQUIREMENT - Format: "≈40.5 liters" (1 decimal)
+          // 5. WATER REQUIREMENT (1 decimal)
           if (modalWaterRequirement && metadata.cement_mixture) {
-            const waterLiters = parseFloat(metadata.cement_mixture.water_liters) || 0;
-            
-            const practicalWater = Math.round(waterLiters);
-            modalWaterRequirement.textContent = `${waterLiters.toFixed(1)} L (practical: ${practicalWater} L)`;
+			const waterLiters = parseFloat(metadata.cement_mixture.water_liters) || 0;
+			
+			if (waterLiters === 0 || isNaN(waterLiters)) {
+			  console.error('❌ water_liters is missing or invalid:', metadata.cement_mixture);
+			  modalWaterRequirement.textContent = 'Water data unavailable';
+			} else {
+			  // More robust check for whole numbers
+			  const displayWater = Math.round(waterLiters * 10) / 10;
+			  
+			  const recommendedWater = Math.floor(displayWater) + 1;
+	
+			  modalWaterRequirement.textContent = `${displayWater.toFixed(1)} L (recommend: ${recommendedWater} L)`;
+			  console.log('Display:', displayWater, 'Recommended:', recommendedWater);
+			}	  
           }
         }
         

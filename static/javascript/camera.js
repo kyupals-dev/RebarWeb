@@ -520,9 +520,22 @@ showResults(results) {
   
   // ==================== DISPLAY DIMENSIONS ====================
   // Use real dimensions from backend (already formatted)
-  if (results.dimensions && results.dimensions.display && dimensionsResult) {
-    dimensionsResult.textContent = results.dimensions.display;
-    console.log('✅ Dimensions displayed:', results.dimensions.display);
+  if (results.dimensions && dimensionsResult) {
+	  const width = parseFloat(results.dimensions.width) || 0;
+	  const length = parseFloat(results.dimensions.length) || 0;
+	  const height = parseFloat(results.dimensions.height) || 0;
+	  const volumeCm3 = parseFloat(results.dimensions.volume) || 0;
+	  const volumeM3 = volumeCm3 / 1000000;
+	  
+	  // Format volume with thousand separators
+	  const volumeCm3Formatted = volumeCm3.toLocaleString('en-US', {maximumFractionDigits: 0});
+	  
+	  // Build formatted display string
+	  const formattedDisplay = `${width.toFixed(1)}cm × ${length.toFixed(1)}cm × ${height.toFixed(1)}cm = ${volumeCm3Formatted}cm³ = ${volumeM3.toFixed(6)}m³`;
+	  
+	  dimensionsResult.textContent = formattedDisplay;
+	  console.log('✅ Dimensions displayed:', formattedDisplay);
+	  
   } else {
     console.error('❌ No dimension data received from backend');
     dimensionsResult.textContent = 'Dimension data unavailable';
@@ -539,10 +552,18 @@ if (results.cement_mixture && mixtureResult) {
 }
 
 // ==================== UPDATE PIPELINE DETAILS ====================
+const analysisDate = document.getElementById('analysis-date');
 const pipelineDetections = document.getElementById('pipeline-detections');
 const wetVolume = document.getElementById('wet-volume');
 const cementCalc = document.getElementById('cement-calc');
 const waterCalc = document.getElementById('water-calc');
+
+// Analysis Date
+if (analysisDate) {
+	const timestamp = new Date().toLocaleString();
+	analysisDate.textContent = timestamp;
+	console.log('✅ Analysis date displayed:', timestamp);
+}
 
 // Detections Found
 if (pipelineDetections && results.detections) {
@@ -577,7 +598,8 @@ if (cementCalc && results.cement_mixture && results.cement_mixture.details) {
   
   // NEW FORMAT: Multi-line display without formulas
   const recommendedBags = Math.ceil(cementBags);
-  const materialQuantities = `Cement = ${cementKg.toFixed(2)} kg → ${cementBags.toFixed(2)} bags (recommend purchase: ${recommendedBags} bags)
+  const bagText = recommendedBags === 1 ? 'bag' : 'bags';
+  const materialQuantities = `Cement = ${cementKg.toFixed(2)} kg → ${cementBags.toFixed(2)} bags (recommend purchase: ${recommendedBags} ${bagText})
   Sand = ${sandKg.toFixed(2)} kg
   Gravel = ${gravelKg.toFixed(2)} kg`;
   
@@ -590,11 +612,24 @@ if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
   const details = results.cement_mixture.details;
   const waterLiters = details.water_liters || 0;
   
-  // NEW: Only show final result
-  const practicalWater = Math.round(waterLiters);
-  waterCalc.textContent = `${waterLiters.toFixed(1)} L (practical: ${practicalWater} L)`;
-  console.log('✅ Water requirement displayed:', waterCalc.textContent);
-}
+  if (waterLiters === 0 || waterLiters === undefined) {
+    console.error('❌ water_liters is missing from backend response:', results.cement_mixture);
+    waterCalc.textContent = 'Water data unavailable';
+  } else {
+	// Round to 1 decimal for display
+    const displayWater = Math.round(waterLiters * 10) / 10;
+
+    const recommendedWater = Math.floor(displayWater) + 1;
+    
+    waterCalc.textContent = `${displayWater.toFixed(1)} L (recommend: ${recommendedWater} L)`;
+    console.log('✅ Water requirement displayed:', waterCalc.textContent);
+  }
+} else {
+  console.error('❌ Missing cement_mixture or details in results');
+  if (waterCalc) {
+	waterCalc.textContent = 'Water data unavailable';
+  }	
+}	
   
   // Store results for reference
   this.analysisResults = results;
