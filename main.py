@@ -42,19 +42,29 @@ class TkinterCameraFrame:
         
         # Distance display frame
         distance_frame = tk.Frame(main_frame, bg='#2c3e50')
-        distance_frame.pack(pady=0)
+        distance_frame.pack(pady=5, fill=tk.X)
         
         # Distance labels
         self.distance_label = tk.Label(distance_frame, text="Distance: --cm", 
                                      font=('Arial', 12, 'bold'), 
                                      bg='#2c3e50', fg='white')
-        self.distance_label.pack(side=tk.LEFT, padx=(0, 20))
+        self.distance_label.pack(side=tk.LEFT, padx=(0, 10))
         
         self.distance_status_label = tk.Label(distance_frame, text="CHECKING", 
                                             font=('Arial', 11, 'bold'), 
                                             bg='#95a5a6', fg='white',
                                             padx=10, pady=2)
         self.distance_status_label.pack(side=tk.LEFT)
+        
+        # Flask IP address on the RIGHT (dynamically detected)
+        flask_ip = self.get_local_ip()
+        flask_port = config.PORT if hasattr(config, 'PORT') else 8000
+        flask_url = f"https://{flask_ip}:{flask_port}"
+        
+        self.flask_ip_label = tk.Label(distance_frame, text=flask_url,
+                                     font=('Arial', 12, 'bold'),
+                                     bg='#2c3e50', fg='#3498db')
+        self.flask_ip_label.pack(side=tk.RIGHT, padx=(10, 0))
         
         # Camera display label - PORTRAIT 480x640
         self.camera_label = tk.Label(main_frame, bg='black', 
@@ -108,7 +118,30 @@ class TkinterCameraFrame:
         if self.is_running:
             # Update every 500ms (matching the distance service update rate)
             self.root.after(500, self.update_distance)
-                    
+
+    def get_local_ip(self):
+        """Get the current local IP address of the Raspberry Pi"""
+        try:
+            import socket
+			# Create a socket connection to determine the local IP
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+			# Connect to an external address (doesn't actually send data)
+            s.connect(("8.8.8.8", 80))
+            local_ip = s.getsockname()[0]
+            s.close()
+            return local_ip
+        except Exception as e:
+            print(f"Error getting local IP: {e}")
+            # Fallback: try to get IP from network interface
+            try:
+                import subprocess
+                result = subprocess.check_output(['hostname', '-I']).decode('utf-8').strip()
+                # Return the first IP address
+                return result.split()[0]
+            except:
+                # Final fallback
+                return "Unknown IP"
+                            
     def update_frame(self):
         if self.is_running and self.camera_manager:
             current_frame = self.camera_manager.get_current_frame()
