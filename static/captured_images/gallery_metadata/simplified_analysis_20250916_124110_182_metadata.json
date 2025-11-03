@@ -1,0 +1,87 @@
+{
+  "analyzed_image_path": "static/captured_images/simplified_analysis_20250916_124110_182.jpg",
+  "analyzed_image_filename": "simplified_analysis_20250916_124110_182.jpg",
+  "save_timestamp": "2025-09-16T12:41:10.314972",
+  "analysis_metadata": {
+    "timestamp": "2025-09-16T04:41:09.647Z",
+    "analysis_type": "pipeline_quadrant",
+    "dimensions": {
+      "display": "47cm x 47cm x 348cm = 782482cm\u00b3",
+      "height": 347.9,
+      "length": 47.4,
+      "method": "simplified_front_detection",
+      "offset_applied": 9,
+      "raw_dimensions": {
+        "height": 347.9,
+        "length": 38.4,
+        "width": 38.4
+      },
+      "unit": "cm",
+      "volume": 782481.8,
+      "width": 47.4
+    },
+    "cement_mixture": {
+      "aggregate_ratio": 4,
+      "aggregate_volume_m3": 0.948955,
+      "cement_bags": 10.56,
+      "cement_ratio": 1,
+      "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+      "sand_ratio": 2,
+      "sand_volume_m3": 0.645547,
+      "specifications": {
+        "aggregate_waste_factor": "5%",
+        "cement_bags_per_cubic_meter": 9,
+        "class": "Class A (Superstructures)",
+        "max_aggregate_size_mm": 37.5,
+        "max_water_cement_ratio": 0.53,
+        "min_compressive_strength_mpa": 20.7,
+        "min_compressive_strength_psi": 3000,
+        "sand_waste_factor": "10%",
+        "slump_range_mm": "50-100"
+      },
+      "total_concrete_volume_m3": 1.173723
+    },
+    "detections": 13,
+    "model_type": "simplified_front_detection"
+  },
+  "step_images": {},
+  "pipeline_type": "quadrant_intersection",
+  "dimensions": {
+    "display": "47cm x 47cm x 348cm = 782482cm\u00b3",
+    "height": 347.9,
+    "length": 47.4,
+    "method": "simplified_front_detection",
+    "offset_applied": 9,
+    "raw_dimensions": {
+      "height": 347.9,
+      "length": 38.4,
+      "width": 38.4
+    },
+    "unit": "cm",
+    "volume": 782481.8,
+    "width": 47.4
+  },
+  "cement_mixture": {
+    "aggregate_ratio": 4,
+    "aggregate_volume_m3": 0.948955,
+    "cement_bags": 10.56,
+    "cement_ratio": 1,
+    "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+    "sand_ratio": 2,
+    "sand_volume_m3": 0.645547,
+    "specifications": {
+      "aggregate_waste_factor": "5%",
+      "cement_bags_per_cubic_meter": 9,
+      "class": "Class A (Superstructures)",
+      "max_aggregate_size_mm": 37.5,
+      "max_water_cement_ratio": 0.53,
+      "min_compressive_strength_mpa": 20.7,
+      "min_compressive_strength_psi": 3000,
+      "sand_waste_factor": "10%",
+      "slump_range_mm": "50-100"
+    },
+    "total_concrete_volume_m3": 1.173723
+  },
+  "detection_count": 13,
+  "model_type": "simplified_front_detection"
+}

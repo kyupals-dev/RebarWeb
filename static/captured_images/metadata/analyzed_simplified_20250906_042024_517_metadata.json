@@ -1,0 +1,50 @@
+{
+  "analysis_date": "2025-09-06T04:20:24.528036",
+  "image_filename": "analyzed_simplified_20250906_042024_517.jpg",
+  "analysis_type": "rebar_detection_simplified",
+  "dimensions": {
+    "length": 24.0,
+    "width": 31.0,
+    "height": 24.0,
+    "unit": "cm",
+    "volume": 17836.9,
+    "display": "24.0cm x 31.0cm x 24.0cm = 17837cm\u00b3",
+    "offset_applied": "2.0cm per side",
+    "method": "simplified_detection_with_offset"
+  },
+  "cement_mixture": {
+    "cement_ratio": 1,
+    "sand_ratio": 2,
+    "aggregate_ratio": 3,
+    "ratio_string": "1 Cement : 2 Sand : 3 Aggregate",
+    "cement_bags": 0.13,
+    "sand_volume_m3": 0.0089,
+    "aggregate_volume_m3": 0.0134,
+    "total_concrete_volume_m3": 0.0268
+  },
+  "detections": {
+    "count": 11,
+    "front_vertical_count": 3,
+    "front_horizontal_count": 8,
+    "intersection_count": 3,
+    "target_achieved": {
+      "vertical": true,
+      "horizontal": false
+    },
+    "confidence_scores": {
+      "vertical_avg": 0.43812893827756244,
+      "horizontal_avg": 0.7592171877622604
+    }
+  },
+  "model_info": {
+    "model_type": "simplified_real_model",
+    "detection_threshold": 0.3,
+    "classes_detected": [
+      "front_vertical",
+      "front_horizontal"
+    ],
+    "placeholder_mode": false
+  },
+  "created_at": "2025-09-06T04:20:24.528124",
+  "metadata_version": "1.0"
+}

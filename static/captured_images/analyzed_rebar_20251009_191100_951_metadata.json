@@ -1,0 +1,142 @@
+{
+  "timestamp": "2025-10-09T19:11:00.979675",
+  "analysis_type": "4_step_pipeline",
+  "model_type": "real_4step_pipeline",
+  "placeholder": false,
+  "detections": {
+    "total_count": 7,
+    "front_vertical_count": 2,
+    "front_horizontal_count": 5,
+    "intersection_count": 10,
+    "items": [
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.9886038303375244,
+        "bbox": [
+          213.98681640625,
+          72.82830047607422,
+          221.14613342285156,
+          381.2511901855469
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9821510314941406,
+        "bbox": [
+          210.0371551513672,
+          276.5660095214844,
+          283.46014404296875,
+          286.6587219238281
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9690865278244019,
+        "bbox": [
+          210.35391235351562,
+          167.1768341064453,
+          287.06549072265625,
+          175.6044158935547
+        ]
+      },
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.9675371646881104,
+        "bbox": [
+          272.6275329589844,
+          75.60660552978516,
+          284.6241760253906,
+          377.52423095703125
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9649505019187927,
+        "bbox": [
+          212.70535278320312,
+          221.4580078125,
+          284.78466796875,
+          230.03237915039062
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9148091673851013,
+        "bbox": [
+          212.9800567626953,
+          99.09022521972656,
+          288.7344970703125,
+          113.87033081054688
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.8922315239906311,
+        "bbox": [
+          209.8425750732422,
+          329.7528076171875,
+          279.7114562988281,
+          338.26800537109375
+        ]
+      }
+    ]
+  },
+  "dimensions": {
+    "length": 26.248412310066872,
+    "width": 26.248412310066872,
+    "height": 64.27404759293896,
+    "unit": "cm",
+    "volume": 44283.47860046686,
+    "volume_m3": 0.04428347860046686,
+    "display": "26.2cm \u00d7 26.2cm \u00d7 64.3cm = 44283cm\u00b3 = 0.044283m\u00b3"
+  },
+  "cement_mixture": {
+    "cement": 1,
+    "sand": 2,
+    "aggregate": 4,
+    "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+    "cement_bags": 0.3507251505156975,
+    "cement_weight_kg": 14.029006020627902,
+    "cement_m3": 0.00974236529210271,
+    "sand_volume_m3": 0.01948473058420542,
+    "sand_weight_kg": 31.17556893472867,
+    "aggregate_volume_m3": 0.03896946116841084,
+    "gravel_weight_kg": 58.45419175261625,
+    "water_liters": 7.435373190932788,
+    "dry_volume_m3": 0.06819655704471897,
+    "total_concrete_volume_m3": 0.06819655704471897
+  },
+  "step_images": {
+    "step1": {
+      "filename": "step1_detection_20251009_191100_951.jpg",
+      "url": "/static/captured_images/step1_detection_20251009_191100_951.jpg",
+      "exists": true
+    },
+    "step2": {
+      "filename": "step2_intersections_20251009_191100_951.jpg",
+      "url": "/static/captured_images/step2_intersections_20251009_191100_951.jpg",
+      "exists": true
+    },
+    "step3": {
+      "filename": "step3_polygon_20251009_191100_951.jpg",
+      "url": "/static/captured_images/step3_polygon_20251009_191100_951.jpg",
+      "exists": true
+    },
+    "step4": {
+      "filename": "step4_cement_20251009_191100_951.jpg",
+      "url": "/static/captured_images/step4_cement_20251009_191100_951.jpg",
+      "exists": true
+    },
+    "final": {
+      "filename": "analyzed_rebar_20251009_191100_951.jpg",
+      "url": "/static/captured_images/analyzed_rebar_20251009_191100_951.jpg",
+      "exists": true
+    }
+  },
+  "pipeline_data": {
+    "front_horizontal_count": 5,
+    "front_vertical_count": 2,
+    "intersection_count": 10,
+    "polygon_corners": 4
+  }
+}

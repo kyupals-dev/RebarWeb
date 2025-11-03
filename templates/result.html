@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rebar Vista - Results</title>
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/result.css') }}">
+</head>
+
+<body>
+  <!-- Header Navigation -->
+  <header class="header">
+    <div class="nav-container">
+      <div class="logo-section">
+        <img src="{{ url_for('static', filename='logo/logo_no_bg.png') }}" alt="Rebar Vista Logo" class="nav-logo">
+        <div class="brand-name">
+          <div class="brand-name-top">Rebar</div>
+          <div class="brand-name-bottom">Vista</div>
+        </div>
+      </div>
+      
+      <div class="header-title">
+        <h1>Rebar Vista Results</h1>
+      </div>
+      
+      <button class="back-btn" onclick="goToMainPage()">BACK</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Filter Section -->
+    <section class="filter-section">
+      <div class="filter-container">
+        <div class="filter-group">
+          <label for="timeframe-filter">Timeframe</label>
+          <select id="timeframe-filter" class="filter-select">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="year">This Year</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="sort-filter">Sort By</label>
+          <select id="sort-filter" class="filter-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
+        
+        <div class="filter-actions">
+          <button class="clear-filters-btn" onclick="clearFilters()">Clear Filters</button>
+          <button class="clear-all-btn" onclick="clearAllImages()">Delete All Results</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery Section - UPDATED: Portrait-optimized 3x5 grid -->
+    <section class="gallery-section">
+      <div class="gallery-container">
+        <div id="gallery-grid" class="gallery-grid">
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading analysis results...</p>
+          </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination-container">
+          <div class="pagination" id="pagination">
+            <!-- Pagination buttons will be generated here -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- UPDATED: Enhanced Image Modal (matching main page result modal with 1:2:4 ratio) -->
+  <div id="image-modal" class="modal-overlay" onclick="closeModal()">
+    <div class="modal-content results-modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header results-header">
+        <h3 class="modal-title">Rebar Vista Analysis Results</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body results-body">
+        <!-- Analysis Result Image -->
+        <div class="modal-image-container results-image-container">
+          <img id="modal-image" src="" alt="Analysis Result" class="results-image">
+        </div>
+        
+        <!-- Pipeling Data Display -->
+        <div class="pipeline-results-data">
+          <div class="pipeline-result-card">
+            <h3>Rebar Dimensions</h3>
+            <div class="pipeline-result-value" id="modal-dimensions">Loading...</div>
+          </div>
+          <div class="pipeline-result-card">
+            <h3>Cement Mixture Ratio</h3>
+            <div class="pipeline-result-value" id="modal-mixture">Loading...</div>
+          </div>
+        </div>
+        
+        <!-- UPDATED: Additional Pipeline Details -->
+        <div class="pipeline-details">
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Analysis Date:</span>
+            <span id="modal-analysis-date" class="pipeline-detail-value">-</span>
+          </div>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Detections Found:</span>
+            <span id="modal-detections" class="pipeline-detail-value">Loading...</span>
+          </div>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Wet Volume Calculation:</span>
+            <span id="modal-wet-volume" class="pipeline-detail-value">Loading...</span>
+          </div>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Material Quantities:</span>
+            <span id="modal-material-quantities" class="pipeline-detail-value">Loading...</span>
+          </div>
+          <div class="pipeline-detail-row">
+            <span class="pipeline-detail-label">Water Requirement:</span>
+            <span id="modal-water-requirement" class="pipeline-detail-value">Loading...</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer results-footer">
+        <button class="modal-btn download-btn" onclick="downloadCurrentImage()">
+          <span class="btn-icon">⬇</span>
+          Download Result
+        </button>
+        <button class="modal-btn delete-btn" onclick="deleteCurrentImage()">
+          <span class="btn-icon">🗑</span>
+          Delete Result
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='javascript/result.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# Complete environment documentation for Rebar Vista project
+
+echo "REBAR VISTA ENVIRONMENT DOCUMENTATION"
+echo "====================================="
+echo "Generated on: $(date)"
+echo "Host: $(hostname)"
+echo "User: $(whoami)"
+echo "Working Directory: $(pwd)"
+echo ""
+
+# System information
+echo "SYSTEM INFORMATION"
+echo "=================="
+echo "OS: $(lsb_release -d | cut -f2)"
+echo "Kernel: $(uname -r)"
+echo "Architecture: $(uname -m)"
+echo "Python System Version: $(python3 --version)"
+echo ""
+
+# Virtual environment information
+echo "VIRTUAL ENVIRONMENT"
+echo "=================="
+echo "Virtual Env Path: $VIRTUAL_ENV"
+echo "Python Executable: $(which python3)"
+echo "Pip Executable: $(which pip3)"
+echo "Python Version in venv: $(python3 --version)"
+echo "Pip Version: $(pip3 --version)"
+echo ""
+
+# All installed packages with versions
+echo "INSTALLED PACKAGES (pip freeze)"
+echo "==============================="
+pip3 freeze
+echo ""
+
+# Specific key packages
+echo "KEY PACKAGE VERSIONS"
+echo "==================="
+python3 -c "
+import sys
+print(f'Python: {sys.version}')
+
+packages = [
+    'flask', 'opencv-python', 'numpy', 'torch', 'torchvision', 
+    'PIL', 'cv2', 'gpiozero', 'lgpio', 'yaml', 'scipy', 
+    'matplotlib', 'psutil'
+]
+
+for pkg in packages:
+    try:
+        if pkg == 'opencv-python':
+            import cv2
+            print(f'OpenCV (cv2): {cv2.__version__}')
+        elif pkg == 'PIL':
+            import PIL
+            print(f'Pillow (PIL): {PIL.__version__}')
+        elif pkg == 'yaml':
+            import yaml
+            print(f'PyYAML: {yaml.__version__}')
+        else:
+            module = __import__(pkg)
+            if hasattr(module, '__version__'):
+                print(f'{pkg}: {module.__version__}')
+            else:
+                print(f'{pkg}: installed (no version info)')
+    except ImportError:
+        print(f'{pkg}: NOT INSTALLED')
+    except Exception as e:
+        print(f'{pkg}: ERROR - {e}')
+"
+echo ""
+
+# System packages (apt)
+echo "SYSTEM PACKAGES (relevant)"
+echo "=========================="
+dpkg -l | grep -E "(python3|opencv|cmake|build-essential|git)" | awk '{print $2, $3}'
+echo ""
+
+# GPIO and Hardware info
+echo "GPIO/HARDWARE INFORMATION"
+echo "========================"
+echo "GPIO groups: $(groups | grep -o gpio || echo 'Not in gpio group')"
+echo "I2C devices: $(ls /dev/i2c* 2>/dev/null || echo 'No I2C devices found')"
+echo "GPIO devices: $(ls /dev/gpio* 2>/dev/null || echo 'No GPIO devices found')"
+echo ""
+
+# Project structure
+echo "PROJECT STRUCTURE"
+echo "================"
+find /home/team10/RebarWeb -maxdepth 3 -type f -name "*.py" | head -20
+echo ""
+
+# Model and data files
+echo "MODEL AND DATA FILES"
+echo "==================="
+echo "Model directory:"
+ls -la /home/team10/RebarWeb/app/model/ 2>/dev/null || echo "Model directory not found"
+echo ""
+echo "Captured images:"
+ls -la /home/team10/RebarWeb/static/captured_images/ | head -5 2>/dev/null || echo "No captured images"
+echo ""
+
+# Network configuration
+echo "NETWORK CONFIGURATION"
+echo "===================="
+echo "IP Address: $(hostname -I | awk '{print $1}')"
+echo "SSL Certificates:"
+ls -la /home/team10/RebarWeb/certificates/ 2>/dev/null || echo "No SSL certificates found"
+echo ""
+
+# Hardware detection
+echo "HARDWARE DETECTION"
+echo "================="
+echo "Camera devices:"
+ls -la /dev/video* 2>/dev/null || echo "No video devices found"
+echo ""
+echo "USB devices:"
+lsusb | grep -i camera
+echo ""
+
+echo "====================================="
+echo "Environment documentation complete!"
+echo "====================================="

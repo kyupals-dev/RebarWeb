@@ -1,0 +1,69 @@
+{
+  "analyzed_image_path": "static/captured_images/analyzed_rebar_20250915_205050_638.jpg",
+  "analyzed_image_filename": "analyzed_rebar_20250915_205050_638.jpg",
+  "save_timestamp": "2025-09-15T20:50:51.324281",
+  "analysis_metadata": {
+    "timestamp": "2025-09-15T12:50:48.982Z",
+    "analysis_type": "pipeline_quadrant",
+    "dimensions": {
+      "display": "90.36cm x 90.36cm x 145cm = 1,180,810 cubic centimeters",
+      "height": 144.63,
+      "length": 90.36,
+      "method": "pipeline_quadrant_calculation",
+      "unit": "cm",
+      "volume": 1180810,
+      "width": 90.36
+    },
+    "cement_mixture": {
+      "aggregate_ratio": 4,
+      "aggregate_volume_m3": 1.039,
+      "calculation_method": "pipeline_1_2_4_mix",
+      "cement_bags": 7.42,
+      "cement_ratio": 1,
+      "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+      "sand_ratio": 2,
+      "sand_volume_m3": 0.52,
+      "water_liters": 157.4
+    },
+    "detections": 5,
+    "model_type": "pipeline_quadrant_analysis",
+    "quadrant_info": {
+      "intersections_found": 4,
+      "quadrant_counts": {
+        "bottom_left": 0,
+        "bottom_right": 1,
+        "top_left": 0,
+        "top_right": 3
+      }
+    }
+  },
+  "step_images": {
+    "cement": "static/captured_images/pipeline_cement_20250915_205050_474.jpg",
+    "detection": "static/captured_images/pipeline_detection_20250915_205050_474.jpg",
+    "polygon": "static/captured_images/pipeline_polygon_20250915_205050_474.jpg",
+    "quadrants": "static/captured_images/pipeline_quadrants_20250915_205050_474.jpg"
+  },
+  "pipeline_type": "quadrant_intersection",
+  "dimensions": {
+    "display": "90.36cm x 90.36cm x 145cm = 1,180,810 cubic centimeters",
+    "height": 144.63,
+    "length": 90.36,
+    "method": "pipeline_quadrant_calculation",
+    "unit": "cm",
+    "volume": 1180810,
+    "width": 90.36
+  },
+  "cement_mixture": {
+    "aggregate_ratio": 4,
+    "aggregate_volume_m3": 1.039,
+    "calculation_method": "pipeline_1_2_4_mix",
+    "cement_bags": 7.42,
+    "cement_ratio": 1,
+    "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+    "sand_ratio": 2,
+    "sand_volume_m3": 0.52,
+    "water_liters": 157.4
+  },
+  "detection_count": 5,
+  "model_type": "pipeline_quadrant_analysis"
+}

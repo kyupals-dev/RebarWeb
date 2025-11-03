@@ -1,0 +1,317 @@
+⚠️  Port 8000 is busy
+✅ Port 8001 is available
+🔧 PIPELINE Config initialized:
+   Camera: 480x640
+   Classes: ['front_horizontal', 'front_vertical']
+   PX_TO_CM: 0.2824858757062147
+   Mix ratio: (1, 2, 4)
+   Expected detections: {'front_vertical': 2, 'front_horizontal': 11}
+Device IP: 192.168.100.80
+SSL Certificate Path: /home/team10/RebarWeb/certificates/192.168.100.80.pem
+SSL Key Path: /home/team10/RebarWeb/certificates/192.168.100.80-key.pem
+PIPELINE Config loaded - IP: 192.168.100.80
+Camera: 480x640, Mix: (1, 2, 4)
+REBAR VISTA - AI-POWERED REBAR DETECTION (ANALYZED IMAGES ONLY)
+AI-powered rebar detection with optimal positioning system
+Portrait 480x640 image processing with Detectron2 and HC-SR04
+Optimal distance range: 160-200cm for best analysis results
+Save Mode: Only analyzed images with AI overlays are saved
+
+Starting Rebar Vista with AI and Distance Sensor Integration...
+📝 SAVE MODE: Only analyzed images with AI overlays will be saved
+======================================================================
+Initializing camera, image, AI, and distance services...
+📁 Enhanced Image Service initialized (4-step analysis metadata support)
+🤖 Initializing SIMPLIFIED AI Service - 4 Step Pipeline...
+   Classes: ['front_horizontal', 'front_vertical']
+   Expected: 2 verticals, 11 horizontals
+   Detection threshold: 0.3
+   📝 FIXED: Only saves analyzed images with 4-step visualization
+🔄 Loading Detectron2 with EXACT TRAINING CONFIG...
+✅ Model loaded successfully!
+   Classes: ['front_horizontal', 'front_vertical']
+   Expected detections: 2 verticals + 11 horizontals = 13 total
+📏 Initializing Distance Service...
+🔌 Connecting to HC-SR04 sensor...
+❌ Error initializing HC-SR04 sensor: 'GPIO busy'
+Creating Flask web application...
+App directory: /home/team10/RebarWeb/app
+Project root: /home/team10/RebarWeb
+Template directory: /home/team10/RebarWeb/templates
+Static directory: /home/team10/RebarWeb/static
+Template dir exists: True
+Static dir exists: True
+Flask template folder: /home/team10/RebarWeb/templates
+Flask static folder: /home/team10/RebarWeb/static
+All blueprints registered successfully (including AI and sensor routes)
+Available templates: ['mainpage.html', 'splash.html', 'welcome.html', 'result.html']
+mainpage.html exists: True
+Available JavaScript files: ['camera.js', 'welcome.js', 'result.js', 'img-gallery.js', 'sw.js']
+camera.js exists: True
+Camera routes initialized with services
+Image routes initialized with service
+AI routes initialized with AI service, camera manager, and image service
+Sensor routes initialized with distance service
+Flask routes initialized (AI routes have camera access)
+Upload folder ready: static/captured_images
+Model folder ready: /home/team10/RebarWeb/app/model
+Starting camera thread for 480x640 capture...
+🚀 Starting A4Tech camera worker thread with processing...Starting distance sensor monitoring...
+❌ Cannot start monitoring - sensor not available
+
+🎥 Starting A4Tech camera with rotation and stable settings...
+Starting Tkinter 480x640 display window (analyzed images only)...
+Initializing Tkinter 480x640 camera interface (analyzed images only)...Starting Flask web server...
+
+Available routes:
+  static: /static/<path:filename> [GET]
+  pages.splash: / [GET]
+  pages.welcome: /welcome [GET]
+  pages.mainpage: /mainpage.html [GET]
+  pages.result: /result.html [GET]
+  pages.manifest: /manifest.json [GET]
+  pages.service_worker: /sw.js [GET]
+  camera.video_feed: /video_feed [GET]
+  camera.capture_current_frame: /capture-current-frame [POST]Error starting Tkinter window: no display name and no $DISPLAY environment variable
+
+  camera.camera_status: /camera-status [GET]
+  camera.start_camera: /start-camera [POST]
+  camera.stop_camera: /stop-camera [POST]
+  camera.restart_camera: /restart-camera [POST]
+  images.upload_image: /upload-image [POST]
+  images.get_images: /get-images [GET]
+  images.get_image_metadata: /get-image-metadata/<filename> [GET]
+  images.delete_image: /delete-image/<filename> [DELETE]
+  images.clear_all_images: /clear-all-images [DELETE]
+  images.image_service_status: /image-service-status [GET]
+  images.debug_images: /debug-images [GET]
+  images.cleanup_originals: /cleanup-originals [POST]
+  images.storage_stats: /storage-stats [GET]
+  images.all_images_debug: /all-images-debug [GET]
+  ai.analyze_rebar: /analyze-rebar [POST]
+  ai.ai_model_status: /ai-model-status [GET]
+  ai.test_ai_model: /test-ai-model [POST]
+  ai.ai_health_check: /ai-health-check [GET]
+  sensors.get_distance_reading: /distance-reading [GET]
+  sensors.get_distance_status: /distance-status [GET]
+  sensors.test_distance_sensor: /test-distance-sensor [POST]
+  sensors.start_distance_monitoring: /start-distance-monitoring [POST]
+  sensors.stop_distance_monitoring: /stop-distance-monitoring [POST]
+  sensors.distance_health_check: /distance-health-check [GET]
+======================================================================
+REBAR VISTA READY - AI-POWERED ANALYSIS (ANALYZED IMAGES ONLY)
+Web interface: Camera display with AI analysis (saves analyzed images only)
+Tkinter window: Live 480x640 camera feed with distance overlay
+AI Analysis: Detectron2 rebar detection and measurement
+Distance Sensor: HC-SR04 optimal positioning (160-200cm)
+Save Mode: ONLY analyzed images with AI overlays are saved
+Gallery: Shows only analyzed images (no duplicates)
+======================================================================
+
+=== AI Service Status ===
+Detectron2 Available: ✅
+Model Loaded: ✅
+Model Path: /home/team10/RebarWeb/app/model/model_final.pth
+Model Exists: ✅
+Classes: ['front_horizontal', 'front_vertical']
+Detection Threshold: 0.3
+Save Mode: analyzed_images_only
+========================
+
+=== Distance Sensor Status ===
+GPIO Available: ✅
+Sensor Available: ❌
+Monitoring Running: ❌
+GPIO Pins: TRIG=23, ECHO=24
+Optimal Range: 160-200cm
+⚠️  Last Error: 'GPIO busy'
+❌ Cannot open any camera device
+❌ Failed to start A4Tech camera
+📊 Enhanced Storage Statistics:
+   📁 Total image files: 725
+   ✅ Analyzed (gallery): 117 (13120.3 KB)
+   📄 Originals (hidden): 206 (23223.6 KB)
+   🎞️  Step images: 402 (50109.5 KB)
+   📋 Metadata files: 39 (179.4 KB)
+   💾 Total storage: 86632.8 KB
+
+=== Image Storage Status ===
+Total Files: 725
+Analyzed Images (Gallery): 117 (13120.3 KB)
+Original Images (Hidden): 206 (23223.6 KB)
+Total Storage: 86632.8 KB
+💡 Tip: Use /cleanup-originals endpoint to remove 206 hidden original images
+============================
+
+Using SSL certificates from /home/team10/RebarWeb/certificates/192.168.100.80.pem
+Running HTTPS server...
+ * Serving Flask app 'app'
+ * Debug mode: off
+✅ Port 8000 is available
+🔧 PIPELINE Config initialized:
+   Camera: 480x640
+   Classes: ['front_horizontal', 'front_vertical']
+   PX_TO_CM: 0.2824858757062147
+   Mix ratio: (1, 2, 4)
+   Expected detections: {'front_vertical': 2, 'front_horizontal': 11}
+Device IP: 192.168.100.80
+SSL Certificate Path: /home/team10/RebarWeb/certificates/192.168.100.80.pem
+SSL Key Path: /home/team10/RebarWeb/certificates/192.168.100.80-key.pem
+PIPELINE Config loaded - IP: 192.168.100.80
+Camera: 480x640, Mix: (1, 2, 4)
+REBAR VISTA - AI-POWERED REBAR DETECTION (ANALYZED IMAGES ONLY)
+AI-powered rebar detection with optimal positioning system
+Portrait 480x640 image processing with Detectron2 and HC-SR04
+Optimal distance range: 160-200cm for best analysis results
+Save Mode: Only analyzed images with AI overlays are saved
+
+Starting Rebar Vista with AI and Distance Sensor Integration...
+📝 SAVE MODE: Only analyzed images with AI overlays will be saved
+======================================================================
+Initializing camera, image, AI, and distance services...
+📁 Enhanced Image Service initialized (4-step analysis metadata support)
+🤖 Initializing SIMPLIFIED AI Service - 4 Step Pipeline...
+   Classes: ['front_horizontal', 'front_vertical']
+   Expected: 2 verticals, 11 horizontals
+   Detection threshold: 0.3
+   📝 FIXED: Only saves analyzed images with 4-step visualization
+🔄 Loading Detectron2 with EXACT TRAINING CONFIG...
+✅ Model loaded successfully!
+   Classes: ['front_horizontal', 'front_vertical']
+   Expected detections: 2 verticals + 11 horizontals = 13 total
+📏 Initializing Distance Service...
+🔌 Connecting to HC-SR04 sensor...
+🧪 Testing sensor...
+   Test reading 1: 45.5cm
+   Test reading 2: 45.5cm
+   Test reading 3: 45.5cm
+   Test reading 4: 45.5cm
+   Test reading 5: 45.5cm
+✅ HC-SR04 sensor initialized successfully
+   GPIO Pins: TRIG=23, ECHO=24
+   Optimal range: 160-200cm
+Creating Flask web application...
+App directory: /home/team10/RebarWeb/app
+Project root: /home/team10/RebarWeb
+Template directory: /home/team10/RebarWeb/templates
+Static directory: /home/team10/RebarWeb/static
+Template dir exists: True
+Static dir exists: True
+Flask template folder: /home/team10/RebarWeb/templates
+Flask static folder: /home/team10/RebarWeb/static
+All blueprints registered successfully (including AI and sensor routes)
+Available templates: ['mainpage.html', 'splash.html', 'welcome.html', 'result.html']
+mainpage.html exists: True
+Available JavaScript files: ['camera.js', 'welcome.js', 'result.js', 'img-gallery.js', 'sw.js']
+camera.js exists: True
+Camera routes initialized with services
+Image routes initialized with service
+AI routes initialized with AI service, camera manager, and image service
+Sensor routes initialized with distance service
+Flask routes initialized (AI routes have camera access)
+Upload folder ready: static/captured_images
+Model folder ready: /home/team10/RebarWeb/app/model
+Starting camera thread for 480x640 capture...
+🚀 Starting A4Tech camera worker thread with processing...Starting distance sensor monitoring...
+
+🎥 Starting A4Tech camera with rotation and stable settings...
+🚀 Starting distance monitoring...
+📏 Distance monitoring loop started
+✅ Distance monitoring started
+
+Starting Tkinter 480x640 display window (analyzed images only)...
+Initializing Tkinter 480x640 camera interface (analyzed images only)...Starting Flask web server...
+Available routes:
+
+  static: /static/<path:filename> [GET]
+  pages.splash: / [GET]
+  pages.welcome: /welcome [GET]
+  pages.mainpage: /mainpage.html [GET]
+  pages.result: /result.html [GET]
+  pages.manifest: /manifest.json [GET]
+  pages.service_worker: /sw.js [GET]
+  camera.video_feed: /video_feed [GET]
+  camera.capture_current_frame: /capture-current-frame [POST]
+Error starting Tkinter window: no display name and no $DISPLAY environment variable  camera.camera_status: /camera-status [GET]
+  camera.start_camera: /start-camera [POST]
+
+  camera.stop_camera: /stop-camera [POST]
+  camera.restart_camera: /restart-camera [POST]
+  images.upload_image: /upload-image [POST]
+  images.get_images: /get-images [GET]
+  images.get_image_metadata: /get-image-metadata/<filename> [GET]
+  images.delete_image: /delete-image/<filename> [DELETE]
+  images.clear_all_images: /clear-all-images [DELETE]
+  images.image_service_status: /image-service-status [GET]
+  images.debug_images: /debug-images [GET]
+  images.cleanup_originals: /cleanup-originals [POST]
+  images.storage_stats: /storage-stats [GET]
+  images.all_images_debug: /all-images-debug [GET]
+  ai.analyze_rebar: /analyze-rebar [POST]
+  ai.ai_model_status: /ai-model-status [GET]
+  ai.test_ai_model: /test-ai-model [POST]
+  ai.ai_health_check: /ai-health-check [GET]
+  sensors.get_distance_reading: /distance-reading [GET]
+  sensors.get_distance_status: /distance-status [GET]
+  sensors.test_distance_sensor: /test-distance-sensor [POST]
+  sensors.start_distance_monitoring: /start-distance-monitoring [POST]
+  sensors.stop_distance_monitoring: /stop-distance-monitoring [POST]
+  sensors.distance_health_check: /distance-health-check [GET]
+======================================================================
+REBAR VISTA READY - AI-POWERED ANALYSIS (ANALYZED IMAGES ONLY)
+Web interface: Camera display with AI analysis (saves analyzed images only)
+Tkinter window: Live 480x640 camera feed with distance overlay
+AI Analysis: Detectron2 rebar detection and measurement
+Distance Sensor: HC-SR04 optimal positioning (160-200cm)
+Save Mode: ONLY analyzed images with AI overlays are saved
+Gallery: Shows only analyzed images (no duplicates)
+======================================================================
+
+=== AI Service Status ===
+Detectron2 Available: ✅
+Model Loaded: ✅
+Model Path: /home/team10/RebarWeb/app/model/model_final.pth
+Model Exists: ✅
+Classes: ['front_horizontal', 'front_vertical']
+Detection Threshold: 0.3
+Save Mode: analyzed_images_only
+========================
+
+=== Distance Sensor Status ===
+GPIO Available: ✅
+Sensor Available: ✅
+Monitoring Running: ✅
+GPIO Pins: TRIG=23, ECHO=24
+Optimal Range: 160-200cm
+📊 Enhanced Storage Statistics:
+   📁 Total image files: 725
+   ✅ Analyzed (gallery): 117 (13120.3 KB)
+   📄 Originals (hidden): 206 (23223.6 KB)
+   🎞️  Step images: 402 (50109.5 KB)
+   📋 Metadata files: 39 (179.4 KB)
+   💾 Total storage: 86632.8 KB
+
+=== Image Storage Status ===
+Total Files: 725
+Analyzed Images (Gallery): 117 (13120.3 KB)
+Original Images (Hidden): 206 (23223.6 KB)
+Total Storage: 86632.8 KB
+💡 Tip: Use /cleanup-originals endpoint to remove 206 hidden original images
+============================
+
+Using SSL certificates from /home/team10/RebarWeb/certificates/192.168.100.80.pem
+Running HTTPS server...
+ * Serving Flask app 'app'
+ * Debug mode: off
+✅ Camera found at index 0
+⚙️  Configuring A4Tech camera for stability...
+📐 A4Tech Original Frame: (480, 640, 3) (H x W x C)
+🔄 A4Tech Rotated Frame: (640, 480, 3) (H x W x C)
+✅ Processing: 640x480 → 480x640
+✅ A4Tech camera started successfully!
+   📐 Resolution: 640x480
+   🔄 Rotation: ON
+   🎬 Frame rate: 30.0 fps
+   📊 Stable frames: 10/10
+🎬 A4Tech camera thread running with rotation and cropping...
+📹 A4Tech camera: 600 frames (480x640)

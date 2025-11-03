@@ -1,0 +1,182 @@
+{
+  "timestamp": "2025-10-27T16:05:30.441465",
+  "analysis_type": "4_step_pipeline",
+  "model_type": "real_4step_pipeline",
+  "placeholder": false,
+  "detections": {
+    "total_count": 11,
+    "front_vertical_count": 2,
+    "front_horizontal_count": 9,
+    "intersection_count": 14,
+    "items": [
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.9848881959915161,
+        "bbox": [
+          243.76307678222656,
+          58.93846893310547,
+          268.7811584472656,
+          630.3805541992188
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9564972519874573,
+        "bbox": [
+          163.5704345703125,
+          616.8116455078125,
+          251.15896606445312,
+          628.4418334960938
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9394721388816833,
+        "bbox": [
+          175.44081115722656,
+          427.1481628417969,
+          258.5588073730469,
+          437.2579650878906
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.7425341010093689,
+        "bbox": [
+          186.55213928222656,
+          255.32855224609375,
+          266.25897216796875,
+          268.0942687988281
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.7082515954971313,
+        "bbox": [
+          192.93743896484375,
+          154.44998168945312,
+          266.25604248046875,
+          163.47747802734375
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.6616313457489014,
+        "bbox": [
+          179.56736755371094,
+          369.4283447265625,
+          260.7505187988281,
+          377.7899169921875
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.6307626366615295,
+        "bbox": [
+          195.4036407470703,
+          107.008056640625,
+          271.423095703125,
+          116.90350341796875
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.5973063111305237,
+        "bbox": [
+          174.47898864746094,
+          490.5910339355469,
+          258.0443115234375,
+          501.40142822265625
+        ]
+      },
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.4962674677371979,
+        "bbox": [
+          167.9927978515625,
+          52.97477340698242,
+          207.53955078125,
+          624.9977416992188
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.4328174591064453,
+        "bbox": [
+          184.3338165283203,
+          308.8089599609375,
+          262.2403259277344,
+          320.32452392578125
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.3306574523448944,
+        "bbox": [
+          190.02566528320312,
+          204.67758178710938,
+          266.6960144042969,
+          215.9834442138672
+        ]
+      }
+    ]
+  },
+  "dimensions": {
+    "length": 28.35196138371182,
+    "width": 28.35196138371182,
+    "height": 144.2573331843662,
+    "unit": "cm",
+    "volume": 115958.90794910464,
+    "volume_m3": 0.11595890794910464,
+    "display": "28.4cm \u00d7 28.4cm \u00d7 144.3cm = 115959cm\u00b3 = 0.115959m\u00b3"
+  },
+  "cement_mixture": {
+    "cement": 1,
+    "sand": 2,
+    "aggregate": 4,
+    "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+    "cement_bags": 0.9183945509569089,
+    "cement_weight_kg": 36.735782038276355,
+    "cement_m3": 0.025510959748803023,
+    "sand_volume_m3": 0.051021919497606046,
+    "sand_weight_kg": 81.63507119616968,
+    "aggregate_volume_m3": 0.10204383899521209,
+    "gravel_weight_kg": 153.06575849281813,
+    "water_liters": 19.469964480286468,
+    "dry_volume_m3": 0.17857671824162116,
+    "total_concrete_volume_m3": 0.17857671824162116
+  },
+  "step_images": {
+    "step1": {
+      "filename": "step1_detection_20251027_160530_414.jpg",
+      "url": "/static/captured_images/step1_detection_20251027_160530_414.jpg",
+      "exists": true
+    },
+    "step2": {
+      "filename": "step2_intersections_20251027_160530_414.jpg",
+      "url": "/static/captured_images/step2_intersections_20251027_160530_414.jpg",
+      "exists": true
+    },
+    "step3": {
+      "filename": "step3_polygon_20251027_160530_414.jpg",
+      "url": "/static/captured_images/step3_polygon_20251027_160530_414.jpg",
+      "exists": true
+    },
+    "step4": {
+      "filename": "step4_cement_20251027_160530_414.jpg",
+      "url": "/static/captured_images/step4_cement_20251027_160530_414.jpg",
+      "exists": true
+    },
+    "final": {
+      "filename": "analyzed_rebar_20251027_160530_414.jpg",
+      "url": "/static/captured_images/analyzed_rebar_20251027_160530_414.jpg",
+      "exists": true
+    }
+  },
+  "pipeline_data": {
+    "front_horizontal_count": 9,
+    "front_vertical_count": 2,
+    "intersection_count": 14,
+    "polygon_corners": 4
+  }
+}

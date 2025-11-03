@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rebar Vista - Camera</title>
+  
+  <!-- CSS Files -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/mainpage.css') }}">
+</head>
+
+<body>
+  <!-- Header Navigation (exactly matching welcome page) -->
+  <header class="header">
+    <div class="nav-container">
+      <div class="logo-section">
+        <img src="{{ url_for('static', filename='logo/logo_no_bg.png') }}" alt="Rebar Vista Logo" class="nav-logo">
+        <div class="brand-name">
+          <div class="brand-name-top">Rebar</div>
+          <div class="brand-name-bottom">Vista</div>
+        </div>
+      </div>
+      <button class="home-btn" onclick="goToWelcome()">HOME</button>
+    </div>
+  </header>
+
+  <!-- Camera Interface -->
+  <main class="camera-interface">
+    <div class="camera-container" id="camera-container">
+      <!-- Camera Feeds -->
+      <img id="server-feed" alt="A4Tech Camera Feed">
+      <video id="camera-feed" autoplay playsinline muted style="display: none;"></video>
+      
+      <!-- Rule of Thirds Grid Overlay -->
+      <div class="grid-overlay" id="grid-overlay">
+        <div class="grid-line grid-vertical" style="left: 33.33%;"></div>
+        <div class="grid-line grid-vertical" style="left: 66.67%;"></div>
+        <div class="grid-line grid-horizontal" style="top: 33.33%;"></div>
+        <div class="grid-line grid-horizontal" style="top: 66.67%;"></div>
+      </div>
+      
+      <!-- Camera Status -->
+      <div class="camera-status" id="camera-status">Starting A4Tech Camera...</div>
+      
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Analyzing...</div>
+      </div>
+      
+      <!-- Camera Controls Overlay -->
+      <div class="camera-controls">
+        <!-- Tutorial Button with white ? symbol -->
+        <button class="tutorial-btn" id="tutorial-btn" title="How to use">?</button>
+        
+        <!-- Bottom Controls -->
+        <div class="bottom-controls">
+          <!-- Gallery Button - Pure custom icon, no emoji -->
+          <button class="gallery-btn" id="gallery-btn" title="View Gallery"></button>
+          
+          <!-- Capture Button - Pure custom icon, no emoji -->
+          <button class="capture-btn" id="capture-btn" title="Capture & Analyze"></button>
+          
+          <!-- Grid Toggle Button - beside capture button -->
+          <button class="grid-btn" id="grid-btn" title="Toggle Grid"></button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Tutorial Modal -->
+  <div class="modal-overlay tutorial-modal" id="tutorial-modal">
+    <div class="modal-content">
+      <h2>How to Use Rebar Vista</h2>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">1</div>
+        <div>
+          <strong>Position the camera</strong><br>
+          Point the camera at the rebar column structure with good lighting at 196cm - 204cm distance
+        </div>
+      </div>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">2</div>
+        <div>
+          <strong>Capture & analyze</strong><br>
+          Press the camera button to capture and start the analysis
+        </div>
+      </div>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">3</div>
+        <div>
+          <strong>Processing</strong><br>
+          Wait for system to compute(10-15secs waiting time)
+        </div>
+      </div>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">4</div>
+        <div>
+          <strong>View results</strong><br>
+          Results show approximate dimensions and cement mixture estimation
+        </div>
+      </div>
+      
+      <div class="tutorial-step">
+        <div class="tutorial-step-number">5</div>
+        <div>
+          <strong>Automatic saving</strong><br>
+          Results are automatically saved to the gallery
+        </div>
+      </div>
+      
+      <div class="modal-buttons">
+        <button class="modal-btn primary" onclick="closeTutorialModal()">Got it!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATED: Pipeline Results Modal with Exact Format -->
+  <div class="modal-overlay results-modal" id="results-modal">
+    <div class="modal-content">
+      <div class="results-header">
+        <h2>Rebar Vista Analysis Results</h2>
+      </div>
+      <div class="results-body">
+        <!-- Analysis Result Image -->
+        <img id="results-image" src="" alt="Pipeline Analysis Result" class="results-image">
+        
+        <!-- UPDATED: Pipeline Data Display with Exact Format -->
+        <div class="pipeline-results-data">
+          <div class="pipeline-result-card">
+            <h3>Rebar Dimensions</h3>
+            <div class="pipeline-result-value" id="dimensions-result">Calculating dimensions...</div>
+          </div>
+          <div class="pipeline-result-card">
+            <h3>Cement Mixture Ratio</h3>
+            <div class="pipeline-result-value" id="mixture-result">Calculating mixture...</div>
+          </div>
+        </div>
+        
+<!-- UPDATED: Additional Pipeline Details -->
+<div class="pipeline-details">
+  <div class="pipeline-detail-row">
+    <span class="pipeline-detail-label">Analysis Date:</span>
+    <span id="analysis-date" class="pipeline-detail-value">-</span>
+  </div>
+  <div class="pipeline-detail-row">
+    <span class="pipeline-detail-label">Wet Volume Calculation:</span>
+    <span id="wet-volume" class="pipeline-detail-value">Calculating...</span>
+  </div>
+  <div class="pipeline-detail-row">
+    <span class="pipeline-detail-label">Material Quantities:</span>
+    <span id="cement-calc" class="pipeline-detail-value">Calculating...</span>
+  </div>
+  <div class="pipeline-detail-row">
+    <span class="pipeline-detail-label">Water Requirement:</span>
+    <span id="water-calc" class="pipeline-detail-value">Calculating...</span>
+  </div>
+</div>
+      
+      <div class="modal-footer results-footer">
+        <button class="modal-btn secondary" onclick="closeResultsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Error Modal -->
+  <div class="modal-overlay error-modal" id="error-modal">
+    <div class="modal-content">
+      <div class="error-icon">⚠️</div>
+      <h2>No Rebar Detected</h2>
+      <p>The AI could not detect any rebar structures in the captured image. Please ensure the rebar is clearly visible and try again.</p>
+      <div class="error-requirements">
+        <h4>Detection Requirements:</h4>
+        <ul>
+          <li>2 front vertical rebars visible</li>
+          <li>11 front horizontal rebars visible</li>
+          <li>Clear intersection points</li>
+          <li>Good lighting conditions</li>
+          <li>196-204cm optimal distance</li>
+        </ul>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn secondary" onclick="closeErrorModal()">Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Files -->
+  <script src="{{ url_for('static', filename='javascript/camera.js') }}"></script>
+</body>
+</html>

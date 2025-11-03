@@ -1,0 +1,222 @@
+{
+  "timestamp": "2025-10-29T12:17:18.759935",
+  "analysis_type": "4_step_pipeline",
+  "model_type": "real_4step_pipeline",
+  "placeholder": false,
+  "detections": {
+    "total_count": 15,
+    "front_vertical_count": 4,
+    "front_horizontal_count": 11,
+    "intersection_count": 25,
+    "items": [
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.985988438129425,
+        "bbox": [
+          207.62286376953125,
+          12.862765312194824,
+          233.1610870361328,
+          635.6751098632812
+        ]
+      },
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.9642447233200073,
+        "bbox": [
+          286.8799743652344,
+          0.0,
+          314.0751037597656,
+          636.2782592773438
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.961833655834198,
+        "bbox": [
+          206.75753784179688,
+          508.7086486816406,
+          297.20916748046875,
+          519.4887084960938
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9582501649856567,
+        "bbox": [
+          204.5995635986328,
+          569.6939697265625,
+          293.0950927734375,
+          580.2000122070312
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9470595121383667,
+        "bbox": [
+          228.42176818847656,
+          5.629690647125244,
+          318.55792236328125,
+          13.379295349121094
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9467443823814392,
+        "bbox": [
+          226.01986694335938,
+          67.01719665527344,
+          314.69024658203125,
+          75.50492858886719
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9462073445320129,
+        "bbox": [
+          228.40907287597656,
+          128.8967742919922,
+          310.8421325683594,
+          136.50193786621094
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9328855872154236,
+        "bbox": [
+          215.8220672607422,
+          319.8123779296875,
+          306.0981140136719,
+          328.9049072265625
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.907305896282196,
+        "bbox": [
+          208.67648315429688,
+          446.2356872558594,
+          303.46563720703125,
+          455.4225158691406
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.8996133208274841,
+        "bbox": [
+          218.57562255859375,
+          256.44561767578125,
+          306.8799743652344,
+          264.9403076171875
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.877491295337677,
+        "bbox": [
+          200.58438110351562,
+          630.5363159179688,
+          291.8080749511719,
+          639.0066528320312
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.8675071001052856,
+        "bbox": [
+          220.32313537597656,
+          192.7613067626953,
+          311.80572509765625,
+          199.40719604492188
+        ]
+      },
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.71855229139328,
+        "bbox": [
+          292.6123046875,
+          3.3993160724639893,
+          311.2864990234375,
+          444.805419921875
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.6223084330558777,
+        "bbox": [
+          211.9534454345703,
+          384.7485046386719,
+          300.18414306640625,
+          393.6256103515625
+        ]
+      },
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.34025099873542786,
+        "bbox": [
+          218.25682067871094,
+          76.85481262207031,
+          228.297119140625,
+          418.7679443359375
+        ]
+      }
+    ]
+  },
+  "dimensions": {
+    "length": 32.03882103181829,
+    "width": 32.03882103181829,
+    "height": 176.62909360928725,
+    "unit": "cm",
+    "volume": 181307.3011631965,
+    "volume_m3": 0.18130730116319652,
+    "display": "32.0cm \u00d7 32.0cm \u00d7 176.6cm = 181307cm\u00b3 = 0.181307m\u00b3"
+  },
+  "cement_mixture": {
+    "cement": 1,
+    "sand": 2,
+    "aggregate": 4,
+    "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+    "cement_bags": 1.4359538252125161,
+    "cement_weight_kg": 57.43815300850065,
+    "cement_m3": 0.03988760625590323,
+    "sand_volume_m3": 0.07977521251180646,
+    "sand_weight_kg": 127.64034001889033,
+    "aggregate_volume_m3": 0.1595504250236129,
+    "gravel_weight_kg": 239.32563753541936,
+    "water_liters": 30.442221094505346,
+    "dry_volume_m3": 0.2792132437913226,
+    "total_concrete_volume_m3": 0.2792132437913226
+  },
+  "step_images": {
+    "step1": {
+      "filename": "step1_detection_20251029_121718_744.jpg",
+      "url": "/static/captured_images/step1_detection_20251029_121718_744.jpg",
+      "exists": true
+    },
+    "step2": {
+      "filename": "step2_intersections_20251029_121718_744.jpg",
+      "url": "/static/captured_images/step2_intersections_20251029_121718_744.jpg",
+      "exists": true
+    },
+    "step3": {
+      "filename": "step3_polygon_20251029_121718_744.jpg",
+      "url": "/static/captured_images/step3_polygon_20251029_121718_744.jpg",
+      "exists": true
+    },
+    "step4": {
+      "filename": "step4_cement_20251029_121718_744.jpg",
+      "url": "/static/captured_images/step4_cement_20251029_121718_744.jpg",
+      "exists": true
+    },
+    "final": {
+      "filename": "analyzed_rebar_20251029_121718_744.jpg",
+      "url": "/static/captured_images/analyzed_rebar_20251029_121718_744.jpg",
+      "exists": true
+    }
+  },
+  "pipeline_data": {
+    "front_horizontal_count": 11,
+    "front_vertical_count": 4,
+    "intersection_count": 25,
+    "polygon_corners": 4
+  }
+}

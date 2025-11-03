@@ -1,0 +1,32 @@
+The checkpoint state_dict contains keys that are not used by the model:
+  roi_heads.mask_head.mask_fcn1.{bias, weight}
+  roi_heads.mask_head.mask_fcn2.{bias, weight}
+  roi_heads.mask_head.mask_fcn3.{bias, weight}
+  roi_heads.mask_head.mask_fcn4.{bias, weight}
+  roi_heads.mask_head.deconv.{bias, weight}
+  roi_heads.mask_head.predictor.{bias, weight}
+[ WARN:0@4.137] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video0): can't open camera by index
+[ERROR:0@4.138] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
+[ WARN:0@4.139] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video1): can't open camera by index
+[ERROR:0@4.140] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
+[ WARN:0@4.140] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video2): can't open camera by index
+[ERROR:0@4.141] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on https://127.0.0.1:8001
+ * Running on https://192.168.100.80:8001
+[33mPress CTRL+C to quit[0m
+The checkpoint state_dict contains keys that are not used by the model:
+  roi_heads.mask_head.mask_fcn1.{bias, weight}
+  roi_heads.mask_head.mask_fcn2.{bias, weight}
+  roi_heads.mask_head.mask_fcn3.{bias, weight}
+  roi_heads.mask_head.mask_fcn4.{bias, weight}
+  roi_heads.mask_head.deconv.{bias, weight}
+  roi_heads.mask_head.predictor.{bias, weight}
+/home/team10/RebarWeb/venv/lib/python3.11/site-packages/gpiozero/input_devices.py:852: PWMSoftwareFallback: For more accurate readings, use the pigpio pin factory.See https://gpiozero.readthedocs.io/en/stable/api_input.html#distancesensor-hc-sr04 for more info
+  warnings.warn(PWMSoftwareFallback(
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on https://127.0.0.1:8000
+ * Running on https://192.168.100.80:8000
+[33mPress CTRL+C to quit[0m

@@ -1,0 +1,69 @@
+{
+  "analyzed_image_path": "static/captured_images/analyzed_rebar_20250916_174426_794.jpg",
+  "analyzed_image_filename": "analyzed_rebar_20250916_174426_794.jpg",
+  "save_timestamp": "2025-09-16T17:44:26.830732",
+  "analysis_metadata": {
+    "timestamp": "2025-09-16T09:44:26.191Z",
+    "analysis_type": "pipeline_quadrant",
+    "dimensions": {
+      "display": "27.42cm x 27.41cm x 200.0cm = 150,316 cubic centimeters",
+      "height": 200,
+      "length": 27.42,
+      "volume": 150316.44,
+      "volume_m3": 0.15031644,
+      "width": 27.41
+    },
+    "cement_mixture": {
+      "cement_bags": 1.19,
+      "gravel_volume": 0.132,
+      "ratio": [
+        1,
+        2,
+        4
+      ],
+      "ratio_string": "1:2:4",
+      "sand_volume": 0.066,
+      "water_liters": 25.2
+    },
+    "detections": 13,
+    "model_type": "pipeline_quadrant_analysis",
+    "quadrant_info": {
+      "intersections_found": 19,
+      "quadrant_counts": {
+        "bottom_left": 4,
+        "bottom_right": 4,
+        "top_left": 6,
+        "top_right": 5
+      }
+    }
+  },
+  "step_images": {
+    "cement": "static/captured_images/step4_cement_20250916_174426_507.jpg",
+    "detection": "static/captured_images/step1_detection_20250916_174426_507.jpg",
+    "intersections": "static/captured_images/step2_intersections_20250916_174426_507.jpg",
+    "polygon": "static/captured_images/step3_polygon_20250916_174426_507.jpg"
+  },
+  "pipeline_type": "quadrant_intersection",
+  "dimensions": {
+    "display": "27.42cm x 27.41cm x 200.0cm = 150,316 cubic centimeters",
+    "height": 200,
+    "length": 27.42,
+    "volume": 150316.44,
+    "volume_m3": 0.15031644,
+    "width": 27.41
+  },
+  "cement_mixture": {
+    "cement_bags": 1.19,
+    "gravel_volume": 0.132,
+    "ratio": [
+      1,
+      2,
+      4
+    ],
+    "ratio_string": "1:2:4",
+    "sand_volume": 0.066,
+    "water_liters": 25.2
+  },
+  "detection_count": 13,
+  "model_type": "pipeline_quadrant_analysis"
+}
