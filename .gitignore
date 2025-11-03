@@ -26,9 +26,12 @@ wheels/
 .installed.cfg
 *.egg
 
+<<<<<<< HEAD
 # Detectron2 - entire directory
 detectron2/
 
+=======
+>>>>>>> d1ba1dbc08adda4bedfde54237f3c1c87e5a820c
 # Detectron2 build files
 detectron2/build/
 detectron2/*.so
@@ -44,15 +47,27 @@ detectron2/**/*.so
 .DS_Store
 Thumbs.db
 
+<<<<<<< HEAD
 # Certificates
 certificates/*.pem
 
 # Large model files
-app/model/*.pth
+=======
+# Certificates (optional - you may want to keep these)
+certificates/*.pem
 
+# Large model files (optional)
+>>>>>>> d1ba1dbc08adda4bedfde54237f3c1c87e5a820c
+app/model/*.pth
+*.pth
+*pt
 # Logs
 *.log
 
 # Temporary files
 *.tmp
 temp/
+<<<<<<< HEAD
+=======
+detectron2/
+>>>>>>> d1ba1dbc08adda4bedfde54237f3c1c87e5a820c

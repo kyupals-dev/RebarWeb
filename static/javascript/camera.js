@@ -27,6 +27,10 @@ class CameraAppManager {
     this.tutorialBtn = document.getElementById('tutorial-btn');
     this.galleryBtn = document.getElementById('gallery-btn');
     this.captureBtn = document.getElementById('capture-btn');
+<<<<<<< HEAD
+=======
+    this.fullscreenBtn = document.getElementById('fullscreen-btn');
+>>>>>>> d1ba1dbc08adda4bedfde54237f3c1c87e5a820c
     this.gridBtn = document.getElementById('grid-btn');
     
     // Modals
@@ -220,6 +224,12 @@ class CameraAppManager {
     if (this.captureBtn) {
       this.captureBtn.addEventListener('click', () => this.captureAndAnalyze());
     }
+<<<<<<< HEAD
+=======
+    if (this.fullscreenBtn) {
+      this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+    }
+>>>>>>> d1ba1dbc08adda4bedfde54237f3c1c87e5a820c
     if (this.gridBtn) {
       this.gridBtn.addEventListener('click', () => this.toggleGrid());
     }
@@ -240,7 +250,14 @@ class CameraAppManager {
         if (e.target === this.errorModal) this.closeErrorModal();
       });
     }
+<<<<<<< HEAD
 
+=======
+    
+    // Fullscreen change detection
+    document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
+    document.addEventListener('webkitfullscreenchange', () => this.handleFullscreenChange());
+>>>>>>> d1ba1dbc08adda4bedfde54237f3c1c87e5a820c
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => this.handleKeyboard(e));
@@ -685,6 +702,71 @@ if (waterCalc && results.cement_mixture && results.cement_mixture.details) {
     window.location.href = '/result.html';
   }
   
+<<<<<<< HEAD
+=======
+  // ==================== FULLSCREEN MANAGEMENT ====================
+  
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      this.enterFullscreen();
+    } else {
+      this.exitFullscreen();
+    }
+  }
+  
+  enterFullscreen() {
+    console.log('⛶ Entering fullscreen...');
+    
+    const element = this.cameraContainer;
+    
+    if (element && element.requestFullscreen) {
+      element.requestFullscreen();
+    } else if (element && element.webkitRequestFullscreen) {
+      element.webkitRequestFullscreen();
+    } else if (element && element.mozRequestFullScreen) {
+      element.mozRequestFullScreen();
+    } else if (element && element.msRequestFullscreen) {
+      element.msRequestFullscreen();
+    }
+  }
+  
+  exitFullscreen() {
+    console.log('↙️ Exiting fullscreen...');
+    
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+  
+  handleFullscreenChange() {
+    this.isFullscreen = !!document.fullscreenElement;
+    
+    if (this.isFullscreen) {
+      if (this.cameraContainer) this.cameraContainer.classList.add('fullscreen');
+      // Change to minimize icon when in fullscreen
+      if (this.fullscreenBtn) {
+        this.fullscreenBtn.classList.add('minimize-mode');
+        this.fullscreenBtn.title = 'Exit Fullscreen';
+      }
+      this.updateStatus('Fullscreen mode active');
+    } else {
+      if (this.cameraContainer) this.cameraContainer.classList.remove('fullscreen');
+      // Change back to fullscreen icon when not in fullscreen
+      if (this.fullscreenBtn) {
+        this.fullscreenBtn.classList.remove('minimize-mode');
+        this.fullscreenBtn.title = 'Enter Fullscreen';
+      }
+      this.updateStatus('Fullscreen mode exited');
+    }
+  }
+  
+>>>>>>> d1ba1dbc08adda4bedfde54237f3c1c87e5a820c
   // ==================== MODAL MANAGEMENT ====================
   
   openTutorialModal() {

@@ -1,0 +1,142 @@
+{
+  "timestamp": "2025-10-09T15:31:25.141155",
+  "analysis_type": "4_step_pipeline",
+  "model_type": "real_4step_pipeline",
+  "placeholder": false,
+  "detections": {
+    "total_count": 7,
+    "front_vertical_count": 2,
+    "front_horizontal_count": 5,
+    "intersection_count": 10,
+    "items": [
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9880220890045166,
+        "bbox": [
+          213.71261596679688,
+          201.70529174804688,
+          288.01776123046875,
+          211.2176971435547
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.975257396697998,
+        "bbox": [
+          211.55628967285156,
+          306.486572265625,
+          282.6517639160156,
+          318.1405944824219
+        ]
+      },
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.9709029197692871,
+        "bbox": [
+          271.1163024902344,
+          114.88191986083984,
+          286.73492431640625,
+          407.84918212890625
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9664885997772217,
+        "bbox": [
+          213.37387084960938,
+          254.7967987060547,
+          285.6557922363281,
+          262.56878662109375
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9385198950767517,
+        "bbox": [
+          216.5849609375,
+          137.3695068359375,
+          289.1422119140625,
+          151.05715942382812
+        ]
+      },
+      {
+        "class_name": "front_horizontal",
+        "confidence": 0.9379798769950867,
+        "bbox": [
+          211.3732452392578,
+          360.30938720703125,
+          279.72515869140625,
+          367.4280700683594
+        ]
+      },
+      {
+        "class_name": "front_vertical",
+        "confidence": 0.9306471943855286,
+        "bbox": [
+          213.87777709960938,
+          90.63250732421875,
+          227.21682739257812,
+          405.1828308105469
+        ]
+      }
+    ]
+  },
+  "dimensions": {
+    "length": 25.491048349499028,
+    "width": 25.491048349499028,
+    "height": 62.04954675361935,
+    "unit": "cm",
+    "volume": 40319.39501002777,
+    "volume_m3": 0.04031939501002777,
+    "display": "25.5cm \u00d7 25.5cm \u00d7 62.0cm = 40319cm\u00b3 = 0.040319m\u00b3"
+  },
+  "cement_mixture": {
+    "cement": 1,
+    "sand": 2,
+    "aggregate": 4,
+    "ratio_string": "1 Cement : 2 Sand : 4 Aggregate",
+    "cement_bags": 0.31932960847942,
+    "cement_weight_kg": 12.7731843391768,
+    "cement_m3": 0.00887026690220611,
+    "sand_volume_m3": 0.01774053380441222,
+    "sand_weight_kg": 28.38485408705955,
+    "aggregate_volume_m3": 0.03548106760882444,
+    "gravel_weight_kg": 53.22160141323666,
+    "water_liters": 6.769787699763704,
+    "dry_volume_m3": 0.06209186831544277,
+    "total_concrete_volume_m3": 0.06209186831544277
+  },
+  "step_images": {
+    "step1": {
+      "filename": "step1_detection_20251009_153125_114.jpg",
+      "url": "/static/captured_images/step1_detection_20251009_153125_114.jpg",
+      "exists": true
+    },
+    "step2": {
+      "filename": "step2_intersections_20251009_153125_114.jpg",
+      "url": "/static/captured_images/step2_intersections_20251009_153125_114.jpg",
+      "exists": true
+    },
+    "step3": {
+      "filename": "step3_polygon_20251009_153125_114.jpg",
+      "url": "/static/captured_images/step3_polygon_20251009_153125_114.jpg",
+      "exists": true
+    },
+    "step4": {
+      "filename": "step4_cement_20251009_153125_114.jpg",
+      "url": "/static/captured_images/step4_cement_20251009_153125_114.jpg",
+      "exists": true
+    },
+    "final": {
+      "filename": "analyzed_rebar_20251009_153125_114.jpg",
+      "url": "/static/captured_images/analyzed_rebar_20251009_153125_114.jpg",
+      "exists": true
+    }
+  },
+  "pipeline_data": {
+    "front_horizontal_count": 5,
+    "front_vertical_count": 2,
+    "intersection_count": 10,
+    "polygon_corners": 4
+  }
+}
