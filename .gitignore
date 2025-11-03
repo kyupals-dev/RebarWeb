@@ -71,3 +71,4 @@ temp/
 =======
 detectron2/
 >>>>>>> d1ba1dbc08adda4bedfde54237f3c1c87e5a820c
+app/model/*.pth
