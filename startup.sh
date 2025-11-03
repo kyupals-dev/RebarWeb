@@ -60,9 +60,4 @@ wmctrl -r "Rebar Main" -b add,maximized_vert,maximized_horz
 sleep 2
 notify-send "Rebar Vista Started" "Press Ctrl+Alt+P to toggle panel visibility" -t 5000
 
-# Script finished - no infinite loop
-<<<<<<< HEAD
-exit 0
-=======
-exit 0
->>>>>>> d1ba1dbc08adda4bedfde54237f3c1c87e5a820c
+
